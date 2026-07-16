@@ -30,15 +30,28 @@ export function storageEventsRouter(ports: Ports): Router {
             id: string;
             owner_id: string;
             unit_id: string;
-          }>('SELECT id, owner_id, unit_id FROM files WHERE object_path = $1', [objectPath]);
+            status: string;
+            size_bytes: string | null;
+          }>('SELECT id, owner_id, unit_id, status, size_bytes FROM files WHERE object_path = $1', [objectPath]);
           const file = rows[0];
           if (!file) return { found: false as const };
+
+          // `status = 'replacing'` (ver routes/files.ts, POST
+          // /files/:id/replace-url) marca uma substituição em andamento: a
+          // linha ainda guarda o `size_bytes` da versão vigente, então só o
+          // delta (nova − antiga) precisa ser somado — a versão antiga já
+          // estava contada em `storage_used_bytes` (design.md D6, "sem
+          // contar em dobro"). Upload novo (status 'pending') soma o total,
+          // como antes.
+          const isReplace = file.status === 'replacing';
+          const oldSize = Number(file.size_bytes ?? '0');
+          const delta = isReplace ? sizeBytes - oldSize : sizeBytes;
 
           const { rows: userRows } = await client.query<{ storage_used_bytes: string }>(
             'SELECT storage_used_bytes FROM users WHERE id = $1',
             [file.owner_id],
           );
-          const newUsage = Number(userRows[0]?.storage_used_bytes ?? '0') + sizeBytes;
+          const newUsage = Number(userRows[0]?.storage_used_bytes ?? '0') + delta;
           const overQuota = newUsage > config.storageQuotaBytesPerUser;
 
           await client.query('UPDATE users SET storage_used_bytes = $1 WHERE id = $2', [
@@ -50,6 +63,13 @@ export function storageEventsRouter(ports: Ports): Router {
             overQuota ? 'over_quota' : 'active',
             file.id,
           ]);
+
+          if (isReplace) {
+            await client.query(
+              'INSERT INTO audit_events (unit_id, user_id, file_id, action) VALUES ($1, $2, $3, $4)',
+              [file.unit_id, file.owner_id, file.id, 'replace'],
+            );
+          }
 
           return { found: true as const, overQuota };
         },

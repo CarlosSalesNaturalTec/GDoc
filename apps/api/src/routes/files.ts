@@ -1,16 +1,39 @@
 import { randomUUID } from 'node:crypto';
 import { Router } from 'express';
 import type { Ports } from '../ports/index.js';
-import { FileAccessAction } from '@gdoc/shared';
+import { AuditAction, FileAccessAction } from '@gdoc/shared';
+import type {
+  FileSummaryResponse,
+  RenameFileRequest,
+  ReplaceFileRequest,
+  UploadUrlRequest,
+} from '@gdoc/shared';
 import { config } from '../config.js';
 
 interface FileRow {
   id: string;
   unit_id: string;
   owner_id: string;
+  folder_id: string | null;
   object_path: string;
   file_name: string;
   content_type: string | null;
+  size_bytes: string | null;
+  status: string;
+  created_at: string;
+}
+
+function toFileSummaryResponse(row: FileRow): FileSummaryResponse {
+  return {
+    id: row.id,
+    ownerId: row.owner_id,
+    folderId: row.folder_id,
+    fileName: row.file_name,
+    contentType: row.content_type,
+    sizeBytes: row.size_bytes === null ? null : Number(row.size_bytes),
+    status: row.status,
+    createdAt: new Date(row.created_at).toISOString(),
+  };
 }
 
 async function findFileById(ports: Ports, ctx: NonNullable<import('express').Request['tenantContext']>, fileId: string) {
@@ -24,7 +47,7 @@ async function recordAudit(
   ports: Ports,
   ctx: NonNullable<import('express').Request['tenantContext']>,
   file: FileRow,
-  action: FileAccessAction,
+  action: AuditAction,
 ) {
   await ports.database.withTenantTransaction(ctx, async (client) => {
     await client.query(
@@ -82,11 +105,7 @@ export function filesRouter(ports: Ports): Router {
   router.post('/files/upload-url', async (req, res, next) => {
     try {
       const ctx = req.tenantContext!;
-      const { fileName, contentType, declaredSizeBytes } = req.body as {
-        fileName?: string;
-        contentType?: string;
-        declaredSizeBytes?: number;
-      };
+      const { fileName, contentType, declaredSizeBytes, folderId } = req.body as UploadUrlRequest;
 
       if (!fileName || !contentType || !Number.isFinite(declaredSizeBytes) || declaredSizeBytes! < 0) {
         res.status(400).json({ error: 'invalid request body' });
@@ -97,20 +116,116 @@ export function filesRouter(ports: Ports): Router {
       const objectPath = ports.storage.buildObjectPath(ctx.unitId, ctx.userId, `${objectId}-${fileName}`);
 
       const outcome = await ports.database.withTenantTransaction(ctx, async (client) => {
+        if (folderId) {
+          // RLS restringe a leitura à unidade do remetente — pasta de outra
+          // unidade não aparece aqui (navegacao spec: "a pasta de destino
+          // SHALL pertencer à mesma unidade do remetente").
+          const { rows } = await client.query('SELECT id FROM folders WHERE id = $1', [folderId]);
+          if (!rows[0]) return { ok: false as const, reason: 'folder not found' as const };
+        }
+
         const { rows } = await client.query<{ storage_used_bytes: string }>(
           'SELECT storage_used_bytes FROM users WHERE id = $1',
           [ctx.userId],
         );
         const currentUsage = Number(rows[0]?.storage_used_bytes ?? '0');
         if (currentUsage + declaredSizeBytes! > config.storageQuotaBytesPerUser) {
-          return { ok: false as const };
+          return { ok: false as const, reason: 'quota exceeded' as const };
         }
 
         await client.query(
-          `INSERT INTO files (id, unit_id, owner_id, object_path, file_name, content_type, size_bytes, status)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, 'pending')`,
-          [objectId, ctx.unitId, ctx.userId, objectPath, fileName, contentType, declaredSizeBytes],
+          `INSERT INTO files (id, unit_id, owner_id, folder_id, object_path, file_name, content_type, size_bytes, status)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'pending')`,
+          [objectId, ctx.unitId, ctx.userId, folderId ?? null, objectPath, fileName, contentType, declaredSizeBytes],
         );
+        return { ok: true as const };
+      });
+
+      if (!outcome.ok) {
+        res.status(outcome.reason === 'folder not found' ? 404 : 400).json({ error: outcome.reason });
+        return;
+      }
+
+      const signed = await ports.storage.getUploadUrl(objectPath, contentType);
+      res.json({ uploadUrl: signed.url, objectPath, expiresAt: signed.expiresAt.toISOString() });
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  router.patch('/files/:id', async (req, res, next) => {
+    try {
+      const ctx = req.tenantContext!;
+      const { fileName } = req.body as RenameFileRequest;
+      if (!fileName || typeof fileName !== 'string' || fileName.trim().length === 0) {
+        res.status(400).json({ error: 'invalid request body' });
+        return;
+      }
+
+      const file = await findFileById(ports, ctx, req.params.id);
+      // Checagem por dono até o Épico 4 (design.md D6) — arquivo não
+      // visível pela RLS ou de outro dono recebe o mesmo 403, sem
+      // distinguir os dois casos.
+      if (!file || file.owner_id !== ctx.userId) {
+        res.status(403).json({ error: 'forbidden' });
+        return;
+      }
+
+      const updated = await ports.database.withTenantTransaction(ctx, async (client) => {
+        const { rows } = await client.query<FileRow>(
+          'UPDATE files SET file_name = $1 WHERE id = $2 RETURNING *',
+          [fileName, file.id],
+        );
+        return rows[0]!;
+      });
+
+      await recordAudit(ports, ctx, updated, AuditAction.RENAME);
+      res.json(toFileSummaryResponse(updated));
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  router.post('/files/:id/replace-url', async (req, res, next) => {
+    try {
+      const ctx = req.tenantContext!;
+      const { contentType, declaredSizeBytes } = req.body as ReplaceFileRequest;
+      if (!contentType || !Number.isFinite(declaredSizeBytes) || declaredSizeBytes! < 0) {
+        res.status(400).json({ error: 'invalid request body' });
+        return;
+      }
+
+      const file = await findFileById(ports, ctx, req.params.id);
+      if (!file || file.owner_id !== ctx.userId) {
+        res.status(403).json({ error: 'forbidden' });
+        return;
+      }
+
+      const objectId = randomUUID();
+      const newObjectPath = ports.storage.buildObjectPath(ctx.unitId, ctx.userId, `${objectId}-${file.file_name}`);
+
+      const outcome = await ports.database.withTenantTransaction(ctx, async (client) => {
+        const { rows } = await client.query<{ storage_used_bytes: string }>(
+          'SELECT storage_used_bytes FROM users WHERE id = $1',
+          [ctx.userId],
+        );
+        const currentUsage = Number(rows[0]?.storage_used_bytes ?? '0');
+        const oldSize = Number(file.size_bytes ?? '0');
+        // Cota pelo delta (design.md D6): a versão antiga já está contada
+        // em `storage_used_bytes`, então só a diferença importa.
+        const projectedUsage = currentUsage - oldSize + declaredSizeBytes!;
+        if (projectedUsage > config.storageQuotaBytesPerUser) {
+          return { ok: false as const };
+        }
+
+        // `status = 'replacing'` (não 'pending') preserva `size_bytes`
+        // vigente na linha até o finalize poder calcular o delta real
+        // (routes/storage-events.ts) sem contar em dobro. `folder_id` e
+        // `file_name` são preservados — só o ponteiro físico muda.
+        await client.query(`UPDATE files SET object_path = $1, status = 'replacing' WHERE id = $2`, [
+          newObjectPath,
+          file.id,
+        ]);
         return { ok: true as const };
       });
 
@@ -119,8 +234,8 @@ export function filesRouter(ports: Ports): Router {
         return;
       }
 
-      const signed = await ports.storage.getUploadUrl(objectPath, contentType);
-      res.json({ uploadUrl: signed.url, objectPath, expiresAt: signed.expiresAt.toISOString() });
+      const signed = await ports.storage.getUploadUrl(newObjectPath, contentType);
+      res.json({ uploadUrl: signed.url, objectPath: newObjectPath, expiresAt: signed.expiresAt.toISOString() });
     } catch (err) {
       next(err);
     }
