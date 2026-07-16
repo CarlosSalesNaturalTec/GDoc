@@ -1,0 +1,44 @@
+output "api_url" {
+  description = "URL pública do Cloud Run da API."
+  value       = google_cloud_run_v2_service.api.uri
+}
+
+output "api_service_account_email" {
+  description = "Service account de runtime da API — usar para IAM adicional se necessário."
+  value       = google_service_account.api.email
+}
+
+output "files_bucket_name" {
+  description = "Bucket privado de arquivos (STORAGE_BUCKET)."
+  value       = google_storage_bucket.files.name
+}
+
+output "frontend_bucket_name" {
+  description = "Bucket público do SPA (destino do build do frontend)."
+  value       = google_storage_bucket.frontend.name
+}
+
+output "frontend_ip_address" {
+  description = "IP do balanceador de carga do frontend (só existe se frontend_domain foi definido). Apontar o DNS do domínio para este IP."
+  value       = local.create_frontend_lb ? google_compute_global_address.frontend[0].address : null
+}
+
+output "cloud_sql_connection_name" {
+  description = "Connection name do Cloud SQL (project:region:instance) — usado pelo Cloud Run e por ferramentas de administração (ex.: Cloud SQL Auth Proxy local)."
+  value       = google_sql_database_instance.main.connection_name
+}
+
+output "artifact_registry_repository" {
+  description = "Repositório Docker para as imagens da API (usado pelo CI/CD, tasks.md seção 7)."
+  value       = google_artifact_registry_repository.api.name
+}
+
+output "pubsub_topic" {
+  description = "Tópico de notificação de finalização de objeto do bucket de arquivos."
+  value       = google_pubsub_topic.storage_finalize.name
+}
+
+output "trash_purge_job_name" {
+  description = "Nome do Cloud Run Job de exemplo do expurgo da lixeira (substituir a imagem quando o Épico 6 existir)."
+  value       = google_cloud_run_v2_job.trash_purge_example.name
+}

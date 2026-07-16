@@ -158,6 +158,39 @@ se vazio); serviços long-running sobem detached; **paridade de segurança** —
 Postgres local suporta RLS igual ao Cloud SQL, então o isolamento da Decisão 2 é
 testável de verdade no sandbox, sem GCP.
 
+## Decisão 4 — Terraform de produção: rede, assinatura e gaps conhecidos
+
+**Cloud SQL com IP público, sem `authorized_networks`.** A API se conecta via
+integração nativa do Cloud Run com o Cloud SQL (proxy gerenciado, autenticado
+por IAM) — nenhuma rota de rede é liberada para ninguém. Evita o custo e a
+complexidade de um conector Serverless VPC Access ou private service access
+só para o MVP ("baixo custo" é decisão confirmada em `proposal.md`); a
+superfície de ataque não muda, porque nenhum IP é autorizado de qualquer
+forma.
+
+**Assinatura de URL v4 sem chave exportada, em prod.** A service account do
+Cloud Run assina via IAM Credentials API (`signBlob`), não com um arquivo de
+chave — `@google-cloud/storage` cai nesse caminho automaticamente quando não
+recebe `credentials` explícitas e roda sob ADC do Cloud Run. Só em dev existe
+uma chave dummy (gerada localmente pelo SessionStart hook); nunca em prod.
+Exige `roles/iam.serviceAccountTokenCreator` da própria service account sobre
+si mesma.
+
+**Frontend sem domínio ainda.** O bucket+CDN do SPA existem desde o primeiro
+`apply`; o balanceador de carga e o certificado gerenciado só são criados
+quando um domínio real é definido (o Google exige isso para emitir o
+certificado) — condicional por `count`, não um recurso quebrado por padrão.
+
+**Gap de segurança conhecido, não fechado nesta mudança:** o endpoint
+`POST /internal/storage-events` recebe o push do Pub/Sub com um JWT OIDC, mas
+o Cloud Run também precisa conceder `allUsers:run.invoker` (a API é a porta
+de entrada pública do SPA) — então a checagem de IAM do Cloud Run não isola
+esse endpoint especificamente; hoje qualquer um pode chamá-lo. Fechar isso é
+trabalho de **aplicação** (validar o JWT OIDC do Pub/Sub no handler, audience
++ assinatura), não de infraestrutura — tornar todo o Cloud Run privado
+quebraria o acesso público do SPA. Fica como item pendente antes de produção
+com dados reais (ver `infra/terraform/README.md`).
+
 ## Stack e estrutura do monorepo
 
 ```

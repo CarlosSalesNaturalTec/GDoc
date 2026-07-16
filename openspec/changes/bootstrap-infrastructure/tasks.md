@@ -84,15 +84,54 @@ Nenhuma feature do PRD entra aqui.
 
 ## 6. IaC de produção (Terraform / GCP)
 
-- [ ] Projeto/estado remoto do Terraform e variáveis por ambiente (prod)
-- [ ] Cloud Storage: bucket privado, uniform bucket-level access, sem binding público
-- [ ] Cloud SQL (PostgreSQL) e conexão a partir do Cloud Run
-- [ ] Cloud Run (API) + service account com IAM de privilégio mínimo
-- [ ] Bucket + CDN para o SPA (frontend estático)
-- [ ] Secret Manager e injeção dos segredos no Cloud Run
-- [ ] Artifact Registry para as imagens
-- [ ] Cloud Scheduler → Cloud Run Job (disparo diário 03:00) com job de exemplo
-- [ ] Pub/Sub de notificação de finalização de objeto do bucket
+- [x] Projeto/estado remoto do Terraform e variáveis por ambiente (prod)
+      → `versions.tf` (backend `gcs` parcial), `variables.tf`,
+      `terraform.tfvars.example`, `backend.hcl.example`; bootstrap do bucket
+      de estado documentado no `infra/terraform/README.md`
+- [x] Cloud Storage: bucket privado, uniform bucket-level access, sem binding público
+      → `storage.tf`: `uniform_bucket_level_access = true`,
+      `public_access_prevention = "enforced"`, CORS restrito às origens
+      configuradas; nenhum binding `allUsers`/`allAuthenticatedUsers`
+- [x] Cloud SQL (PostgreSQL) e conexão a partir do Cloud Run
+      → `cloud_sql.tf` (Postgres 16, IP público sem `authorized_networks`) +
+      `cloud_run.tf` (volume `cloud_sql_instance`, IAM `roles/cloudsql.client`)
+- [x] Cloud Run (API) + service account com IAM de privilégio mínimo
+      → `cloud_run.tf`: SA dedicada, acesso só aos 2 secrets que usa,
+      `roles/storage.objectAdmin` restrito ao bucket de arquivos,
+      auto-assinatura de URL via `roles/iam.serviceAccountTokenCreator`
+      (sem chave privada exportada — ver nota de implementação abaixo)
+- [x] Bucket + CDN para o SPA (frontend estático)
+      → `frontend.tf`: bucket público + `backend_bucket` com CDN sempre
+      criados; balanceador/certificado gerenciado só quando `frontend_domain`
+      for definido (sem domínio real ainda, `apps/web` é só o layout)
+- [x] Secret Manager e injeção dos segredos no Cloud Run
+      → `secret_manager.tf` (DATABASE_URL, AUTH_SESSION_SECRET gerados via
+      `random_password`) injetados como `value_source.secret_key_ref` nativo
+      do Cloud Run v2 em `cloud_run.tf`
+- [x] Artifact Registry para as imagens
+      → `artifact_registry.tf`
+- [x] Cloud Scheduler → Cloud Run Job (disparo diário 03:00) com job de exemplo
+      → `scheduler.tf`: job placeholder (`cloudrun/container/job`), disparo
+      diário 03:00 America/Sao_Paulo via Cloud Scheduler com OAuth de SA
+      dedicada; lógica real de expurgo é do Épico 6 (fora de escopo)
+- [x] Pub/Sub de notificação de finalização de objeto do bucket
+      → `pubsub.tf`: tópico + assinatura push para
+      `POST /internal/storage-events`, IAM do agente de serviço do GCS para
+      publicar. **Gap de segurança documentado, não fechado nesta mudança**:
+      o endpoint aceita qualquer chamada porque o Cloud Run também precisa
+      ser público para o SPA — falta a aplicação validar o JWT OIDC do
+      Pub/Sub. Ver `infra/terraform/README.md`.
+
+Nota de implementação (assinatura de URL em prod): a service account do
+Cloud Run assina URLs v4 via IAM Credentials API (`signBlob`), sem chave
+privada de arquivo — só em dev (sandbox) existe uma chave dummy gerada
+localmente. `STORAGE_SIGNER_KEY_PATH` não é setada no Cloud Run por isso.
+
+Validação: `terraform fmt` e `terraform validate` passam (providers baixados
+manualmente para um mirror local, já que o registry do Terraform não é
+alcançável neste sandbox). **Nunca aplicado** — não há projeto GCP nem
+credenciais neste ambiente; `plan`/`apply` ficam para quando houver um
+projeto real (ver `infra/terraform/README.md`, seção "Uso").
 
 ## 7. CI/CD (skeleton)
 

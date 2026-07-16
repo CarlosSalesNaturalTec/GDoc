@@ -1,0 +1,6 @@
+# Copie para backend.hcl (gitignored) depois de criar o bucket de estado
+# remoto (ver README.md, seção "Bootstrap"). Aplicar com:
+#   terraform init -backend-config=backend.hcl
+
+bucket = "gdoc-prod-terraform-state"
+prefix = "bootstrap-infrastructure"
