@@ -1,0 +1,16 @@
+# Copie para terraform.tfvars (gitignored) e preencha com os valores reais
+# do projeto GCP. Nada aqui tem um valor real — são só exemplos.
+
+project_id = "gdoc-prod-123456"
+region     = "southamerica-east1"
+
+# Domínio do SPA (opcional). Sem ele, o bucket+CDN do frontend existe mas
+# sem balanceador/certificado — ver variables.tf (frontend_domain).
+# frontend_domain = "app.gdoc.exemplo.com.br"
+
+# Origem(ns) do browser autorizadas a fazer upload/download direto no bucket
+# de arquivos (CORS). Adicionar o domínio real do SPA em prod.
+cors_allowed_origins = [
+  "http://localhost:5173",
+  # "https://app.gdoc.exemplo.com.br",
+]

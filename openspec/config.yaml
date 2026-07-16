@@ -1,20 +1,79 @@
 schema: spec-driven
 
-# Project context (optional)
-# This is shown to AI when creating artifacts.
-# Add your tech stack, conventions, style guides, domain knowledge, etc.
-# Example:
-#   context: |
-#     Tech stack: TypeScript, React, Node.js
-#     We use conventional commits
-#     Domain: e-commerce platform
+# Project context
+context: |
+  Produto: GDoc — repositório documental corporativo cujo núcleo de valor é
+  governança de acesso (permissões granulares, isolamento por unidade,
+  auditoria, lixeira com retenção, cotas e painel gerencial). Ver
+  docs/prd_final.md para o PRD completo.
 
-# Per-artifact rules (optional)
-# Add custom rules for specific artifacts.
-# Example:
-#   rules:
-#     proposal:
-#       - Keep proposals under 500 words
-#       - Always include a "Non-goals" section
-#     tasks:
-#       - Break tasks into chunks of max 2 hours
+  Ambiente de produção: Google Cloud (GCP). Desenvolvimento acontece no
+  sandbox efêmero do Claude Code web, sem acesso a GCP — a paridade
+  dev↔prod é mantida por seams de aplicação (Storage/Database/Secrets/Auth
+  ports), nunca por acoplamento direto a SDKs de nuvem.
+
+  Stack de aplicação: monorepo Node/TypeScript.
+    - apps/api: backend (NestJS ou Express) — único guardião de permissão;
+      toda ação (visualizar, baixar, enviar, alterar, excluir) é validada
+      no servidor a cada requisição.
+    - apps/web: frontend React (Vite), SPA.
+    - packages/shared: DTOs e enums compartilhados entre api e web.
+    - infra/terraform: IaC do ambiente GCP de produção.
+    - scripts/: SessionStart hook e utilitários de dev (sobe Postgres local
+      + fake-gcs-server, migra, seed).
+
+  Topologia de produção (GCP):
+    - Cloud Run — serviço da API (Node/TS).
+    - Cloud SQL (PostgreSQL) — metadados, permissões, auditoria, cotas;
+      Row-Level Security (RLS) por coluna unit_id em toda tabela
+      tenant-scoped (defesa em profundidade para o isolamento entre
+      unidades). Usar sempre `SET LOCAL` (nunca `SET` de sessão) para o
+      contexto de unidade/papel, por segurança com connection pooling.
+    - Cloud Storage — bucket privado (uniform bucket-level access, nunca
+      público), prefixo por unidade `/{unit_id}/{owner_id}/{uuid}`. Bytes
+      trafegam via URLs assinadas de TTL curto emitidas pela API somente
+      após checagem de permissão; visualizar e baixar são ações distintas
+      auditadas separadamente (view-url ~5 min, download-url ~15–30 min).
+    - Cloud Scheduler + Cloud Run Jobs — expurgo diário da lixeira (03:00,
+      retenção de 30 dias) e avisos de expiração de permissão.
+    - Secret Manager — segredos de produção, injetados no Cloud Run.
+    - Artifact Registry — imagens de container.
+    - IAM — privilégio mínimo em todos os recursos.
+    - Pub/Sub — notificação de finalização de upload (GCS finalize) para
+      reconciliação de cota.
+    - Bucket + CDN — hospedagem do frontend SPA.
+
+  Ambiente de desenvolvimento (sandbox, efêmero): PostgreSQL local +
+  fake-gcs-server (mesmo protocolo do GCS), provisionados pelo SessionStart
+  hook a cada sessão (idempotente: health-check, migrações sempre, seed só
+  se vazio). O hook só cuida da infraestrutura de dev — não sobe a app
+  (backend/frontend), que roda sob demanda.
+
+  Segurança: senhas com hash argon2. Configuração 12-factor via variáveis
+  de ambiente — Secret Manager em produção, `.env` local em dev, sempre
+  atrás do seam `SecretsPort`. Link direto a arquivo sem permissão deve
+  ser sempre bloqueado (403, sem preview) — é a rota da app que é
+  protegida, nunca o objeto no bucket.
+
+  Convenções: commits em português ou inglês curto e descritivo; specs e
+  propostas OpenSpec em português, seguindo o estilo já usado em
+  openspec/changes/bootstrap-infrastructure (proposal.md, design.md,
+  specs/*/spec.md, tasks.md).
+
+# Per-artifact rules
+rules:
+  proposal:
+    - Referenciar o PRD (docs/prd_final.md) e as decisões já confirmadas em
+      design.md quando aplicável, em vez de redecidir arquitetura já
+      fechada (stack Node/TS, GCP, URLs assinadas, RLS por unit_id).
+    - Deixar explícito o que fica fora de escopo e vira mudança futura.
+  design:
+    - Toda decisão de tráfego de bytes deve preservar: bucket privado,
+      permissão checada no servidor antes de qualquer URL assinada, e
+      TTL curto diferenciado por operação (view vs download).
+    - Toda tabela com dado de uma unidade deve ter coluna unit_id e policy
+      RLS correspondente; nunca depender só de checagem na aplicação para
+      isolamento entre unidades.
+  tasks:
+    - Separar claramente tarefas de infraestrutura (Terraform/GCP) das
+      tarefas de paridade dev (SessionStart hook/sandbox).
