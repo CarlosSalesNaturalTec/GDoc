@@ -218,11 +218,14 @@ export function filesRouter(ports: Ports): Router {
           return { ok: false as const };
         }
 
+        // O ponteiro vivo (`object_path`) NÃO muda aqui: se o upload da nova
+        // versão for abandonado, o arquivo vigente continua íntegro e
+        // consultável. `pending_object_path` guarda o destino do objeto novo
+        // até o finalize (routes/storage-events.ts) promover o ponteiro.
         // `status = 'replacing'` (não 'pending') preserva `size_bytes`
-        // vigente na linha até o finalize poder calcular o delta real
-        // (routes/storage-events.ts) sem contar em dobro. `folder_id` e
-        // `file_name` são preservados — só o ponteiro físico muda.
-        await client.query(`UPDATE files SET object_path = $1, status = 'replacing' WHERE id = $2`, [
+        // vigente na linha para o finalize calcular o delta real sem contar
+        // em dobro. `folder_id` e `file_name` também são preservados.
+        await client.query(`UPDATE files SET pending_object_path = $1, status = 'replacing' WHERE id = $2`, [
           newObjectPath,
           file.id,
         ]);

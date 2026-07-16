@@ -59,10 +59,14 @@ frontend. Visibilidade só-por-dono nesta fatia (concessão explícita = Épico 
       inalterado
 - [x] 5.2 `POST /files/:id/replace-url` — checa dono; pré-checa cota pelo **delta**
       (`uso − tamanhoAntigo + tamanhoNovo ≤ cota`); gera URL assinada de PUT para um
-      **novo `object_path`** e devolve o novo path; preserva `folder_id`/`file_name`
-- [x] 5.3 `routes/storage-events.ts`: na reconciliação do replace, trocar o ponteiro
-      `object_path` para o novo objeto e ajustar `storage_used_bytes` pelo delta (sem
-      contar em dobro com o pré-check); objeto antigo fica órfão (limpeza física é
+      **novo `object_path`** e devolve o novo path; preserva `folder_id`/`file_name`.
+      O ponteiro vivo `object_path` **não** é movido na emissão — o path novo fica em
+      `pending_object_path` (migração `0005`) e a linha entra em `status='replacing'`,
+      de modo que um replace abandonado não corrompe o arquivo vigente
+- [x] 5.3 `routes/storage-events.ts`: na reconciliação do replace, localizar a linha
+      pelo path finalizado (`pending_object_path`), **promover** `object_path ←
+      pending_object_path`, limpar o pendente e ajustar `storage_used_bytes` pelo delta
+      (sem contar em dobro com o pré-check); objeto antigo fica órfão (limpeza física é
       pendência de rotina/Épico 6)
 
 ## 6. Auditoria do evento (US 2.2)

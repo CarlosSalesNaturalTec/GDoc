@@ -132,9 +132,12 @@ describe('Gestão de arquivo: renomear e substituir (US 2.2)', () => {
     expect(newObjectPath).not.toBe('unitA/replace-1-old');
 
     const pending = await withSystemBypass(pool, (client) =>
-      client.query('SELECT object_path, status, file_name FROM files WHERE id = $1', [fileId]),
+      client.query('SELECT object_path, pending_object_path, status, file_name FROM files WHERE id = $1', [fileId]),
     );
-    expect(pending.rows[0]?.object_path).toBe(newObjectPath);
+    // Antes do finalize o ponteiro vivo continua na versão vigente; o path
+    // novo fica reservado em pending_object_path.
+    expect(pending.rows[0]?.object_path).toBe('unitA/replace-1-old');
+    expect(pending.rows[0]?.pending_object_path).toBe(newObjectPath);
     expect(pending.rows[0]?.status).toBe('replacing');
     expect(pending.rows[0]?.file_name).toBe('relatorio.txt');
 
@@ -144,9 +147,11 @@ describe('Gestão de arquivo: renomear e substituir (US 2.2)', () => {
     expect(finalize.status).toBe(200);
 
     const after = await withSystemBypass(pool, (client) =>
-      client.query('SELECT object_path, status, size_bytes FROM files WHERE id = $1', [fileId]),
+      client.query('SELECT object_path, pending_object_path, status, size_bytes FROM files WHERE id = $1', [fileId]),
     );
+    // Só após o finalize o ponteiro vivo é promovido para o objeto novo.
     expect(after.rows[0]?.object_path).toBe(newObjectPath);
+    expect(after.rows[0]?.pending_object_path).toBeNull();
     expect(after.rows[0]?.status).toBe('active');
     expect(Number(after.rows[0]?.size_bytes)).toBe(300);
 
@@ -165,6 +170,48 @@ describe('Gestão de arquivo: renomear e substituir (US 2.2)', () => {
       client.query('SELECT 1 FROM files WHERE object_path = $1', ['unitA/replace-1-old']),
     );
     expect(oldPathStillIndexed.rows).toHaveLength(0);
+  });
+
+  it('substituição abandonada (URL emitida, upload nunca concluído) mantém o arquivo vigente íntegro e consultável', async () => {
+    const app = createApp(ports);
+    const fileId = await createActiveFile(pool, {
+      unitId: ids.unitA,
+      ownerId: ids.userA,
+      objectPath: 'unitA/replace-abandoned-old',
+      fileName: 'vivo.txt',
+      sizeBytes: 100,
+    });
+    await withSystemBypass(pool, (client) =>
+      client.query('UPDATE users SET storage_used_bytes = 100 WHERE id = $1', [ids.userA]),
+    );
+    const cookie = await sessionCookieFor(ports, ids.userA);
+
+    const replace = await request(app)
+      .post(`/files/${fileId}/replace-url`)
+      .set('Cookie', cookie)
+      .send({ contentType: 'text/plain', declaredSizeBytes: 300 });
+    expect(replace.status).toBe(200);
+
+    // Simula abandono: a URL foi emitida mas o novo objeto nunca é
+    // finalizado (nenhum POST /internal/storage-events). O ponteiro vivo
+    // precisa continuar na versão original.
+    const row = await withSystemBypass(pool, (client) =>
+      client.query('SELECT object_path, pending_object_path FROM files WHERE id = $1', [fileId]),
+    );
+    expect(row.rows[0]?.object_path).toBe('unitA/replace-abandoned-old');
+    expect(row.rows[0]?.pending_object_path).toBe(replace.body.objectPath);
+
+    // A cota do dono não foi alterada (nada foi enviado de fato).
+    const user = await withSystemBypass(pool, (client) =>
+      client.query('SELECT storage_used_bytes FROM users WHERE id = $1', [ids.userA]),
+    );
+    expect(Number(user.rows[0]?.storage_used_bytes)).toBe(100);
+
+    // E o arquivo vigente continua consultável: a view-url é emitida para o
+    // objeto original, não para o path pendente inexistente.
+    const viewUrl = await request(app).post(`/files/${fileId}/view-url`).set('Cookie', cookie);
+    expect(viewUrl.status).toBe(200);
+    expect(viewUrl.body.url).toContain('unitA/replace-abandoned-old');
   });
 
   it('substituição sem permissão é bloqueada e o arquivo vigente permanece intacto', async () => {

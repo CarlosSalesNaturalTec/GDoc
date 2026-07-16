@@ -133,16 +133,25 @@ própria. O walk é curto (profundidade de navegação humana) e roda numa trans
 - **Substituir** — `POST /files/:id/replace-url { contentType, declaredSizeBytes }`:
   pré-checa a cota pelo **delta** (`usoAtual − tamanhoAntigo + tamanhoNovo ≤ 10 GB`),
   gera uma URL assinada de PUT para um **novo `object_path`** (novo uuid, mesmo
-  prefixo por unidade/dono) e devolve também o `object_path` novo. O local **lógico**
-  (`folder_id`, `file_name`) é preservado — "mesmo local" no sentido do PRD. A
-  reconciliação (`POST /internal/storage-events`) troca o ponteiro `object_path` para
-  o novo objeto e ajusta `storage_used_bytes` pelo delta; o objeto antigo fica órfão
-  (limpeza física é responsabilidade de rotina/Épico 6, não bloqueia a substituição).
+  prefixo por unidade/dono) e devolve esse novo path. O ponteiro vivo `object_path`
+  **não muda na emissão** — o path novo é guardado em `pending_object_path` (migração
+  `0005`) e a linha entra em `status = 'replacing'`. O local **lógico** (`folder_id`,
+  `file_name`) é preservado — "mesmo local" no sentido do PRD. A reconciliação
+  (`POST /internal/storage-events`) localiza a linha pelo path finalizado (que numa
+  substituição é o `pending_object_path`), **só então** promove `object_path ←
+  pending_object_path`, limpa o pendente e ajusta `storage_used_bytes` pelo delta; o
+  objeto antigo fica órfão (limpeza física é responsabilidade de rotina/Épico 6, não
+  bloqueia a substituição).
 
 Por quê novo `object_path` em vez de sobrescrever o mesmo objeto: evita a
 complexidade de PUT idempotente sobre um path já assinado e mantém `object_path
 UNIQUE`; "sem versão anterior" (fora de escopo no PRD) é respeitado porque o ponteiro
 só aponta para uma versão por vez e a antiga não é indexada nem consultável.
+
+Por quê promover o ponteiro só no finalize (e não na emissão da URL): se o upload
+da nova versão for **abandonado** (URL emitida, PUT nunca concluído), o `object_path`
+vivo continua apontando para a versão vigente e o arquivo permanece íntegro e
+consultável — nada de dados perdidos. A cota também não é tocada até o finalize.
 
 ### D7 — Evento de renomear/substituir na auditoria
 
@@ -163,7 +172,9 @@ aditivo e mantém a auditoria num só lugar para o Épico 7 consumir.
 - **Objeto órfão no bucket após substituir (D6)** → mitigação: a limpeza física é de
   rotina (alinhável ao expurgo diário do Épico 6); a cota é ajustada pelo delta, então
   o usuário não é cobrado pelo objeto antigo. Registrar como pendência antes de dados
-  reais em prod.
+  reais em prod. Substituição **abandonada** (URL emitida sem finalize) não gera nem
+  órfão físico (nada foi enviado) nem perda: o `object_path` vivo nunca é movido antes
+  do finalize (D6).
 - **Reconciliação do replace depende do endpoint sem OIDC** (gap conhecido e
   documentado de `storage-events`) → não é regressão desta mudança; a troca de
   ponteiro herda o mesmo modelo de confiança já em uso e será endurecida junto com o

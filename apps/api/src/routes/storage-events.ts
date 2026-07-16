@@ -32,12 +32,17 @@ export function storageEventsRouter(ports: Ports): Router {
             unit_id: string;
             status: string;
             size_bytes: string | null;
-          }>('SELECT id, owner_id, unit_id, status, size_bytes FROM files WHERE object_path = $1', [objectPath]);
+          }>(
+            // Upload novo finaliza no próprio `object_path`; substituição
+            // finaliza no `pending_object_path` (o `object_path` vivo só é
+            // promovido aqui — ver routes/files.ts, POST /files/:id/replace-url).
+            'SELECT id, owner_id, unit_id, status, size_bytes FROM files WHERE object_path = $1 OR pending_object_path = $1',
+            [objectPath],
+          );
           const file = rows[0];
           if (!file) return { found: false as const };
 
-          // `status = 'replacing'` (ver routes/files.ts, POST
-          // /files/:id/replace-url) marca uma substituição em andamento: a
+          // `status = 'replacing'` marca uma substituição em andamento: a
           // linha ainda guarda o `size_bytes` da versão vigente, então só o
           // delta (nova − antiga) precisa ser somado — a versão antiga já
           // estava contada em `storage_used_bytes` (design.md D6, "sem
@@ -58,11 +63,23 @@ export function storageEventsRouter(ports: Ports): Router {
             newUsage,
             file.owner_id,
           ]);
-          await client.query('UPDATE files SET size_bytes = $1, status = $2 WHERE id = $3', [
-            sizeBytes,
-            overQuota ? 'over_quota' : 'active',
-            file.id,
-          ]);
+          if (isReplace) {
+            // Só agora o ponteiro vivo passa a apontar para o objeto novo,
+            // que enfim existe; `pending_object_path` é limpo. Se a
+            // substituição tivesse sido abandonada, nada disto rodaria e o
+            // `object_path` original continuaria válido.
+            await client.query(
+              `UPDATE files SET object_path = pending_object_path, pending_object_path = NULL,
+                 size_bytes = $1, status = $2 WHERE id = $3`,
+              [sizeBytes, overQuota ? 'over_quota' : 'active', file.id],
+            );
+          } else {
+            await client.query('UPDATE files SET size_bytes = $1, status = $2 WHERE id = $3', [
+              sizeBytes,
+              overQuota ? 'over_quota' : 'active',
+              file.id,
+            ]);
+          }
 
           if (isReplace) {
             await client.query(
