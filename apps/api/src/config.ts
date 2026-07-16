@@ -58,4 +58,12 @@ export const config = {
     timeCost: Number(optional('AUTH_ARGON2_TIME_COST', '2')),
     parallelism: Number(optional('AUTH_ARGON2_PARALLELISM', '1')),
   },
+
+  // TTL da sessão (proposta do design: 8h) — payload mínimo (`sub`, `exp`).
+  authSessionTtlSeconds: Number(optional('AUTH_SESSION_TTL_SECONDS', String(8 * 60 * 60))),
+
+  bootstrapAdmin: {
+    email: optional('BOOTSTRAP_ADMIN_EMAIL', 'admin.global@gdoc.dev'),
+    password: optional('BOOTSTRAP_ADMIN_PASSWORD', 'dev-password-only'),
+  },
 };

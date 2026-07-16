@@ -1,6 +1,7 @@
 import type { Request, Response, NextFunction } from 'express';
 import type { TenantContext } from '../ports/database-port.js';
 import type { Ports } from '../ports/index.js';
+import { SESSION_COOKIE_NAME } from '../lib/session-cookie.js';
 
 declare module 'express-serve-static-core' {
   interface Request {
@@ -11,13 +12,13 @@ declare module 'express-serve-static-core' {
 const BOOTSTRAP_UNIT = '00000000-0000-0000-0000-000000000000';
 
 /**
- * Resolve a identidade do usuário da requisição e popula `req.tenantContext`.
+ * Resolve a identidade autenticada da requisição (sessão em cookie
+ * `HttpOnly`, ver routes/auth.ts) e popula `req.tenantContext`.
  *
- * NOTA: a resolução de identidade aqui é um placeholder deliberado —
- * Épico 1 (login/sessão) é fora de escopo desta mudança de fundação. Em
- * produção isso lerá o usuário autenticado de uma sessão/JWT; por ora lê
- * um header simples, apenas para exercitar o seam de tenancy nos testes e
- * na prova ponta a ponta.
+ * `unit_id`, papel e status são relidos do banco a cada requisição — nunca
+ * confiados do token — para que desativar uma conta encerre o acesso de
+ * imediato, mesmo com uma sessão ainda não expirada em mãos (US 1.2,
+ * cenário 3; design.md Decisão D1).
  *
  * A resolução em si roda dentro de uma transação com contexto de bypass
  * (papel `global_admin`) porque, neste ponto, ainda não sabemos a unidade
@@ -28,26 +29,34 @@ const BOOTSTRAP_UNIT = '00000000-0000-0000-0000-000000000000';
  */
 export function attachTenantContext(ports: Ports) {
   return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    const userId = req.header('x-gdoc-user-id');
-    if (!userId) {
-      res.status(401).json({ error: 'missing x-gdoc-user-id header' });
+    const token = req.cookies?.[SESSION_COOKIE_NAME] as string | undefined;
+    if (!token) {
+      res.status(401).json({ error: 'not authenticated' });
+      return;
+    }
+
+    const claims = await ports.auth.verifySession(token);
+    if (!claims) {
+      res.status(401).json({ error: 'not authenticated' });
       return;
     }
 
     try {
       const identity = await ports.database.withTenantTransaction(
-        { unitId: BOOTSTRAP_UNIT, userId, role: 'global_admin' },
+        { unitId: BOOTSTRAP_UNIT, userId: claims.sub, role: 'global_admin' },
         async (client) => {
-          const { rows } = await client.query<{ id: string; unit_id: string; role: string }>(
-            'SELECT id, unit_id, role FROM users WHERE id = $1',
-            [userId],
-          );
+          const { rows } = await client.query<{
+            id: string;
+            unit_id: string;
+            role: string;
+            status: string;
+          }>('SELECT id, unit_id, role, status FROM users WHERE id = $1', [claims.sub]);
           return rows[0];
         },
       );
 
-      if (!identity) {
-        res.status(401).json({ error: 'unknown user' });
+      if (!identity || identity.status !== 'active') {
+        res.status(401).json({ error: 'not authenticated' });
         return;
       }
 

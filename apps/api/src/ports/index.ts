@@ -22,10 +22,11 @@ export interface Ports {
  * `ports/*`.
  */
 export function createPorts(): Ports {
+  const secrets = config.secretsDriver === 'secret-manager' ? new SecretManagerSecretsPort() : new EnvSecretsPort();
   return {
     storage: new GcsStoragePort(),
     database: new PgDatabasePort(),
-    secrets: config.secretsDriver === 'secret-manager' ? new SecretManagerSecretsPort() : new EnvSecretsPort(),
-    auth: new Argon2AuthPort(),
+    secrets,
+    auth: new Argon2AuthPort(secrets),
   };
 }
