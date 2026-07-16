@@ -6,7 +6,7 @@ import { PgDatabasePort } from '../adapters/pg-database-port.js';
 import { EnvSecretsPort } from '../adapters/env-secrets-port.js';
 import { Argon2AuthPort } from '../adapters/argon2-auth-port.js';
 import { InMemoryStoragePort } from './in-memory-storage-port.js';
-import { setupTestDatabase, seedTwoUnits, withSystemBypass } from './test-db.js';
+import { setupTestDatabase, seedTwoUnits, withSystemBypass, sessionCookieFor } from './test-db.js';
 import type { Ports } from '../ports/index.js';
 
 describe('Endpoints de URL assinada: checagem de permissão', () => {
@@ -31,11 +31,12 @@ describe('Endpoints de URL assinada: checagem de permissão', () => {
     fileAId = rows[0]!.id;
 
     storage = new InMemoryStoragePort();
+    const secrets = new EnvSecretsPort();
     ports = {
       database: new PgDatabasePort(),
       storage,
-      secrets: new EnvSecretsPort(),
-      auth: new Argon2AuthPort(),
+      secrets,
+      auth: new Argon2AuthPort(secrets),
     };
   });
 
@@ -49,7 +50,7 @@ describe('Endpoints de URL assinada: checagem de permissão', () => {
 
     const res = await request(app)
       .post(`/files/${fileAId}/view-url`)
-      .set('x-gdoc-user-id', ids.userB); // userB é de outra unidade
+      .set('Cookie', await sessionCookieFor(ports, ids.userB)); // userB é de outra unidade
 
     expect(res.status).toBe(403);
     expect(storage.calls).toHaveLength(0);
@@ -65,7 +66,7 @@ describe('Endpoints de URL assinada: checagem de permissão', () => {
 
     const res = await request(app)
       .post(`/files/${fileAId}/view-url`)
-      .set('x-gdoc-user-id', ids.userA);
+      .set('Cookie', await sessionCookieFor(ports, ids.userA));
 
     expect(res.status).toBe(200);
     expect(res.body.action).toBe('view');

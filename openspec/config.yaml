@@ -68,9 +68,9 @@ rules:
       fechada (stack Node/TS, GCP, URLs assinadas, RLS por unit_id).
     - Deixar explícito o que fica fora de escopo e vira mudança futura.
   design:
-    - Toda decisão de tráfego de bytes deve preservar: bucket privado,
+    - "Toda decisão de tráfego de bytes deve preservar: bucket privado,
       permissão checada no servidor antes de qualquer URL assinada, e
-      TTL curto diferenciado por operação (view vs download).
+      TTL curto diferenciado por operação (view vs download)."
     - Toda tabela com dado de uma unidade deve ter coluna unit_id e policy
       RLS correspondente; nunca depender só de checagem na aplicação para
       isolamento entre unidades.

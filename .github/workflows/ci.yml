@@ -51,6 +51,10 @@ jobs:
       STORAGE_EMULATOR_HOST: http://127.0.0.1:4443
       GCP_PROJECT_ID: gdoc-ci
       SECRETS_DRIVER: env
+      # Segredo de sessão (HMAC) exigido por Argon2AuthPort — sem default,
+      # ao contrário dos demais AUTH_*/BOOTSTRAP_* (ver config.ts). Só
+      # assina tokens de teste, nunca chega perto de produção.
+      AUTH_SESSION_SECRET: ci-only-insecure-secret-change-me
 
     steps:
       - uses: actions/checkout@v4

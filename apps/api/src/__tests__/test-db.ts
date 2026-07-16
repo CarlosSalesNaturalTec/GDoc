@@ -2,6 +2,8 @@ import { Pool, type PoolClient } from 'pg';
 import { config } from '../config.js';
 import { runMigrations } from '../db/migrate.js';
 import { PgDatabasePort } from '../adapters/pg-database-port.js';
+import type { Ports } from '../ports/index.js';
+import { SESSION_COOKIE_NAME } from '../lib/session-cookie.js';
 
 export async function setupTestDatabase() {
   const pool = new Pool({ connectionString: config.databaseUrl });
@@ -30,6 +32,17 @@ export async function withSystemBypass<T>(pool: Pool, fn: (client: PoolClient) =
   } finally {
     client.release();
   }
+}
+
+/**
+ * Emite uma sessão válida para `userId` e devolve o par pronto para
+ * `.set('Cookie', ...)` no supertest — substitui o antigo header
+ * `x-gdoc-user-id` nos testes, agora que a identidade vem da sessão
+ * autenticada (ver middleware/tenant-context.ts).
+ */
+export async function sessionCookieFor(ports: Ports, userId: string): Promise<string> {
+  const token = await ports.auth.issueSession({ sub: userId });
+  return `${SESSION_COOKIE_NAME}=${token}`;
 }
 
 export async function seedTwoUnits(pool: Pool) {
