@@ -19,17 +19,25 @@ jobs:
     # SessionStart hook do sandbox (ver design.md, Decisão 3). Os testes
     # usam InMemoryStoragePort (ver apps/api/src/__tests__), então não há
     # necessidade de um emulador de GCS aqui.
+    #
+    # Bootstrap com POSTGRES_USER=postgres (superuser da imagem oficial) —
+    # não é o papel usado pela app/testes. Superusers do Postgres ignoram
+    # RLS incondicionalmente, inclusive FORCE ROW LEVEL SECURITY; um papel
+    # `gdoc_ci` criado via POSTGRES_USER herdaria superuser da imagem e
+    # mascararia qualquer bug de isolamento (RLS "passa" só porque não está
+    # sendo aplicado). O papel de app não-superuser é criado no passo
+    # seguinte, mesma forma que `session-start.sh` cria `gdoc_dev` no sandbox.
     services:
       postgres:
         image: postgres:16
         env:
-          POSTGRES_USER: gdoc_ci
-          POSTGRES_PASSWORD: gdoc_ci
-          POSTGRES_DB: gdoc_ci
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U gdoc_ci"
+          --health-cmd "pg_isready -U postgres"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
@@ -46,6 +54,13 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Create non-superuser app role (paridade de RLS com sandbox/prod)
+        run: |
+          PGPASSWORD=postgres psql -h localhost -U postgres -c \
+            "CREATE ROLE gdoc_ci LOGIN PASSWORD 'gdoc_ci'"
+          PGPASSWORD=postgres psql -h localhost -U postgres -c \
+            "CREATE DATABASE gdoc_ci OWNER gdoc_ci"
 
       - uses: actions/setup-node@v4
         with:
