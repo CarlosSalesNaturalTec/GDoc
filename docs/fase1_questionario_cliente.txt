@@ -1,0 +1,77 @@
+ALINHAMENTO DE ESCOPO E DISCOVERY
+
+Ola! O material enviado e um otimo ponto de partida e ja descreve bem as telas e as funcionalidades desejadas. Para garantirmos que o produto resolva exatamente o seu problema da melhor forma e sem retrabalho, precisamos alinhar alguns pontos antes de comecar. Sao perguntas rapidas, com opcoes para facilitar a resposta. Fique a vontade para marcar "Outro" e escrever com suas palavras.
+
+
+ACESSO E CADASTRO DE PESSOAS
+
+1. Como as pessoas vao entrar no sistema (fazer login)?
+( ) a) Usando a conta Google (e-mail Google) que ja possuem
+( ) b) Com um usuario e uma senha criados dentro do proprio sistema
+( ) c) Usando o mesmo login que ja usam nos sistemas internos da empresa
+( ) d) Outro: ____________
+
+2. Quem vai poder cadastrar novas pessoas no sistema?
+( ) a) Somente a area administrativa cria as contas
+( ) b) A pessoa se cadastra sozinha, mas precisa de aprovacao para liberar o acesso
+( ) c) A pessoa recebe um convite por e-mail para ativar sua conta
+( ) d) Outro: ____________
+
+
+ORGANIZACAO POR UNIDADES
+
+3. No cadastro ha o campo "unidade". Como as unidades devem se comportar entre si?
+( ) a) Cada unidade so enxerga os proprios arquivos; uma unidade nao ve os arquivos da outra
+( ) b) "Unidade" e apenas uma informacao do cadastro; todos podem compartilhar arquivos entre unidades normalmente
+( ) c) Existe um responsavel que administra apenas a sua unidade (uma especie de administrador local)
+( ) d) Outro: ____________
+
+
+PERMISSOES E COMPARTILHAMENTO
+
+4. Voce citou a permissao de "editar" um arquivo. O que "editar" significa para voce?
+( ) a) Poder trocar o nome do arquivo ou da pasta
+( ) b) Poder substituir o arquivo por uma versao nova (mantendo o mesmo lugar)
+( ) c) Poder abrir e alterar o conteudo do documento por dentro do sistema
+( ) d) Outro: ____________
+
+5. Quando voce libera uma permissao em uma pasta, o que deve acontecer com o que esta dentro dela?
+( ) a) A permissao vale automaticamente para todas as subpastas e arquivos de dentro
+( ) b) A permissao vale so para a pasta; cada arquivo de dentro precisa ser liberado separadamente
+( ) c) Outro: ____________
+
+6. Quando uma permissao com prazo (data de expiracao) chega ao fim, o que deve acontecer?
+( ) a) O acesso e cortado automaticamente, sem aviso
+( ) b) O acesso e cortado e a area administrativa recebe um aviso
+( ) c) A pessoa e avisada antes de o prazo terminar
+( ) d) Outro: ____________
+
+
+ESPACO E ARQUIVOS
+
+7. O limite de 10 GB citado se refere a que?
+( ) a) Ao espaco total de todo o sistema, somando todas as pessoas
+( ) b) A um limite individual para cada pessoa
+( ) c) A um limite para cada unidade
+( ) d) Outro: ____________
+
+8. O que deve acontecer quando esse limite de espaco for atingido?
+( ) a) Bloquear novos envios ate que se libere espaco
+( ) b) Permitir o envio, mas emitir um aviso de que o espaco esta acabando
+( ) c) Outro: ____________
+
+9. Existe um tamanho maximo por arquivo enviado? (isso ajuda a preparar o sistema para arquivos grandes, como videos)
+( ) a) Nao ha limite definido; precisamos suportar arquivos grandes
+( ) b) Sim, ha um limite. Qual? ____________
+( ) c) Ainda nao sabemos / a definir
+
+
+AUDITORIA E AVISOS
+
+10. Sobre o registro de quem visualizou ou baixou cada arquivo: quem devera ter acesso a essa consulta?
+( ) a) Somente a area administrativa
+( ) b) A area administrativa e tambem o dono de cada arquivo, sobre os seus proprios arquivos
+( ) c) Outro: ____________
+
+
+Obrigado! Com essas respostas conseguimos desenhar a solucao com precisao e evitar surpresas mais adiante. Qualquer duvida sobre as perguntas, estamos a disposicao.
