@@ -23,7 +23,9 @@ resource "google_cloud_run_v2_job" "trash_purge_example" {
         resources {
           limits = {
             cpu    = "1"
-            memory = "256Mi"
+            # Piso do Cloud Run gen2 com CPU sempre alocada (unthrottled) é
+            # 512Mi; abaixo disso a API rejeita a criação do Job.
+            memory = "512Mi"
           }
         }
       }

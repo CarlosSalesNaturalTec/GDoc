@@ -14,14 +14,19 @@ resource "google_pubsub_topic" "storage_finalize" {
   depends_on = [google_project_service.required]
 }
 
-# Permite que a identidade de serviço gerenciada do GCS publique neste
-# tópico. O e-mail é previsível (convenção do Google), então não depende de
-# um provider beta só para lê-lo.
+# Identidade de serviço gerenciada do GCS. O e-mail segue uma convenção
+# previsível, mas a conta só é provisionada de fato na primeira leitura desta
+# data source — daí ela (não uma string construída à mão) ser a dependência
+# real do IAM binding abaixo.
+data "google_storage_project_service_account" "gcs" {
+  project = var.project_id
+}
+
 resource "google_pubsub_topic_iam_member" "gcs_publisher" {
   project = var.project_id
   topic   = google_pubsub_topic.storage_finalize.name
   role    = "roles/pubsub.publisher"
-  member  = "serviceAccount:service-${data.google_project.current.number}@gs-project-accounts.iam.gserviceaccount.com"
+  member  = "serviceAccount:${data.google_storage_project_service_account.gcs.email_address}"
 }
 
 resource "google_storage_notification" "finalize" {

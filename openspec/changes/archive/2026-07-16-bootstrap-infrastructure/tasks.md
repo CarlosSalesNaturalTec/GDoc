@@ -127,11 +127,15 @@ Cloud Run assina URLs v4 via IAM Credentials API (`signBlob`), sem chave
 privada de arquivo — só em dev (sandbox) existe uma chave dummy gerada
 localmente. `STORAGE_SIGNER_KEY_PATH` não é setada no Cloud Run por isso.
 
-Validação: `terraform fmt` e `terraform validate` passam (providers baixados
-manualmente para um mirror local, já que o registry do Terraform não é
-alcançável neste sandbox). **Nunca aplicado** — não há projeto GCP nem
-credenciais neste ambiente; `plan`/`apply` ficam para quando houver um
-projeto real (ver `infra/terraform/README.md`, seção "Uso").
+Validação: `terraform fmt` e `terraform validate` passaram neste sandbox
+(providers baixados manualmente para um mirror local, já que o registry do
+Terraform não é alcançável aqui). **Aplicado com sucesso** contra o projeto
+real `gdoc-502613` (ambiente de desenvolvimento separado, com `gcloud`
+autenticado e Terraform disponível) — `terraform apply`, 53 recursos
+criados, 0 destruídos. Ver a seção 8 acima para os três ajustes que só a API
+real revelou (edição do Cloud SQL, service agent do GCS, memória mínima do
+Cloud Run Job) e para a verificação do bucket. Backend remoto:
+`gs://gdoc-502613-terraform-state`, prefixo `bootstrap-infrastructure`.
 
 ## 7. CI/CD (skeleton)
 
@@ -178,15 +182,36 @@ deve conseguir buildar sem esse problema.
       `/internal/storage-events` (cota) → `view-url` (bytes conferem) →
       `download-url`; usuário de outra unidade recebe 403 sem URL emitida;
       `audit_events` mostra exatamente os dois eventos do dono certo.
-- [ ] Confirmar que o bucket nega acesso direto sem assinatura válida
-      → **Lacuna de fidelidade do emulador**: o `fake-gcs-server` não aplica
-      validação de assinatura em leitura (um `GET` sem nenhum parâmetro de
-      assinatura retornou 200). Isso é uma limitação conhecida de emuladores
-      de GCS — eles emulam a superfície da API, não o modelo de autorização
-      do Google. A negação real depende da configuração do bucket
-      (uniform bucket-level access, sem binding `allUsers`/`allAuthenticatedUsers`)
-      provisionada em produção (seção 6) e só pode ser verificada contra o
-      GCS real após o `terraform apply`. Deixar este item pendente até essa
-      verificação em prod; não é um requisito satisfazível em dev.
+- [x] Confirmar que o bucket nega acesso direto sem assinatura válida
+      → **Verificado contra o GCS real** após o primeiro `terraform apply`
+      (projeto `gdoc-502613`): objeto de teste enviado via `gcloud storage cp`
+      (autenticado) ao bucket `gdoc-502613-gdoc-prod-files`; `curl` sem
+      nenhum parâmetro de assinatura contra
+      `https://storage.googleapis.com/gdoc-502613-gdoc-prod-files/...`
+      retornou `403 AccessDenied` ("Anonymous caller does not have
+      storage.objects.get access"); leitura autenticada
+      (`gcloud storage cat`) do mesmo objeto funcionou normalmente,
+      confirmando que é uma negação de permissão (uniform bucket-level
+      access, sem binding `allUsers`/`allAuthenticatedUsers`), não um bucket
+      quebrado. Objeto de teste removido após a verificação. Lacuna do
+      `fake-gcs-server` em dev (não aplica validação de assinatura em
+      leitura) permanece documentada como limitação conhecida do emulador —
+      só afeta dev, não prod.
+
+      **Achados corrigidos durante o `apply` real** (não detectáveis por
+      `terraform validate`/`fmt`, só contra a API real):
+      - `google_sql_database_instance.main`: o projeto usa `ENTERPRISE_PLUS`
+        como edição padrão do Cloud SQL, que não aceita o tier legado
+        `db-f1-micro`. Corrigido fixando `edition = "ENTERPRISE"` em
+        `cloud_sql.tf` (única edição que aceita tiers shared-core).
+      - `google_pubsub_topic_iam_member.gcs_publisher`: o e-mail da
+        identidade de serviço gerenciada do GCS era construído à mão por
+        convenção, mas a conta só é provisionada na primeira leitura da data
+        source correspondente. Corrigido usando
+        `data.google_storage_project_service_account` em `pubsub.tf`, que
+        força a criação antes do IAM binding.
+      - `google_cloud_run_v2_job.trash_purge_example`: `memory = "256Mi"`
+        está abaixo do piso de 512Mi exigido pelo Cloud Run gen2 com CPU
+        sempre alocada. Corrigido para `512Mi` em `scheduler.tf`.
 - [x] Documentar no README como rodar a prova nos dois ambientes
       → `README.md` (raiz); documentação de prod fica dependente da seção 6

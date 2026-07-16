@@ -259,4 +259,8 @@ depois da correção — os três resolvem `@gdoc/shared` corretamente agora.
 - Ambiente de staging no GCP.
 - Serviço de conversão para preview de Office.
 - Confirmação de auditoria byte-level via GCS access logs.
+- Deploy da imagem real da API no Cloud Run (o `apply` deixou a imagem
+  placeholder `us-docker.pkg.dev/cloudrun/container/hello`; publicar a
+  imagem do GDoc é responsabilidade do `.github/workflows/deploy.yml`,
+  seção 7).
 - Login por Google / SSO corporativo (fora do MVP no PRD).

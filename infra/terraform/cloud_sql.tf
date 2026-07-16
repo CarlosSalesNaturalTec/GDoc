@@ -19,6 +19,9 @@ resource "google_sql_database_instance" "main" {
 
   settings {
     tier = var.db_tier
+    # ENTERPRISE (não ENTERPRISE_PLUS, o default do projeto): é a única
+    # edição que aceita os tiers shared-core legados como db-f1-micro.
+    edition = "ENTERPRISE"
 
     ip_configuration {
       ipv4_enabled = true

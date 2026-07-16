@@ -10,6 +10,7 @@ coverage/
 *.tfstate
 *.tfstate.*
 tfplan
+tfplan*.out
 backend.hcl
 terraform.tfvars
 .DS_Store

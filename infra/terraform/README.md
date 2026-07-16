@@ -9,9 +9,14 @@ Recursos provisionados: Cloud Run (API), Cloud SQL (Postgres), Cloud Storage
 Manager, Artifact Registry, Pub/Sub (reconciliação de cota) e Cloud
 Scheduler → Cloud Run Job (expurgo da lixeira, job de exemplo).
 
-**Este código nunca foi aplicado** — foi escrito e revisado neste ambiente,
-que não tem projeto GCP nem credenciais. `terraform validate`/`fmt` rodaram
-localmente; `plan`/`apply` exigem um projeto real (ver abaixo).
+**Aplicado** contra o projeto real `gdoc-502613` (ambiente de
+desenvolvimento com `gcloud`/Terraform configurados) — 53 recursos criados,
+0 destruídos. Escrito e revisado originalmente num ambiente sandbox sem
+projeto GCP nem credenciais, onde só `terraform validate`/`fmt` rodavam;
+`plan`/`apply` aconteceram depois, num ambiente com acesso real ao projeto
+(ver `openspec/changes/bootstrap-infrastructure/tasks.md`, seção 8, para os
+três ajustes que só a API real revelou). A API ainda sobe com a imagem
+placeholder pública até o CI/CD publicar a imagem real — ver "Uso" abaixo.
 
 ## Pré-requisitos
 
