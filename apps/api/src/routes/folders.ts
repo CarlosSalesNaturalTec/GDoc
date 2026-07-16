@@ -3,15 +3,7 @@ import type { Ports } from '../ports/index.js';
 import type { TenantContext } from '../ports/database-port.js';
 import type { CreateFolderRequest, FolderResponse, FileSummaryResponse } from '@gdoc/shared';
 import type { PoolClient } from 'pg';
-
-interface FolderRow {
-  id: string;
-  unit_id: string;
-  owner_id: string;
-  parent_id: string | null;
-  name: string;
-  created_at: string;
-}
+import { findFolderById, type FolderRow } from '../lib/folder-tree.js';
 
 interface FileSummaryRow {
   id: string;
@@ -46,11 +38,6 @@ function toFileSummaryResponse(row: FileSummaryRow): FileSummaryResponse {
     status: row.status,
     createdAt: new Date(row.created_at).toISOString(),
   };
-}
-
-async function findFolderById(client: PoolClient, folderId: string): Promise<FolderRow | null> {
-  const { rows } = await client.query<FolderRow>('SELECT * FROM folders WHERE id = $1', [folderId]);
-  return rows[0] ?? null;
 }
 
 /**

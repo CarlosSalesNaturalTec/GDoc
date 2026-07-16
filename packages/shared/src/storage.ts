@@ -59,3 +59,39 @@ export interface ReplaceFileRequest {
 
 /** Mesmo formato de `UploadUrlResponse`: URL assinada de PUT para o novo `object_path`. */
 export type ReplaceFileResponse = UploadUrlResponse;
+
+export interface BatchUploadItemRequest {
+  fileName: string;
+  contentType: string;
+  declaredSizeBytes: number;
+  /** Subpasta relativa ao destino (ex.: "Relatorios/2024"); ausente = direto no destino. */
+  relativePath?: string;
+}
+
+export interface BatchUploadUrlRequest {
+  /** Pasta-âncora (da unidade do remetente, da qual o remetente precisa ser dono); ausente = raiz da unidade. */
+  destinationFolderId?: string;
+  items: BatchUploadItemRequest[];
+}
+
+export interface BatchUploadItemSuccess {
+  fileName: string;
+  ok: true;
+  uploadUrl: string;
+  objectPath: string;
+  folderId: string | null;
+  expiresAt: string;
+}
+
+export interface BatchUploadItemFailure {
+  fileName: string;
+  ok: false;
+  error: string;
+}
+
+/** Resultado por item, na mesma ordem de `BatchUploadUrlRequest.items` (design.md D1/D5). */
+export type BatchUploadItemResult = BatchUploadItemSuccess | BatchUploadItemFailure;
+
+export interface BatchUploadUrlResponse {
+  results: BatchUploadItemResult[];
+}

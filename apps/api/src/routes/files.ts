@@ -3,12 +3,15 @@ import { Router } from 'express';
 import type { Ports } from '../ports/index.js';
 import { AuditAction, FileAccessAction } from '@gdoc/shared';
 import type {
+  BatchUploadItemResult,
+  BatchUploadUrlRequest,
   FileSummaryResponse,
   RenameFileRequest,
   ReplaceFileRequest,
   UploadUrlRequest,
 } from '@gdoc/shared';
 import { config } from '../config.js';
+import { ensureFolderPath, validateAnchor } from '../lib/folder-tree.js';
 
 interface FileRow {
   id: string;
@@ -148,6 +151,109 @@ export function filesRouter(ports: Ports): Router {
 
       const signed = await ports.storage.getUploadUrl(objectPath, contentType);
       res.json({ uploadUrl: signed.url, objectPath, expiresAt: signed.expiresAt.toISOString() });
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  router.post('/files/upload-urls', async (req, res, next) => {
+    try {
+      const ctx = req.tenantContext!;
+      const { destinationFolderId, items } = req.body as BatchUploadUrlRequest;
+
+      if (!Array.isArray(items) || items.length === 0) {
+        res.status(400).json({ error: 'invalid request body' });
+        return;
+      }
+
+      type PreparedItem =
+        | { fileName: string; ok: true; objectPath: string; contentType: string; folderId: string | null }
+        | { fileName: string; ok: false; error: string };
+
+      const outcome = await ports.database.withTenantTransaction(ctx, async (client) => {
+        // Pré-condição global (design.md D1): destino inválido/de outra
+        // unidade derruba o lote inteiro, sem vazar existência — diferente
+        // dos erros por item, que não abortam os demais.
+        const anchor = await validateAnchor(client, ctx, destinationFolderId);
+        if (!anchor.ok) return { ok: false as const, status: anchor.status };
+
+        const { rows: usageRows } = await client.query<{ storage_used_bytes: string }>(
+          'SELECT storage_used_bytes FROM users WHERE id = $1',
+          [ctx.userId],
+        );
+        const baseUsage = Number(usageRows[0]?.storage_used_bytes ?? '0');
+
+        // Reserva consciente do lote (design.md D2): soma o que já está
+        // pendente/em substituição, e cresce a cada item aceito no próprio
+        // lote — sem isso, itens do mesmo lote veem a mesma folga e furam a
+        // cota em conjunto.
+        const { rows: pendingRows } = await client.query<{ total: string | null }>(
+          `SELECT SUM(size_bytes) AS total FROM files WHERE owner_id = $1 AND status IN ('pending', 'replacing')`,
+          [ctx.userId],
+        );
+        let reserved = Number(pendingRows[0]?.total ?? '0');
+
+        const prepared: PreparedItem[] = [];
+
+        for (const item of items) {
+          const { fileName, contentType, declaredSizeBytes, relativePath } = item ?? ({} as (typeof items)[number]);
+
+          if (!fileName || !contentType || !Number.isFinite(declaredSizeBytes) || declaredSizeBytes! < 0) {
+            prepared.push({ fileName: fileName ?? '', ok: false, error: 'invalid item' });
+            continue;
+          }
+
+          const pathResult = await ensureFolderPath(client, ctx, anchor.anchor?.id ?? null, relativePath);
+          if (!pathResult.ok) {
+            prepared.push({ fileName, ok: false, error: pathResult.error });
+            continue;
+          }
+
+          const available = config.storageQuotaBytesPerUser - baseUsage - reserved;
+          if (declaredSizeBytes! > available) {
+            prepared.push({ fileName, ok: false, error: 'quota exceeded' });
+            continue;
+          }
+
+          const objectId = randomUUID();
+          const objectPath = ports.storage.buildObjectPath(ctx.unitId, ctx.userId, `${objectId}-${fileName}`);
+
+          await client.query(
+            `INSERT INTO files (id, unit_id, owner_id, folder_id, object_path, file_name, content_type, size_bytes, status)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'pending')`,
+            [objectId, ctx.unitId, ctx.userId, pathResult.folderId, objectPath, fileName, contentType, declaredSizeBytes],
+          );
+          reserved += declaredSizeBytes!;
+
+          prepared.push({ fileName, ok: true, objectPath, contentType, folderId: pathResult.folderId });
+        }
+
+        return { ok: true as const, prepared };
+      });
+
+      if (!outcome.ok) {
+        res.status(outcome.status).json({ error: outcome.status === 404 ? 'destination not found' : 'forbidden' });
+        return;
+      }
+
+      // Assinatura fora da transação (mesmo padrão do upload-url singular):
+      // evita manter a transação aberta durante N chamadas de rede ao signer.
+      const results: BatchUploadItemResult[] = await Promise.all(
+        outcome.prepared.map(async (item) => {
+          if (!item.ok) return { fileName: item.fileName, ok: false, error: item.error };
+          const signed = await ports.storage.getUploadUrl(item.objectPath, item.contentType);
+          return {
+            fileName: item.fileName,
+            ok: true,
+            uploadUrl: signed.url,
+            objectPath: item.objectPath,
+            folderId: item.folderId,
+            expiresAt: signed.expiresAt.toISOString(),
+          };
+        }),
+      );
+
+      res.json({ results });
     } catch (err) {
       next(err);
     }
