@@ -63,7 +63,17 @@ data/hora — atendendo US 7.1/7.2.
 |---|---|---|
 | view-url | ~5 min | preview é rápido; re-emitir é barato |
 | download-url | ~15–30 min | cabe vídeo grande + pausa/retomada por Range |
-| upload (resumable) | sessão longa do GCS (~dias) | *gated* por permissão + cota na emissão |
+| upload-url | mesmo TTL do download (~15–30 min) | PUT direto (`action: 'write'`), *gated* por permissão + cota na emissão |
+
+Nota de implementação: a emissão de upload usa PUT simples (`action: 'write'`),
+não upload resumível (`action: 'resumable'`) — o fake-gcs-server usado em dev
+não inicia corretamente uma sessão resumível a partir de uma URL assinada v4
+no estilo de caminho (perde o nome do objeto), embora suporte PUT simples com
+o mesmo esquema de assinatura sem problemas (validado manualmente). GCS real
+aceita PUT simples normalmente; upload em pedaços/retomável, se necessário
+para arquivos muito grandes em rede instável, fica como otimização de UX de
+uma mudança de feature futura — o contrato do endpoint (uma URL, um PUT) não
+muda.
 
 Nota GCS: a expiração é validada no início de cada requisição; um download já
 iniciado continua além do TTL, mas retomadas por *Range* disparam novos `GET`s
