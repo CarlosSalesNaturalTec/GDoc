@@ -51,10 +51,30 @@ terraform apply
 
 Depois do primeiro `apply`, a API sobe com uma imagem placeholder pública
 (`us-docker.pkg.dev/cloudrun/container/hello`) — o Cloud Run existe, mas
-ainda não roda o código do GDoc. O CI/CD (tasks.md seção 7, ainda não
-implementado) publica a imagem real no Artifact Registry criado aqui e faz
-o deploy; o lifecycle `ignore_changes` no `cloud_run.tf` garante que um
-`terraform apply` seguinte não reverta esse deploy.
+ainda não roda o código do GDoc. O CI/CD (`.github/workflows/deploy.yml`)
+publica a imagem real no Artifact Registry criado aqui e faz o deploy; o
+lifecycle `ignore_changes` no `cloud_run.tf` garante que um `terraform apply`
+seguinte não reverta esse deploy.
+
+## CI/CD (GitHub Actions)
+
+Depois do `apply`, configure as variáveis do repositório GitHub (Settings →
+Secrets and variables → Actions → *Variables* — não são segredos: acesso é
+controlado pela condição do WIF + IAM, não por elas serem secretas) com os
+outputs deste Terraform:
+
+| Variável do repositório | Valor (`terraform output ...`) |
+|---|---|
+| `GCP_PROJECT_ID` | `var.project_id` (o mesmo de `terraform.tfvars`) |
+| `GCP_REGION` | `var.region` |
+| `GCP_ARTIFACT_REPOSITORY` | `artifact_registry_repository` |
+| `GCP_CLOUD_RUN_SERVICE` | nome do serviço (`google_cloud_run_v2_service.api.name`, também visível prefixado em `api_url`) |
+| `GCP_WORKLOAD_IDENTITY_PROVIDER` | `github_actions_workload_identity_provider` |
+| `GCP_DEPLOYER_SERVICE_ACCOUNT` | `github_actions_deployer_service_account` |
+
+Sem chave de service account em lugar nenhum — `cicd.tf` provisiona um
+Workload Identity Pool que só aceita tokens OIDC do repositório configurado
+em `github_repository` (`CarlosSalesNaturalTec/GDoc` por padrão).
 
 ## Decisões que valem conhecer antes de mexer
 
@@ -91,7 +111,6 @@ o deploy; o lifecycle `ignore_changes` no `cloud_run.tf` garante que um
 
 ## O que falta (fora de escopo desta mudança)
 
-- CI/CD (tasks.md seção 7): build + push da imagem, deploy no Cloud Run.
 - Ambiente de staging.
 - Fechar o gap de autenticação do endpoint de reconciliação de cota (acima).
 - Domínio real do frontend (hoje `frontend_domain` fica vazio por padrão).

@@ -42,3 +42,13 @@ output "trash_purge_job_name" {
   description = "Nome do Cloud Run Job de exemplo do expurgo da lixeira (substituir a imagem quando o Épico 6 existir)."
   value       = google_cloud_run_v2_job.trash_purge_example.name
 }
+
+output "github_actions_workload_identity_provider" {
+  description = "Valor para o secret/var GCP_WORKLOAD_IDENTITY_PROVIDER do GitHub Actions (ver .github/workflows/deploy.yml)."
+  value       = google_iam_workload_identity_pool_provider.github.name
+}
+
+output "github_actions_deployer_service_account" {
+  description = "Valor para o secret/var GCP_DEPLOYER_SERVICE_ACCOUNT do GitHub Actions (ver .github/workflows/deploy.yml)."
+  value       = google_service_account.deployer.email
+}

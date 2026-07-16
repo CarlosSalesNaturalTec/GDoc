@@ -22,6 +22,7 @@ locals {
     "iam.googleapis.com",
     "iamcredentials.googleapis.com",
     "cloudresourcemanager.googleapis.com",
+    "sts.googleapis.com", # troca de token do Workload Identity Federation (ver cicd.tf)
   ]
 
   create_frontend_lb = var.frontend_domain != ""

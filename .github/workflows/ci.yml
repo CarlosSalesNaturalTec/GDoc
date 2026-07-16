@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint-build-test:
+    name: Lint, build and test
+    runs-on: ubuntu-latest
+
+    # Postgres real (não emulado) — os testes de RLS e de auditoria abrem
+    # transações de verdade (RLS + `SET LOCAL`), a mesma garantia do
+    # SessionStart hook do sandbox (ver design.md, Decisão 3). Os testes
+    # usam InMemoryStoragePort (ver apps/api/src/__tests__), então não há
+    # necessidade de um emulador de GCS aqui.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: gdoc_ci
+          POSTGRES_PASSWORD: gdoc_ci
+          POSTGRES_DB: gdoc_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U gdoc_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      NODE_ENV: test
+      DATABASE_URL: postgres://gdoc_ci:gdoc_ci@localhost:5432/gdoc_ci
+      DATABASE_SSL: "false"
+      STORAGE_DRIVER: fake-gcs
+      STORAGE_BUCKET: ci-bucket
+      STORAGE_EMULATOR_HOST: http://127.0.0.1:4443
+      GCP_PROJECT_ID: gdoc-ci
+      SECRETS_DRIVER: env
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: "npm"
+
+      - name: Install dependencies (builds packages/shared — postinstall)
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build
+        run: npm run build
+
+      - name: Test
+        run: npm run test

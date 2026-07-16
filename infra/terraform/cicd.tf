@@ -1,0 +1,70 @@
+# Identidade do CI/CD (tasks.md seção 7) — GitHub Actions autentica no GCP
+# via Workload Identity Federation, sem chave de service account exportada
+# (mesma postura de "sem chave" das Decisões 4/signBlob). Só o repositório
+# em `var.github_repository` pode assumir a service account de deploy.
+
+resource "google_iam_workload_identity_pool" "github" {
+  project                   = var.project_id
+  workload_identity_pool_id = "${local.name_prefix}-github"
+  display_name              = "GitHub Actions (${var.environment})"
+
+  depends_on = [google_project_service.required]
+}
+
+resource "google_iam_workload_identity_pool_provider" "github" {
+  project                            = var.project_id
+  workload_identity_pool_id          = google_iam_workload_identity_pool.github.workload_identity_pool_id
+  workload_identity_pool_provider_id = "github"
+  display_name                       = "GitHub OIDC"
+
+  attribute_mapping = {
+    "google.subject"       = "assertion.sub"
+    "attribute.repository" = "assertion.repository"
+  }
+
+  # Só tokens emitidos para o repositório configurado passam — sem isso,
+  # qualquer repositório do GitHub poderia tentar assumir a SA de deploy.
+  attribute_condition = "assertion.repository == \"${var.github_repository}\""
+
+  oidc {
+    issuer_uri = "https://token.actions.githubusercontent.com"
+  }
+}
+
+resource "google_service_account" "deployer" {
+  project      = var.project_id
+  account_id   = "${local.name_prefix}-deployer"
+  display_name = "CI/CD deploy (${var.environment}) — GitHub Actions"
+}
+
+resource "google_service_account_iam_member" "deployer_wif_binding" {
+  service_account_id = google_service_account.deployer.name
+  role               = "roles/iam.workloadIdentityUser"
+  member             = "principalSet://iam.googleapis.com/${google_iam_workload_identity_pool.github.name}/attribute.repository/${var.github_repository}"
+}
+
+# Publicar imagens no repositório criado em artifact_registry.tf.
+resource "google_artifact_registry_repository_iam_member" "deployer_ar_writer" {
+  project    = var.project_id
+  location   = google_artifact_registry_repository.api.location
+  repository = google_artifact_registry_repository.api.repository_id
+  role       = "roles/artifactregistry.writer"
+  member     = "serviceAccount:${google_service_account.deployer.email}"
+}
+
+# Publicar uma nova revisão no Cloud Run existente.
+resource "google_cloud_run_v2_service_iam_member" "deployer_run_developer" {
+  project  = var.project_id
+  location = var.region
+  name     = google_cloud_run_v2_service.api.name
+  role     = "roles/run.developer"
+  member   = "serviceAccount:${google_service_account.deployer.email}"
+}
+
+# Deploy de uma revisão precisa poder "agir como" a service account de
+# runtime da API que a revisão vai usar (ver cloud_run.tf).
+resource "google_service_account_iam_member" "deployer_act_as_api" {
+  service_account_id = google_service_account.api.name
+  role               = "roles/iam.serviceAccountUser"
+  member             = "serviceAccount:${google_service_account.deployer.email}"
+}

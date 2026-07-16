@@ -1,0 +1,67 @@
+name: Deploy
+
+# Dispara depois que o workflow CI terminar com sucesso em `main` — não
+# duplica lint/build/test aqui (tasks.md seção 7: "build e push da imagem" +
+# "deploy no Cloud Run" partem de um código já verificado).
+on:
+  workflow_run:
+    workflows: ["CI"]
+    branches: [main]
+    types: [completed]
+
+concurrency:
+  group: deploy-${{ github.workflow }}
+  cancel-in-progress: false
+
+jobs:
+  build-push-deploy:
+    name: Build, push and deploy
+    if: github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+
+    # Sem chave de service account: autenticação por Workload Identity
+    # Federation (ver infra/terraform/cicd.tf) — precisa de id-token write
+    # para o OIDC do GitHub Actions.
+    permissions:
+      contents: read
+      id-token: write
+
+    env:
+      IMAGE: ${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ vars.GCP_ARTIFACT_REPOSITORY }}/api
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOYER_SERVICE_ACCOUNT }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker "${{ vars.GCP_REGION }}-docker.pkg.dev" --quiet
+
+      - name: Build image
+        run: |
+          docker build \
+            -f apps/api/Dockerfile \
+            -t "${IMAGE}:${{ github.event.workflow_run.head_sha }}" \
+            -t "${IMAGE}:latest" \
+            .
+
+      - name: Push image
+        run: |
+          docker push "${IMAGE}:${{ github.event.workflow_run.head_sha }}"
+          docker push "${IMAGE}:latest"
+
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy "${{ vars.GCP_CLOUD_RUN_SERVICE }}" \
+            --project "${{ vars.GCP_PROJECT_ID }}" \
+            --region "${{ vars.GCP_REGION }}" \
+            --image "${IMAGE}:${{ github.event.workflow_run.head_sha }}" \
+            --quiet

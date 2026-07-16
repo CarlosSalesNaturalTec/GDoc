@@ -127,3 +127,13 @@ variable "labels" {
   type        = map(string)
   default     = {}
 }
+
+variable "github_repository" {
+  description = <<-EOT
+    Repositório GitHub ("owner/repo") autorizado a assumir a service account
+    de deploy do CI/CD via Workload Identity Federation — sem chave exportada
+    (ver cicd.tf). Só esse repositório específico pode se passar pela SA.
+  EOT
+  type        = string
+  default     = "CarlosSalesNaturalTec/GDoc"
+}

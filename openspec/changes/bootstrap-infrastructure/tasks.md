@@ -135,9 +135,39 @@ projeto real (ver `infra/terraform/README.md`, seção "Uso").
 
 ## 7. CI/CD (skeleton)
 
-- [ ] Pipeline: lint → build → test
-- [ ] Build e push da imagem para o Artifact Registry
-- [ ] Deploy da imagem no Cloud Run
+- [x] Pipeline: lint → build → test
+      → `.github/workflows/ci.yml`, com Postgres real como serviço (os
+      testes de RLS abrem transação de verdade); roda em todo push/PR.
+      Rodado localmente com as mesmas variáveis de ambiente para conferir
+      antes de commitar — passou (lint, build, 6/6 testes).
+- [x] Build e push da imagem para o Artifact Registry
+      → `apps/api/Dockerfile` (multi-stage; contexto = raiz do monorepo) +
+      `.github/workflows/deploy.yml`. Autenticação por Workload Identity
+      Federation (`infra/terraform/cicd.tf`), sem chave de service account.
+- [x] Deploy da imagem no Cloud Run
+      → `gcloud run deploy` no mesmo workflow, disparado quando o CI termina
+      com sucesso em `main` (`workflow_run`)
+
+**Achado corrigido durante esta etapa:** `packages/shared` apontava
+`main`/`types` para `./src/index.ts` — funcionava em dev/test (tsx/vitest
+transpilam na hora) mas quebrava a execução do build compilado
+(`node dist/server.js` puro não sabe importar `.ts`). Corrigido: aponta para
+`./dist/index.js`, com `postinstall` na raiz garantindo que `packages/shared`
+seja buildado logo após `npm install`/`npm ci` (dev, CI e Docker build todos
+passam por aí). Validado nos três caminhos de execução (`node` puro, `vitest`,
+`tsx`) depois da correção.
+
+**Validação do Dockerfile:** o pull da imagem base (`node:22-slim`) falhou
+neste sandbox — o CDN do Docker Hub não está na allowlist de rede do
+ambiente (mesma classe de limitação do registry do Terraform, seção 6). Não
+deu para rodar `docker build` de ponta a ponta aqui. Em vez disso, simulei o
+layout exato de arquivos que o estágio `runtime` do Dockerfile produziria
+(sem `docker`, copiando só `node_modules` + `dist` + `package.json` para um
+diretório isolado, sem nenhum `.ts` alcançável) e rodei `node
+apps/api/dist/server.js` a partir dele — subiu e respondeu `/health`
+normalmente, o que dá confiança de que a lógica de cópia do Dockerfile está
+correta. O GitHub Actions real (runners com acesso irrestrito à internet)
+deve conseguir buildar sem esse problema.
 
 ## 8. Prova de fundação ponta a ponta
 

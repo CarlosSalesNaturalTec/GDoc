@@ -219,6 +219,29 @@ Pipeline: lint → build → test → build de imagem → push para o Artifact R
 → caminho de deploy para o Cloud Run. Sem publicar features nesta mudança; o
 alvo é provar que o pipeline e o deploy funcionam com a "hello, secured world".
 
+**Implementação:** dois workflows do GitHub Actions.
+`.github/workflows/ci.yml` roda lint/build/test em todo push/PR, com um
+Postgres real como serviço (os testes abrem transação e fazem `SET LOCAL`
+de verdade — mesma garantia da Decisão 3; não precisa de emulador de GCS
+porque os testes usam `InMemoryStoragePort`). `.github/workflows/deploy.yml`
+dispara quando o CI termina com sucesso em `main`: builda a imagem
+(`apps/api/Dockerfile`), publica no Artifact Registry e faz
+`gcloud run deploy`. Autenticação no GCP por **Workload Identity
+Federation** (`infra/terraform/cicd.tf`) — mesma postura de "sem chave
+exportada" da Decisão 4 (signBlob): o GitHub Actions troca seu próprio
+OIDC token por credenciais de curta duração, sem nenhum JSON de service
+account guardado como secret.
+
+**Achado de implementação corrigido nesta mudança:** `packages/shared`
+apontava `main`/`types` para `./src/index.ts` (fonte TS). Em dev/test isso
+funciona porque `tsx`/`vitest` transpila na hora, mas quebra o build de
+produção de verdade — `node dist/server.js` puro não sabe importar `.ts`.
+Corrigido apontando para `./dist/index.js` compilado, com um `postinstall`
+na raiz que builda `packages/shared` logo após `npm install`/`npm ci` (assim
+o hook de dev, o CI e o Docker build sempre encontram o `dist/` pronto).
+Validado rodando os três caminhos de execução (`node` puro, `vitest`, `tsx`)
+depois da correção — os três resolvem `@gdoc/shared` corretamente agora.
+
 ## Riscos e spikes em aberto
 
 - **[SPIKE] Docker no sandbox?** Decide o mecanismo do hook:

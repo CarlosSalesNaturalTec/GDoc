@@ -12,13 +12,20 @@ Nenhuma feature do PRD está implementada ainda.
 ## Estrutura
 
 ```
-apps/api/          # backend Node/TS — único guardião de permissão
-apps/web/          # layout reservado para a SPA (mudança futura)
-packages/shared/    # tipos/contratos compartilhados
-infra/terraform/    # IaC de produção (GCP) — em progresso
-scripts/            # utilitários de dev (ex.: gerar chave dummy de assinatura)
-.claude/hooks/       # SessionStart hook: provisiona o ambiente de dev
+apps/api/            # backend Node/TS — único guardião de permissão
+apps/web/            # layout reservado para a SPA (mudança futura)
+packages/shared/     # tipos/contratos compartilhados
+infra/terraform/      # IaC de produção (GCP)
+.github/workflows/    # CI (lint/build/test) e deploy (build+push+Cloud Run)
+scripts/              # utilitários de dev (ex.: gerar chave dummy de assinatura)
+.claude/hooks/         # SessionStart hook: provisiona o ambiente de dev
 ```
+
+`packages/shared` é consumido compilado (`dist/`), não pela fonte TS
+diretamente — um `postinstall` na raiz builda automaticamente logo após
+`npm install`/`npm ci`. Se editar `packages/shared/src`, rode
+`npm run build --workspace packages/shared` (ou reinstale) para que a
+mudança apareça para quem consome (`apps/api`, testes, Docker).
 
 ## Ambiente de desenvolvimento (Claude Code web/sandbox)
 
@@ -46,8 +53,9 @@ make dev-api
 ## Testes e lint
 
 ```bash
-npm run lint --workspaces --if-present
-npm run test --workspace apps/api
+npm run lint
+npm run build
+npm run test
 ```
 
 ## Prova de fundação ponta a ponta (manual)
@@ -92,5 +100,14 @@ verificável contra o GCS real, após o Terraform ser aplicado.
 
 ## Produção (GCP)
 
-IaC em `infra/terraform/` (ver `openspec/changes/bootstrap-infrastructure/tasks.md`,
-seção 6, para o que falta provisionar).
+IaC em `infra/terraform/` (ver o README dessa pasta para como aplicar e as
+decisões de arquitetura).
+
+## CI/CD
+
+`.github/workflows/ci.yml` roda lint/build/test em todo push/PR (com um
+Postgres real como serviço). `.github/workflows/deploy.yml` builda a imagem
+da API (`apps/api/Dockerfile`), publica no Artifact Registry e faz deploy no
+Cloud Run quando o CI passa em `main` — autenticado por Workload Identity
+Federation, sem chave de service account (ver `infra/terraform/cicd.tf` e o
+README de `infra/terraform/` para as variáveis do repositório necessárias).
