@@ -75,6 +75,28 @@ export async function hasAccess(
 }
 
 /**
+ * Resolução de acesso à *auditoria* de um arquivo (design.md D2, Épico 7):
+ * **dono OU admin da unidade**, deliberadamente sem o ramo de `grant` que
+ * `hasAccess` tem — possuir grant `view`/`download` deixa abrir o arquivo,
+ * mas não deixa ver quem mais o acessou (RF #9/#11: esse é direito de
+ * dono/administrador, não efeito colateral de poder abrir o arquivo).
+ * Reusa `isAdminOfUnit`, então herda a mesma trava de bypass do
+ * `global_admin` (só admin dentro da própria unidade, nunca "olho
+ * universal" sobre auditoria de outra unidade). Fail-closed: arquivo
+ * inexistente ou na lixeira (`deleted_at IS NULL`) resolve para `false`,
+ * sem distinguir os casos.
+ */
+export async function canReadAudit(client: PoolClient, ctx: TenantContext, fileId: string): Promise<boolean> {
+  const { rows } = await client.query<{ owner_id: string; unit_id: string }>(
+    'SELECT owner_id, unit_id FROM files WHERE id = $1 AND deleted_at IS NULL',
+    [fileId],
+  );
+  const file = rows[0];
+  if (!file) return false;
+  return file.owner_id === ctx.userId || isAdminOfUnit(ctx, file.unit_id);
+}
+
+/**
  * Fragmento SQL de alcance (dono OU grant do verbo OU admin da unidade),
  * sem filtro de `deleted_at` — a parte comum entre a visibilidade viva
  * (`visibleResourceClause`, verbo `view`) e a lixeira (`GET /trash`, verbo
