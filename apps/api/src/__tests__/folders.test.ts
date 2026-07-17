@@ -107,7 +107,8 @@ describe('Navegação: pastas aninhadas, trilha e visibilidade só-por-dono', ()
       .post('/folders')
       .set('Cookie', await sessionCookieFor(ports, ids.userA))
       .send({ name: 'Tentativa Cross Unit', parentId: folderBId });
-    expect(attempt.status).toBe(404);
+    // 403 (não 404): pai negado sem revelar que a pasta existe.
+    expect(attempt.status).toBe(403);
 
     const created = await withSystemBypass(pool, (client) =>
       client.query('SELECT 1 FROM folders WHERE name = $1', ['Tentativa Cross Unit']),

@@ -104,12 +104,11 @@ export function foldersRouter(ports: Ports): Router {
       const outcome = await ports.database.withTenantTransaction(ctx, async (client) => {
         if (parentId) {
           const parent = await findFolderById(client, parentId);
-          // RLS já restringe a leitura à unidade do usuário (ou bypass de
-          // global_admin) — pai de outra unidade simplesmente não aparece
-          // aqui, sem distinguir "não existe" de "é de outra unidade"
-          // (design.md D4: "sem vazar").
-          if (!parent) return { status: 404 as const };
-          if (parent.owner_id !== ctx.userId) return { status: 403 as const };
+          // Pai inexistente (ou de outra unidade, escondido pela RLS) e pai
+          // de outra pessoa resolvem igual — 403, sem distinguir os casos
+          // (fail-closed, não vaza existência; mesmo tratamento do endpoint
+          // de contents e de `findAccessibleFile` em routes/files.ts).
+          if (!parent || parent.owner_id !== ctx.userId) return { status: 403 as const };
         }
 
         const { rows } = await client.query<FolderRow>(
@@ -120,7 +119,7 @@ export function foldersRouter(ports: Ports): Router {
       });
 
       if (outcome.status !== 201) {
-        res.status(outcome.status).json({ error: outcome.status === 404 ? 'parent not found' : 'forbidden' });
+        res.status(outcome.status).json({ error: 'forbidden' });
         return;
       }
 
