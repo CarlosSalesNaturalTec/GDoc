@@ -155,10 +155,13 @@ export function foldersRouter(ports: Ports): Router {
       const ctx = req.tenantContext!;
       const outcome = await ports.database.withTenantTransaction(ctx, async (client) => {
         const folder = await findFolderById(client, req.params.id);
-        if (!folder) return { status: 404 as const };
-        // Dono-ou-grant `view` (design.md D2): abrir/navegar para dentro de
-        // uma pasta exige posse ou grant `view` sobre ela, mesmo que a
-        // unidade bata.
+        // Dono-ou-grant `view` (design.md D2): pasta inexistente (ou
+        // escondida pela RLS de outra unidade) e pasta existente sem `view`
+        // resolvem igual — 403, sem distinguir os dois casos (fail-closed,
+        // sem vazar existência; mesmo tratamento de `findAccessibleFile` em
+        // routes/files.ts). Distinguir com 404 vazaria que a pasta existe na
+        // unidade do solicitante.
+        if (!folder) return { status: 403 as const };
         const allowed = await hasAccess(client, ctx, GrantResourceType.FOLDER, folder.id, Permission.VIEW);
         if (!allowed) return { status: 403 as const };
 
@@ -168,7 +171,7 @@ export function foldersRouter(ports: Ports): Router {
       });
 
       if (outcome.status !== 200) {
-        res.status(outcome.status).json({ error: outcome.status === 404 ? 'not found' : 'forbidden' });
+        res.status(outcome.status).json({ error: 'forbidden' });
         return;
       }
 

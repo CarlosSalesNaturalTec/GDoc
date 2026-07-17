@@ -126,7 +126,9 @@ describe('Navegação: pastas aninhadas, trilha e visibilidade só-por-dono', ()
     const res = await request(app)
       .get(`/folders/${folderBId}/contents`)
       .set('Cookie', await sessionCookieFor(ports, ids.userA));
-    expect(res.status).toBe(404);
+    // Pasta de outra unidade e pasta sem `view` resolvem igual: 403, sem
+    // distinguir de "não existe" (fail-closed, não vaza existência).
+    expect(res.status).toBe(403);
   });
 
   it('visibilidade próprio-ou-liberado: pasta com arquivos de dois donos lista só os do solicitante', async () => {
@@ -187,7 +189,8 @@ describe('Navegação: pastas aninhadas, trilha e visibilidade só-por-dono', ()
     const direct = await request(app)
       .get(`/folders/${folderBId}/contents`)
       .set('Cookie', await sessionCookieFor(ports, ids.userA));
-    expect(direct.status).toBe(404);
+    // 403 (não 404): acesso negado sem revelar que a pasta existe.
+    expect(direct.status).toBe(403);
   });
 
   it('upload com folderId coloca o arquivo na pasta; sem folderId cai na raiz', async () => {
