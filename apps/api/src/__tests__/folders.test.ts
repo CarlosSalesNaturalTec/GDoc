@@ -107,7 +107,8 @@ describe('Navegação: pastas aninhadas, trilha e visibilidade só-por-dono', ()
       .post('/folders')
       .set('Cookie', await sessionCookieFor(ports, ids.userA))
       .send({ name: 'Tentativa Cross Unit', parentId: folderBId });
-    expect(attempt.status).toBe(404);
+    // 403 (não 404): pai negado sem revelar que a pasta existe.
+    expect(attempt.status).toBe(403);
 
     const created = await withSystemBypass(pool, (client) =>
       client.query('SELECT 1 FROM folders WHERE name = $1', ['Tentativa Cross Unit']),
@@ -126,13 +127,16 @@ describe('Navegação: pastas aninhadas, trilha e visibilidade só-por-dono', ()
     const res = await request(app)
       .get(`/folders/${folderBId}/contents`)
       .set('Cookie', await sessionCookieFor(ports, ids.userA));
-    expect(res.status).toBe(404);
+    // Pasta de outra unidade e pasta sem `view` resolvem igual: 403, sem
+    // distinguir de "não existe" (fail-closed, não vaza existência).
+    expect(res.status).toBe(403);
   });
 
-  it('visibilidade só-por-dono: pasta com arquivos de dois donos lista só os do solicitante', async () => {
+  it('visibilidade próprio-ou-liberado: pasta com arquivos de dois donos lista só os do solicitante', async () => {
     const app = createApp(ports);
     const cookieA = await sessionCookieFor(ports, ids.userA);
     const cookieA2 = await sessionCookieFor(ports, userA2Id);
+    const cookieAdmin = await sessionCookieFor(ports, ids.globalAdmin);
 
     const shared = await request(app).post('/folders').set('Cookie', cookieA).send({ name: 'Pasta Compartilhada' });
     const sharedFolderId = (shared.body as FolderBody).id;
@@ -142,6 +146,15 @@ describe('Navegação: pastas aninhadas, trilha e visibilidade só-por-dono', ()
       .set('Cookie', cookieA)
       .send({ fileName: 'meu.txt', contentType: 'text/plain', declaredSizeBytes: 5, folderId: sharedFolderId });
     expect(uploadA.status).toBe(200);
+
+    // Épico 4: enviar para pasta de outra pessoa exige grant `upload` sobre ela.
+    const grant = await request(app).post('/grants').set('Cookie', cookieAdmin).send({
+      subjectUserId: userA2Id,
+      resourceType: 'folder',
+      resourceId: sharedFolderId,
+      permissions: ['upload'],
+    });
+    expect(grant.status).toBe(201);
 
     const uploadA2 = await request(app)
       .post('/files/upload-url')
@@ -177,7 +190,8 @@ describe('Navegação: pastas aninhadas, trilha e visibilidade só-por-dono', ()
     const direct = await request(app)
       .get(`/folders/${folderBId}/contents`)
       .set('Cookie', await sessionCookieFor(ports, ids.userA));
-    expect(direct.status).toBe(404);
+    // 403 (não 404): acesso negado sem revelar que a pasta existe.
+    expect(direct.status).toBe(403);
   });
 
   it('upload com folderId coloca o arquivo na pasta; sem folderId cai na raiz', async () => {
