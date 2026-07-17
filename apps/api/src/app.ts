@@ -8,6 +8,7 @@ import { usersRouter } from './routes/users.js';
 import { grantsRouter } from './routes/grants.js';
 import { authRouter } from './routes/auth.js';
 import { storageEventsRouter } from './routes/storage-events.js';
+import { trashRouter } from './routes/trash.js';
 import { attachTenantContext } from './middleware/tenant-context.js';
 
 export function createApp(ports: Ports): Express {
@@ -22,6 +23,7 @@ export function createApp(ports: Ports): Express {
   app.use(attachTenantContext(ports), foldersRouter(ports));
   app.use(attachTenantContext(ports), usersRouter(ports));
   app.use(attachTenantContext(ports), grantsRouter(ports));
+  app.use(attachTenantContext(ports), trashRouter(ports));
 
   const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
     console.error(err);

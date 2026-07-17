@@ -1,31 +1,108 @@
 # Cloud Scheduler -> Cloud Run Job (ver design.md, visão de arquitetura:
-# expurgo diário da lixeira às 03:00). O job em si é um exemplo/placeholder —
-# a lógica real de expurgo é do Épico 6 (lixeira), fora de escopo desta
-# fundação; o que esta mudança prova é que o disparo diário funciona
-# ponta a ponta.
+# expurgo diário da lixeira às 03:00). Épico 6 (lixeira, `epico-6-lixeira-retencao`):
+# o job roda a mesma imagem da API com o entrypoint de expurgo
+# (`apps/api/src/jobs/purge-trash.ts`, compilado para `dist/jobs/purge-trash.js`
+# — ver design.md D7 dessa mudança), a topologia Scheduler -> Job e a IAM já
+# existentes da fundação não mudam.
 resource "google_service_account" "trash_purge_job" {
   project      = var.project_id
   account_id   = "${local.name_prefix}-trash-purge"
   display_name = "Trash purge job runtime (${var.environment})"
 }
 
-resource "google_cloud_run_v2_job" "trash_purge_example" {
+resource "google_project_iam_member" "trash_purge_cloudsql_client" {
+  project = var.project_id
+  role    = "roles/cloudsql.client"
+  member  = "serviceAccount:${google_service_account.trash_purge_job.email}"
+}
+
+resource "google_secret_manager_secret_iam_member" "trash_purge_database_url" {
+  secret_id = google_secret_manager_secret.database_url.id
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${google_service_account.trash_purge_job.email}"
+}
+
+# `deleteObject` (design.md D8 da mesma mudança) só remove bytes — o mesmo
+# papel de objectAdmin já concedido à API (`api_storage_admin` em
+# cloud_run.tf) cobre o expurgo; nenhuma URL é assinada pelo job, então não
+# precisa do `serviceAccountTokenCreator` que a API tem para `signBlob`.
+resource "google_storage_bucket_iam_member" "trash_purge_storage_admin" {
+  bucket = google_storage_bucket.files.name
+  role   = "roles/storage.objectAdmin"
+  member = "serviceAccount:${google_service_account.trash_purge_job.email}"
+}
+
+resource "google_cloud_run_v2_job" "trash_purge" {
   project  = var.project_id
-  name     = "${local.name_prefix}-trash-purge-example"
+  name     = "${local.name_prefix}-trash-purge"
   location = var.region
   labels   = local.labels
 
   template {
     template {
       service_account = google_service_account.trash_purge_job.email
+
+      volumes {
+        name = "cloudsql"
+        cloud_sql_instance {
+          instances = [google_sql_database_instance.main.connection_name]
+        }
+      }
+
       containers {
-        image = "us-docker.pkg.dev/cloudrun/container/job"
+        image   = var.api_image
+        command = ["node"]
+        args    = ["dist/jobs/purge-trash.js"]
+
         resources {
           limits = {
-            cpu    = "1"
+            cpu = "1"
             # Piso do Cloud Run gen2 com CPU sempre alocada (unthrottled) é
             # 512Mi; abaixo disso a API rejeita a criação do Job.
             memory = "512Mi"
+          }
+        }
+
+        volume_mounts {
+          name       = "cloudsql"
+          mount_path = "/cloudsql"
+        }
+
+        env {
+          name  = "NODE_ENV"
+          value = "production"
+        }
+        env {
+          name  = "DATABASE_SSL"
+          value = "false" # socket Unix local ao Cloud Run — mesmo racional de cloud_run.tf
+        }
+        env {
+          name  = "STORAGE_DRIVER"
+          value = "gcs"
+        }
+        env {
+          name  = "STORAGE_BUCKET"
+          value = google_storage_bucket.files.name
+        }
+        env {
+          name  = "GCP_PROJECT_ID"
+          value = var.project_id
+        }
+        env {
+          name  = "SECRETS_DRIVER"
+          value = "secret-manager"
+        }
+        env {
+          name  = "TRASH_RETENTION_DAYS"
+          value = tostring(var.trash_retention_days)
+        }
+        env {
+          name = "DATABASE_URL"
+          value_source {
+            secret_key_ref {
+              secret  = google_secret_manager_secret.database_url.secret_id
+              version = "latest"
+            }
           }
         }
       }
@@ -34,10 +111,15 @@ resource "google_cloud_run_v2_job" "trash_purge_example" {
   }
 
   lifecycle {
+    # Mesmo racional do Cloud Run Service (cloud_run.tf): a imagem publicada
+    # pelo CI/CD não deve ser revertida por um `terraform apply` seguinte.
     ignore_changes = [template[0].template[0].containers[0].image]
   }
 
-  depends_on = [google_project_service.required]
+  depends_on = [
+    google_project_service.required,
+    google_secret_manager_secret_version.database_url,
+  ]
 }
 
 resource "google_service_account" "scheduler_invoker" {
@@ -49,7 +131,7 @@ resource "google_service_account" "scheduler_invoker" {
 resource "google_cloud_run_v2_job_iam_member" "scheduler_invoker" {
   project  = var.project_id
   location = var.region
-  name     = google_cloud_run_v2_job.trash_purge_example.name
+  name     = google_cloud_run_v2_job.trash_purge.name
   role     = "roles/run.invoker"
   member   = "serviceAccount:${google_service_account.scheduler_invoker.email}"
 }
@@ -63,7 +145,7 @@ resource "google_cloud_scheduler_job" "trash_purge" {
 
   http_target {
     http_method = "POST"
-    uri         = "https://${var.region}-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/${var.project_id}/jobs/${google_cloud_run_v2_job.trash_purge_example.name}:run"
+    uri         = "https://${var.region}-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/${var.project_id}/jobs/${google_cloud_run_v2_job.trash_purge.name}:run"
 
     oauth_token {
       service_account_email = google_service_account.scheduler_invoker.email

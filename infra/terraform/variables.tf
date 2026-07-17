@@ -116,6 +116,12 @@ variable "trash_purge_schedule" {
   default     = "0 3 * * *"
 }
 
+variable "trash_retention_days" {
+  description = "Dias de retenção da lixeira antes do expurgo permanente (Épico 6, change epico-6-lixeira-retencao, design.md D6/D7)."
+  type        = number
+  default     = 30
+}
+
 variable "scheduler_time_zone" {
   description = "Fuso horário usado pelo Cloud Scheduler."
   type        = string

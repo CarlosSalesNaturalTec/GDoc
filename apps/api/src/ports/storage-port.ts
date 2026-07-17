@@ -25,4 +25,7 @@ export interface StoragePort {
 
   /** Verifica se o bucket nega leitura direta sem assinatura (usado na prova E2E). */
   assertObjectNotPubliclyReadable(objectPath: string): Promise<boolean>;
+
+  /** Remove o objeto do bucket. Idempotente: objeto ausente não é erro (design.md D8). */
+  deleteObject(objectPath: string): Promise<void>;
 }

@@ -12,8 +12,17 @@ export interface FolderRow {
   created_at: string;
 }
 
+/**
+ * Pasta na lixeira resolve como inexistente (design.md D2) — breadcrumb,
+ * validação de âncora de upload e a rota de conteúdo não enxergam pasta
+ * excluída; a lixeira e o restore consultam `folders` diretamente, sem
+ * passar por aqui.
+ */
 export async function findFolderById(client: PoolClient, folderId: string): Promise<FolderRow | null> {
-  const { rows } = await client.query<FolderRow>('SELECT * FROM folders WHERE id = $1', [folderId]);
+  const { rows } = await client.query<FolderRow>(
+    'SELECT * FROM folders WHERE id = $1 AND deleted_at IS NULL',
+    [folderId],
+  );
   return rows[0] ?? null;
 }
 
@@ -71,23 +80,24 @@ async function findOrCreateChild(
   const readExisting = () =>
     client.query<FolderRow>(
       `SELECT * FROM folders
-       WHERE unit_id = $1 AND parent_id IS NOT DISTINCT FROM $2 AND lower(name) = lower($3)`,
+       WHERE unit_id = $1 AND parent_id IS NOT DISTINCT FROM $2 AND lower(name) = lower($3) AND deleted_at IS NULL`,
       [ctx.unitId, parentId, name],
     );
 
   const { rows: existing } = await readExisting();
   if (existing[0]) return existing[0];
 
-  // `ON CONFLICT` casa com o índice único `folders_unit_parent_name_uidx`
-  // (migração 0006) para os níveis internos, tornando a criação idempotente
-  // sob concorrência. Na raiz (`parent_id` NULL) o índice não pega colisões
-  // — dois NULL não são iguais em Postgres (design.md D4) — então a
-  // idempotência da raiz depende só da leitura acima; aceito e documentado,
-  // mesma classe de gap do D2.
+  // `ON CONFLICT` casa com o índice único parcial `folders_unit_parent_name_uidx`
+  // (migração 0006, restrito a `deleted_at IS NULL` pela 0008 — épico 6:
+  // pasta excluída não bloqueia recriar o nome) para os níveis internos,
+  // tornando a criação idempotente sob concorrência. Na raiz (`parent_id`
+  // NULL) o índice não pega colisões — dois NULL não são iguais em Postgres
+  // (design.md D4) — então a idempotência da raiz depende só da leitura
+  // acima; aceito e documentado, mesma classe de gap do D2.
   await client.query(
     `INSERT INTO folders (unit_id, owner_id, parent_id, name)
      VALUES ($1, $2, $3, $4)
-     ON CONFLICT (unit_id, parent_id, lower(name)) DO NOTHING`,
+     ON CONFLICT (unit_id, parent_id, lower(name)) WHERE deleted_at IS NULL DO NOTHING`,
     [ctx.unitId, ctx.userId, parentId, name],
   );
 

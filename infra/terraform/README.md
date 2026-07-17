@@ -7,7 +7,7 @@ decisão). Provisiona os trilhos de produção — nenhuma feature do PRD.
 Recursos provisionados: Cloud Run (API), Cloud SQL (Postgres), Cloud Storage
 (bucket privado de arquivos + bucket público do SPA com CDN), Secret
 Manager, Artifact Registry, Pub/Sub (reconciliação de cota) e Cloud
-Scheduler → Cloud Run Job (expurgo da lixeira, job de exemplo).
+Scheduler → Cloud Run Job (expurgo diário da lixeira, 03:00).
 
 **Aplicado** contra o projeto real `gdoc-502613` (ambiente de
 desenvolvimento com `gcloud`/Terraform configurados) — 53 recursos criados,
@@ -113,9 +113,28 @@ em `github_repository` (`CarlosSalesNaturalTec/GDoc` por padrão).
   mudança futura antes de ir para produção com dados reais.
 - **`db-f1-micro`** é o tier mais barato disponível — adequado para MVP,
   revisar (`db_tier`) antes de qualquer carga de produção real.
+- **Expurgo da lixeira tem lógica real (Épico 6, `epico-6-lixeira-retencao`).**
+  O Cloud Run Job (`scheduler.tf`) deixou de ser um placeholder de exemplo: roda
+  a mesma imagem da API (`var.api_image`) com o entrypoint
+  `dist/jobs/purge-trash.js`, conectado ao Cloud SQL pela mesma integração
+  nativa da API (`google_sql_database_instance.main`) e ao segredo
+  `database_url`. `TRASH_RETENTION_DAYS` (padrão 30 — `var.trash_retention_days`)
+  controla o corte de retenção; ver `apps/api/src/jobs/purge-trash.ts` e
+  design.md D6-D10 do change para a lógica. A topologia Scheduler → Job e a
+  IAM do invoker não mudaram.
+- **A imagem do Job não é redeployada automaticamente pelo CI/CD.**
+  `.github/workflows/deploy.yml` só faz `gcloud run deploy` do **serviço**
+  (API) a cada push em `main`; o **Job** de expurgo só pega uma imagem nova
+  quando o Terraform for reaplicado (o `lifecycle.ignore_changes` em
+  `containers[0].image` evita que um `apply` de rotina reverta uma imagem já
+  publicada, mas também significa que ele não avança sozinho). Manter o job
+  atualizado hoje exige `terraform apply` manual apontando `var.api_image`
+  para a tag desejada, ou estender o CI/CD para também rodar
+  `gcloud run jobs deploy` — fora de escopo desta mudança.
 
 ## O que falta (fora de escopo desta mudança)
 
 - Ambiente de staging.
 - Fechar o gap de autenticação do endpoint de reconciliação de cota (acima).
 - Domínio real do frontend (hoje `frontend_domain` fica vazio por padrão).
+- Redeploy automático da imagem do Cloud Run Job de expurgo pelo CI/CD (acima).

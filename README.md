@@ -90,6 +90,23 @@ curl -X POST http://127.0.0.1:8080/files/<FILE_ID>/download-url -H "x-gdoc-user-
 Um usuário de outra unidade recebe `403` em `view-url`/`download-url` sem
 nenhuma URL emitida nem auditoria gravada (isolamento por RLS, fail-closed).
 
+## Expurgo da lixeira (manual, em dev)
+
+Em prod, o Cloud Scheduler dispara o Cloud Run Job diariamente às 03:00 (ver
+`infra/terraform/scheduler.tf`). Em dev, sem Scheduler, o mesmo job roda por
+`npm run` — mesmo padrão manual de `internal/storage-events` acima:
+
+```bash
+npm run purge:trash --workspace apps/api
+```
+
+Apaga permanentemente os itens na lixeira há mais de `TRASH_RETENTION_DAYS`
+dias (padrão 30 — `apps/api/src/config.ts`): remove os bytes no storage,
+devolve a cota ao dono e apaga as linhas de metadados (arquivos, pastas,
+grants órfãos e a auditoria dos arquivos expurgados). Tolerante a falha por
+item — reentra no próximo ciclo. Ver `apps/api/src/jobs/purge-trash.ts` e
+design.md D6-D10 do change `epico-6-lixeira-retencao`.
+
 **Limitação conhecida do emulador:** o `fake-gcs-server` não aplica validação
 de assinatura em leituras (um `GET` direto sem assinatura também retorna
 `200`). Isso é uma característica de emuladores de GCS — eles emulam a

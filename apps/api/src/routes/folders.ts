@@ -1,8 +1,8 @@
 import { Router } from 'express';
 import type { Ports } from '../ports/index.js';
 import type { TenantContext } from '../ports/database-port.js';
-import { GrantResourceType, Permission } from '@gdoc/shared';
-import type { CreateFolderRequest, FolderResponse, FileSummaryResponse } from '@gdoc/shared';
+import { AuditAction, GrantResourceType, Permission } from '@gdoc/shared';
+import type { CreateFolderRequest, FolderResponse, FolderRestoreResponse, FileSummaryResponse } from '@gdoc/shared';
 import type { PoolClient } from 'pg';
 import { findFolderById, type FolderRow } from '../lib/folder-tree.js';
 import { hasAccess, isAdminOfUnit, visibleResourceClause } from '../lib/access.js';
@@ -101,6 +101,44 @@ async function listContents(
   return { folders, files };
 }
 
+/**
+ * Ids da pasta e de toda a sua subárvore (design.md D4), via CTE recursiva
+ * por `parent_id`. A RLS filtra cada linha do walk pela unidade corrente, o
+ * mesmo que qualquer outra query na transação tenant — a cascata nunca
+ * cruza unidade.
+ */
+async function collectSubtreeFolderIds(client: PoolClient, rootId: string): Promise<string[]> {
+  const { rows } = await client.query<{ id: string }>(
+    `WITH RECURSIVE subtree AS (
+       SELECT id FROM folders WHERE id = $1
+       UNION ALL
+       SELECT f.id FROM folders f JOIN subtree s ON f.parent_id = s.id
+     )
+     SELECT id FROM subtree`,
+    [rootId],
+  );
+  return rows.map((r) => r.id);
+}
+
+async function recordFileAudits(
+  ports: Ports,
+  ctx: TenantContext,
+  files: { id: string; unit_id: string }[],
+  action: AuditAction,
+): Promise<void> {
+  if (files.length === 0) return;
+  await ports.database.withTenantTransaction(ctx, async (client) => {
+    for (const file of files) {
+      await client.query('INSERT INTO audit_events (unit_id, user_id, file_id, action) VALUES ($1, $2, $3, $4)', [
+        file.unit_id,
+        ctx.userId,
+        file.id,
+        action,
+      ]);
+    }
+  });
+}
+
 export function foldersRouter(ports: Ports): Router {
   const router = Router();
 
@@ -192,6 +230,108 @@ export function foldersRouter(ports: Ports): Router {
         folders: outcome.folders.map(toFolderResponse),
         files: outcome.files.map(toFileSummaryResponse),
       });
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  router.delete('/folders/:id', async (req, res, next) => {
+    try {
+      const ctx = req.tenantContext!;
+
+      const outcome = await ports.database.withTenantTransaction(ctx, async (client) => {
+        const folder = await findFolderById(client, req.params.id);
+        // Dono-ou-grant `delete` ou admin da unidade (design.md D3), mesmo
+        // 403 fail-closed sem vazar existência dos demais endpoints.
+        if (!folder) return { ok: false as const };
+        const allowed = await hasAccess(client, ctx, GrantResourceType.FOLDER, folder.id, Permission.DELETE);
+        if (!allowed) return { ok: false as const };
+
+        const folderIds = await collectSubtreeFolderIds(client, folder.id);
+
+        // Cascata (design.md D4): mesmo `deleted_at`, `trash_root_id` da
+        // raiz; `deleted_at IS NULL` no WHERE preserva o agrupamento de
+        // descendentes já excluídos antes, sem sobrescrever seu
+        // `trash_root_id`.
+        await client.query(
+          `UPDATE folders SET deleted_at = now(), deleted_by = $1, trash_root_id = $2
+           WHERE id = ANY($3::uuid[]) AND deleted_at IS NULL`,
+          [ctx.userId, folder.id, folderIds],
+        );
+
+        const { rows: deletedFiles } = await client.query<{ id: string; unit_id: string }>(
+          `UPDATE files SET deleted_at = now(), deleted_by = $1, trash_root_id = $2
+           WHERE folder_id = ANY($3::uuid[]) AND deleted_at IS NULL
+           RETURNING id, unit_id`,
+          [ctx.userId, folder.id, folderIds],
+        );
+
+        return { ok: true as const, deletedFiles };
+      });
+
+      if (!outcome.ok) {
+        res.status(403).json({ error: 'forbidden' });
+        return;
+      }
+
+      // Auditoria por arquivo afetado (design.md D10): `audit_events`
+      // exige `file_id`, então a pasta em si não gera linha própria — cada
+      // arquivo da subárvore excluída é auditado individualmente.
+      await recordFileAudits(ports, ctx, outcome.deletedFiles, AuditAction.DELETE);
+
+      res.status(204).send();
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  router.post('/folders/:id/restore', async (req, res, next) => {
+    try {
+      const ctx = req.tenantContext!;
+
+      const outcome = await ports.database.withTenantTransaction(ctx, async (client) => {
+        const { rows } = await client.query<FolderRow & { trash_root_id: string | null }>(
+          'SELECT * FROM folders WHERE id = $1 AND deleted_at IS NOT NULL',
+          [req.params.id],
+        );
+        const folder = rows[0];
+        if (!folder) return { ok: false as const };
+
+        // Só raízes de exclusão são restauráveis individualmente
+        // (design.md D5).
+        if (folder.trash_root_id !== folder.id) return { ok: false as const };
+
+        const allowed = await hasAccess(client, ctx, GrantResourceType.FOLDER, folder.id, Permission.DELETE, {
+          includeTrash: true,
+        });
+        if (!allowed) return { ok: false as const };
+
+        // `trash_root_id = raiz` agrupa a pasta e toda a subárvore excluída
+        // junto (design.md D4) — restaurar é só limpar a marcação de quem
+        // tem esse agrupador, sem walk recursivo (design.md D5).
+        await client.query(
+          `UPDATE folders SET deleted_at = NULL, deleted_by = NULL, trash_root_id = NULL WHERE trash_root_id = $1`,
+          [folder.id],
+        );
+        const { rows: restoredFiles } = await client.query<{ id: string; unit_id: string }>(
+          `UPDATE files SET deleted_at = NULL, deleted_by = NULL, trash_root_id = NULL
+           WHERE trash_root_id = $1 RETURNING id, unit_id`,
+          [folder.id],
+        );
+
+        const { rows: refreshed } = await client.query<FolderRow>('SELECT * FROM folders WHERE id = $1', [folder.id]);
+        return { ok: true as const, folder: refreshed[0]!, restoredFiles };
+      });
+
+      if (!outcome.ok) {
+        res.status(403).json({ error: 'forbidden' });
+        return;
+      }
+
+      await recordFileAudits(ports, ctx, outcome.restoredFiles, AuditAction.RESTORE);
+
+      const response: FolderRestoreResponse = toFolderResponse(outcome.folder);
+      res.json(response);
     } catch (err) {
       next(err);
     }

@@ -4,6 +4,7 @@ import type { StoragePort, SignedUrlResult } from '../ports/storage-port.js';
 export class InMemoryStoragePort implements StoragePort {
   readonly bucketName = 'test-bucket';
   calls: { method: string; objectPath: string }[] = [];
+  private readonly deletedObjects = new Set<string>();
 
   buildObjectPath(unitId: string, ownerId: string, objectId: string): string {
     return `${unitId}/${ownerId}/${objectId}`;
@@ -26,5 +27,15 @@ export class InMemoryStoragePort implements StoragePort {
 
   async assertObjectNotPubliclyReadable(): Promise<boolean> {
     return true;
+  }
+
+  /** Idempotente (design.md D8): apagar de novo o mesmo path não lança. */
+  async deleteObject(objectPath: string): Promise<void> {
+    this.calls.push({ method: 'delete', objectPath });
+    this.deletedObjects.add(objectPath);
+  }
+
+  wasDeleted(objectPath: string): boolean {
+    return this.deletedObjects.has(objectPath);
   }
 }
