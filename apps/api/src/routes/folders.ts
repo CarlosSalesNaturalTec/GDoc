@@ -5,7 +5,7 @@ import { GrantResourceType, Permission } from '@gdoc/shared';
 import type { CreateFolderRequest, FolderResponse, FileSummaryResponse } from '@gdoc/shared';
 import type { PoolClient } from 'pg';
 import { findFolderById, type FolderRow } from '../lib/folder-tree.js';
-import { hasAccess, visibleResourceClause } from '../lib/access.js';
+import { hasAccess, isAdminOfUnit, visibleResourceClause } from '../lib/access.js';
 
 interface FileSummaryRow {
   id: string;
@@ -71,19 +71,31 @@ async function listContents(
   ctx: TenantContext,
   folderId: string | null,
 ): Promise<{ folders: FolderRow[]; files: FileSummaryRow[] }> {
-  const parentClause = folderId === null ? 'parent_id IS NULL' : 'parent_id = $2';
-  const folderParams = folderId === null ? [ctx.userId] : [ctx.userId, folderId];
+  // Admin da unidade (design.md D2): o fragmento de visibilidade vira `TRUE`
+  // ou um literal de `unit_id`, sem referenciar `ownerIdParam` — por isso o
+  // placeholder do dono só entra nos parâmetros quando não-admin, senão o
+  // driver rejeita um `$n` sem uso correspondente na query.
+  const admin = isAdminOfUnit(ctx, ctx.unitId);
+  const params: string[] = admin ? [] : [ctx.userId];
+  const ownerPlaceholder = admin ? '' : `$${params.length}`;
+
+  let anchorClause = '';
+  if (folderId !== null) {
+    params.push(folderId);
+    anchorClause = `$${params.length}`;
+  }
+
+  const parentClause = folderId === null ? 'parent_id IS NULL' : `parent_id = ${anchorClause}`;
   const { rows: folders } = await client.query<FolderRow>(
-    `SELECT * FROM folders WHERE ${visibleResourceClause(GrantResourceType.FOLDER, '$1')} AND ${parentClause} ORDER BY name`,
-    folderParams,
+    `SELECT * FROM folders WHERE ${visibleResourceClause(GrantResourceType.FOLDER, ownerPlaceholder, ctx)} AND ${parentClause} ORDER BY name`,
+    params,
   );
 
-  const folderClause = folderId === null ? 'folder_id IS NULL' : 'folder_id = $2';
-  const fileParams = folderId === null ? [ctx.userId] : [ctx.userId, folderId];
+  const folderClause = folderId === null ? 'folder_id IS NULL' : `folder_id = ${anchorClause}`;
   const { rows: files } = await client.query<FileSummaryRow>(
     `SELECT id, owner_id, folder_id, file_name, content_type, size_bytes, status, created_at
-     FROM files WHERE ${visibleResourceClause(GrantResourceType.FILE, '$1')} AND ${folderClause} ORDER BY file_name`,
-    fileParams,
+     FROM files WHERE ${visibleResourceClause(GrantResourceType.FILE, ownerPlaceholder, ctx)} AND ${folderClause} ORDER BY file_name`,
+    params,
   );
 
   return { folders, files };
