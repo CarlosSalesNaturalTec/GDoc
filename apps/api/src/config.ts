@@ -51,6 +51,9 @@ export const config = {
     optional('STORAGE_QUOTA_BYTES_PER_USER', String(10 * 1024 * 1024 * 1024)),
   ),
 
+  // Retenção da lixeira em dias (design.md D6/D7) — corte do expurgo diário.
+  trashRetentionDays: Number(optional('TRASH_RETENTION_DAYS', '30')),
+
   secretsDriver: optional('SECRETS_DRIVER', 'env') as 'env' | 'secret-manager',
 
   authArgon2: {

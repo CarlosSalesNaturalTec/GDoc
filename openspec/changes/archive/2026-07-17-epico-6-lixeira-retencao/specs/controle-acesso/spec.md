@@ -1,17 +1,4 @@
-# controle-acesso Specification
-
-## Purpose
-
-Define os requisitos verificáveis da imposição de permissão no servidor a
-cada ação sobre um arquivo ou pasta, na fatia do Épico 4 / **US 4.2** do PRD
-(`docs/prd_final.md`), completando também a **US 2.1, cenário 2** (Épico 2).
-Esta capability trata da checagem em tempo de requisição sobre o motor
-`grants` definido pela capability `permissoes-granulares`. Os cenários
-Given/When/Then das US são vinculantes. A regra de resolução é **dono OU
-grant do verbo exigido**, sem herança, fail-closed (ver design.md D2/D3 do
-change `epico-4-permissoes-granulares`).
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: Acesso a conteúdo exige posse ou permissão do verbo correspondente
 
@@ -94,21 +81,6 @@ change `epico-6-lixeira-retencao`.
   grant
 - **THEN** o acesso é negado com 403, sem URL e sem auditoria, mesmo que o bypass
   de RLS torne a linha do arquivo visível ao papel
-
-### Requirement: Bloqueio de acesso por link direto sem exposição de conteúdo
-
-O acesso direto pela rota de um arquivo sem permissão SHALL ser bloqueado sem expor
-nenhum conteúdo nem pré-visualização do arquivo, e sem distinguir "arquivo
-inexistente" de "arquivo existente sem permissão" (não vazar existência). Como a URL
-assinada só é emitida **após** a checagem de permissão no servidor e o bucket é
-100% privado, um link direto ao objeto nunca SHALL contornar a verificação.
-Referência: PRD US 4.2, cenário 1.
-
-#### Scenario: Link direto a arquivo sem permissão
-- **WHEN** uma pessoa aciona a rota de um arquivo para o qual não tem permissão,
-  ainda que conheça seu identificador
-- **THEN** recebe 403, nenhuma URL nem pré-visualização é retornada, e a resposta não
-  revela se o arquivo existe
 
 ### Requirement: Listagem de pasta restrita a itens próprios ou liberados
 

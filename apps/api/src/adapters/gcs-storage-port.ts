@@ -68,6 +68,10 @@ export class GcsStoragePort implements StoragePort {
     return this.sign(objectPath, 'write', config.signedUrlDownloadTtlSeconds, undefined, contentType);
   }
 
+  async deleteObject(objectPath: string): Promise<void> {
+    await this.storage.bucket(this.bucketName).file(objectPath).delete({ ignoreNotFound: true });
+  }
+
   async assertObjectNotPubliclyReadable(objectPath: string): Promise<boolean> {
     const file = this.storage.bucket(this.bucketName).file(objectPath);
     try {

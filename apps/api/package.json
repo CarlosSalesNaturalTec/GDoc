@@ -9,6 +9,7 @@
     "start": "node dist/server.js",
     "migrate": "tsx src/db/migrate.ts",
     "seed": "tsx src/db/seed.ts",
+    "purge:trash": "tsx src/jobs/purge-trash.ts",
     "test": "vitest run",
     "lint": "eslint ."
   },

@@ -1,0 +1,141 @@
+## ADDED Requirements
+
+### Requirement: Exclusão envia o item para a lixeira em vez de apagar
+
+Excluir um arquivo ou pasta SHALL marcá-lo como excluído (soft-delete),
+retendo-o na lixeira, em vez de removê-lo imediatamente. A exclusão SHALL exigir
+o verbo `delete` sobre o recurso — **dono OU grant `delete` OU admin da unidade
+do recurso** — e, sem esse alcance, SHALL ser negada com 403 sem vazar a
+existência do recurso. A marcação SHALL registrar quando e por quem o item foi
+excluído, sem mover a linha nem alterar seu local (`folder_id`/`parent_id`) e
+sem apagar os grants existentes, de modo que a restauração devolva o item ao
+local de origem com as permissões que possuía. Referência: PRD Épico 6 / US 6.1,
+cenário 1; RF #12; design.md D1/D3.
+
+#### Scenario: Excluir arquivo com permissão o envia à lixeira
+- **WHEN** uma pessoa com posse, grant `delete` ou alcance de admin da unidade
+  exclui um arquivo
+- **THEN** o arquivo é marcado como excluído e retido na lixeira, deixando de
+  aparecer nas visões vivas, mas permanecendo restaurável dentro do prazo
+
+#### Scenario: Excluir sem o verbo delete é bloqueado
+- **WHEN** uma pessoa sem posse, sem grant `delete` e sem alcance de admin da
+  unidade tenta excluir um arquivo ou pasta
+- **THEN** a ação é negada com 403 e a resposta não distingue "não existe" de
+  "existe sem permissão"
+
+### Requirement: Excluir pasta cascateia para o conteúdo interno
+
+Excluir uma pasta SHALL enviar à lixeira, na mesma operação, a pasta e **toda a
+sua subárvore** — subpastas e arquivos internos —, agrupados como uma única
+operação de exclusão para que possam ser restaurados juntos. Itens que já
+estavam na lixeira antes SHALL preservar o agrupamento da sua exclusão anterior,
+não sendo reabsorvidos pela nova operação. A cascata SHALL permanecer restrita à
+unidade do solicitante (a RLS por `unit_id` é a fronteira dura). Referência: PRD
+Épico 6 / US 6.1; design.md D4.
+
+#### Scenario: Excluir pasta remove a subárvore inteira das visões vivas
+- **WHEN** uma pessoa com permissão exclui uma pasta que contém subpastas e
+  arquivos
+- **THEN** a pasta e todo o seu conteúdo interno vão para a lixeira juntos e
+  deixam de aparecer na navegação
+
+### Requirement: Item na lixeira não é acessível por nenhuma via viva
+
+Um item na lixeira NÃO SHALL ser acessível por navegação, listagem, emissão de
+URL de visualização/download, renomear/substituir ou link direto ao seu
+identificador — SHALL resolver como inexistente (403 fail-closed, sem vazar
+existência), do mesmo modo que um recurso de outra unidade. Referência: PRD
+Épico 6 / US 6.1; US 4.2; design.md D2.
+
+#### Scenario: Link direto a arquivo na lixeira é bloqueado
+- **WHEN** uma pessoa aciona a rota de visualização/download de um arquivo que
+  está na lixeira, ainda que conheça seu identificador
+- **THEN** recebe 403, sem URL nem pré-visualização, e a resposta não revela que
+  o arquivo existe na lixeira
+
+#### Scenario: Item na lixeira não aparece na listagem
+- **WHEN** uma pessoa (inclusive o admin da unidade) lista o conteúdo da pasta
+  onde um item estava antes de ser excluído
+- **THEN** o item excluído não aparece na listagem viva
+
+### Requirement: Restauração devolve o item ao local de origem com as permissões
+
+Restaurar um item da lixeira dentro do prazo de retenção SHALL devolvê-lo ao seu
+local de origem com os grants que possuía, exigindo o mesmo alcance da exclusão
+(dono OU grant `delete` OU admin da unidade) sobre a raiz da exclusão. Restaurar
+uma pasta SHALL restaurar junto a subárvore excluída na mesma operação. Quando o
+local de origem de um arquivo não existir mais como pasta viva (o ancestral foi
+expurgado), a restauração SHALL devolvê-lo à raiz da unidade, informando o
+destino efetivo. Referência: PRD Épico 6 / US 6.1, cenário 1; design.md D5.
+
+#### Scenario: Restaurar arquivo o devolve ao local com as permissões
+- **WHEN** uma pessoa restaura da lixeira um arquivo excluído dentro do prazo
+- **THEN** o arquivo volta ao seu `folder_id` de origem, com os mesmos grants
+  que possuía, e volta a aparecer nas visões vivas
+
+#### Scenario: Restaurar pasta restaura a subárvore junto
+- **WHEN** uma pessoa restaura da lixeira uma pasta que fora excluída com seu
+  conteúdo
+- **THEN** a pasta e a subárvore excluída na mesma operação voltam juntas ao
+  local de origem
+
+### Requirement: Lixeira lista os itens restauráveis no alcance do solicitante
+
+O sistema SHALL oferecer uma listagem da lixeira que apresenta as **raízes de
+exclusão** que o solicitante pode restaurar — as próprias, as que possui grant
+`delete`, ou todas as da unidade se for admin —, informando ao menos nome, tipo,
+quando foi excluído e quando expira. A listagem NÃO SHALL, em nenhuma hipótese,
+incluir itens de outra unidade. Referência: PRD Épico 6 / US 6.1; design.md D9.
+
+#### Scenario: Colaborador vê apenas suas raízes de exclusão
+- **WHEN** um `collaborator` abre a lixeira
+- **THEN** vê as raízes de exclusão que pode restaurar (próprias ou com grant
+  `delete`) e não vê itens de terceiros sem alcance nem itens de outra unidade
+
+#### Scenario: Admin da unidade vê a lixeira da unidade
+- **WHEN** um `unit_admin` abre a lixeira
+- **THEN** vê as raízes de exclusão da sua unidade, sem itens de outra unidade
+
+### Requirement: Expurgo permanente automático diário após 30 dias
+
+Uma rotina diária executada às 3h SHALL apagar de forma permanente os itens que
+estão na lixeira há mais de 30 dias (prazo de retenção configurável), deixando de
+poder restaurá-los. O expurgo SHALL remover os bytes do objeto no storage,
+devolver ao dono a cota correspondente ao tamanho do arquivo e apagar as linhas
+de metadados, incluindo os grants órfãos e a auditoria dos arquivos expurgados.
+O expurgo SHALL ser tolerante a falha por item — a falha ao apagar um item NÃO
+SHALL impedir o expurgo dos demais, e o item pendente SHALL ser reprocessado no
+ciclo seguinte —, removendo os bytes antes de apagar a linha para nunca deixar
+uma linha viva apontando bytes já removidos. Itens dentro do prazo NÃO SHALL ser
+afetados. Referência: PRD Épico 6 / US 6.1, cenário 2; RF #12; design.md
+D6/D7/D8/D10.
+
+#### Scenario: Item vencido é apagado permanentemente e libera cota
+- **WHEN** a rotina diária é executada e há um arquivo na lixeira há mais de 30
+  dias
+- **THEN** os bytes do arquivo são removidos do storage, a cota do dono é
+  reduzida pelo tamanho do arquivo, as linhas de metadados/grants/auditoria são
+  apagadas, e o item deixa de poder ser restaurado
+
+#### Scenario: Item dentro do prazo permanece restaurável
+- **WHEN** a rotina diária é executada e há um item na lixeira há menos de 30
+  dias
+- **THEN** o item não é afetado e continua restaurável
+
+#### Scenario: Falha ao apagar um item não derruba o lote
+- **WHEN** durante o expurgo a remoção dos bytes de um item falha
+- **THEN** os demais itens vencidos são expurgados normalmente e o item que
+  falhou permanece íntegro para ser reprocessado no próximo ciclo
+
+### Requirement: Cota permanece contada durante a retenção
+
+Enquanto um arquivo está na lixeira, seus bytes SHALL continuar contando contra a
+cota de 10 GB do dono, pois ainda ocupam o armazenamento; a cota SHALL ser
+devolvida somente quando o expurgo remover o objeto. A exclusão NÃO SHALL, por si
+só, reduzir `storage_used_bytes`. Referência: PRD Épico 6 / US 6.1; RF #13;
+design.md D6.
+
+#### Scenario: Excluir não devolve cota imediatamente
+- **WHEN** uma pessoa exclui um arquivo (enviando-o à lixeira)
+- **THEN** o espaço utilizado do dono permanece inalterado até o expurgo do item

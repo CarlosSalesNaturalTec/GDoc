@@ -5,6 +5,7 @@ import { AuditAction, FileAccessAction, GrantResourceType, Permission } from '@g
 import type {
   BatchUploadItemResult,
   BatchUploadUrlRequest,
+  FileRestoreResponse,
   FileSummaryResponse,
   RenameFileRequest,
   ReplaceFileRequest,
@@ -361,6 +362,96 @@ export function filesRouter(ports: Ports): Router {
 
       const signed = await ports.storage.getUploadUrl(newObjectPath, contentType);
       res.json({ uploadUrl: signed.url, objectPath: newObjectPath, expiresAt: signed.expiresAt.toISOString() });
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  router.delete('/files/:id', async (req, res, next) => {
+    try {
+      const ctx = req.tenantContext!;
+      const file = await findAccessibleFile(ports, ctx, req.params.id, Permission.DELETE);
+      // Dono-ou-grant `delete` ou admin da unidade (design.md D3): sem
+      // alcance, 403 fail-closed sem vazar existência.
+      if (!file) {
+        res.status(403).json({ error: 'forbidden' });
+        return;
+      }
+
+      const updated = await ports.database.withTenantTransaction(ctx, async (client) => {
+        // Arquivo avulso é sua própria raiz de exclusão (design.md D4);
+        // `folder_id`/grants nunca mudam, só a marcação.
+        const { rows } = await client.query<FileRow>(
+          `UPDATE files SET deleted_at = now(), deleted_by = $1, trash_root_id = id WHERE id = $2 RETURNING *`,
+          [ctx.userId, file.id],
+        );
+        return rows[0]!;
+      });
+
+      await recordAudit(ports, ctx, updated, AuditAction.DELETE);
+      res.status(204).send();
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  router.post('/files/:id/restore', async (req, res, next) => {
+    try {
+      const ctx = req.tenantContext!;
+
+      const outcome = await ports.database.withTenantTransaction(ctx, async (client) => {
+        const { rows } = await client.query<FileRow & { trash_root_id: string | null }>(
+          'SELECT * FROM files WHERE id = $1 AND deleted_at IS NOT NULL',
+          [req.params.id],
+        );
+        const file = rows[0];
+        if (!file) return { ok: false as const };
+
+        // Só raízes de exclusão são restauráveis individualmente
+        // (design.md D5) — um descendente de uma pasta excluída volta junto
+        // ao restaurar a raiz da pasta, não sozinho.
+        if (file.trash_root_id !== file.id) return { ok: false as const };
+
+        const allowed = await hasAccess(client, ctx, GrantResourceType.FILE, file.id, Permission.DELETE, {
+          includeTrash: true,
+        });
+        if (!allowed) return { ok: false as const };
+
+        // Pai não existe mais como pasta viva (ancestral expurgado ou ainda
+        // na lixeira) ⇒ volta para a raiz da unidade, informado na resposta
+        // (design.md D5).
+        let redirectedToRoot = false;
+        let targetFolderId = file.folder_id;
+        if (file.folder_id) {
+          const { rows: parentRows } = await client.query(
+            'SELECT 1 FROM folders WHERE id = $1 AND deleted_at IS NULL',
+            [file.folder_id],
+          );
+          if (!parentRows[0]) {
+            redirectedToRoot = true;
+            targetFolderId = null;
+          }
+        }
+
+        const { rows: restored } = await client.query<FileRow>(
+          `UPDATE files SET deleted_at = NULL, deleted_by = NULL, trash_root_id = NULL, folder_id = $1
+           WHERE id = $2 RETURNING *`,
+          [targetFolderId, file.id],
+        );
+        return { ok: true as const, file: restored[0]!, redirectedToRoot };
+      });
+
+      if (!outcome.ok) {
+        res.status(403).json({ error: 'forbidden' });
+        return;
+      }
+
+      await recordAudit(ports, ctx, outcome.file, AuditAction.RESTORE);
+      const response: FileRestoreResponse = {
+        ...toFileSummaryResponse(outcome.file),
+        redirectedToRoot: outcome.redirectedToRoot,
+      };
+      res.json(response);
     } catch (err) {
       next(err);
     }

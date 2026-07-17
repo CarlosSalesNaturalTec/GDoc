@@ -8,6 +8,8 @@ export const AuditAction = {
   DOWNLOAD: 'download',
   RENAME: 'rename',
   REPLACE: 'replace',
+  DELETE: 'delete',
+  RESTORE: 'restore',
 } as const;
 
 export type AuditAction = (typeof AuditAction)[keyof typeof AuditAction];
