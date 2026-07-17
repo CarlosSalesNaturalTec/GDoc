@@ -1,9 +1,11 @@
 import { Router } from 'express';
 import type { Ports } from '../ports/index.js';
 import type { TenantContext } from '../ports/database-port.js';
+import { GrantResourceType, Permission } from '@gdoc/shared';
 import type { CreateFolderRequest, FolderResponse, FileSummaryResponse } from '@gdoc/shared';
 import type { PoolClient } from 'pg';
 import { findFolderById, type FolderRow } from '../lib/folder-tree.js';
+import { hasAccess, visibleResourceClause } from '../lib/access.js';
 
 interface FileSummaryRow {
   id: string;
@@ -59,6 +61,11 @@ async function buildBreadcrumb(client: PoolClient, folder: FolderRow): Promise<F
   return breadcrumb;
 }
 
+/**
+ * Itens próprios OU com grant `view`, por tipo (design.md D8) — fecha a
+ * US 2.1 cenário 2. Sem herança: filhos de uma pasta liberada só aparecem
+ * se também forem próprios ou liberados, nunca por estarem dentro dela.
+ */
 async function listContents(
   client: PoolClient,
   ctx: TenantContext,
@@ -67,7 +74,7 @@ async function listContents(
   const parentClause = folderId === null ? 'parent_id IS NULL' : 'parent_id = $2';
   const folderParams = folderId === null ? [ctx.userId] : [ctx.userId, folderId];
   const { rows: folders } = await client.query<FolderRow>(
-    `SELECT * FROM folders WHERE owner_id = $1 AND ${parentClause} ORDER BY name`,
+    `SELECT * FROM folders WHERE ${visibleResourceClause(GrantResourceType.FOLDER, '$1')} AND ${parentClause} ORDER BY name`,
     folderParams,
   );
 
@@ -75,7 +82,7 @@ async function listContents(
   const fileParams = folderId === null ? [ctx.userId] : [ctx.userId, folderId];
   const { rows: files } = await client.query<FileSummaryRow>(
     `SELECT id, owner_id, folder_id, file_name, content_type, size_bytes, status, created_at
-     FROM files WHERE owner_id = $1 AND ${folderClause} ORDER BY file_name`,
+     FROM files WHERE ${visibleResourceClause(GrantResourceType.FILE, '$1')} AND ${folderClause} ORDER BY file_name`,
     fileParams,
   );
 
@@ -149,9 +156,11 @@ export function foldersRouter(ports: Ports): Router {
       const outcome = await ports.database.withTenantTransaction(ctx, async (client) => {
         const folder = await findFolderById(client, req.params.id);
         if (!folder) return { status: 404 as const };
-        // Visibilidade só-por-dono (design.md D3): navegar para dentro de
-        // uma pasta exige ser dono dela, mesmo que a unidade bata.
-        if (folder.owner_id !== ctx.userId) return { status: 403 as const };
+        // Dono-ou-grant `view` (design.md D2): abrir/navegar para dentro de
+        // uma pasta exige posse ou grant `view` sobre ela, mesmo que a
+        // unidade bata.
+        const allowed = await hasAccess(client, ctx, GrantResourceType.FOLDER, folder.id, Permission.VIEW);
+        if (!allowed) return { status: 403 as const };
 
         const breadcrumb = await buildBreadcrumb(client, folder);
         const { folders, files } = await listContents(client, ctx, folder.id);

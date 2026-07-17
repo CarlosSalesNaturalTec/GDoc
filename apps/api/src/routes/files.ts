@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { Router } from 'express';
 import type { Ports } from '../ports/index.js';
-import { AuditAction, FileAccessAction } from '@gdoc/shared';
+import { AuditAction, FileAccessAction, GrantResourceType, Permission } from '@gdoc/shared';
 import type {
   BatchUploadItemResult,
   BatchUploadUrlRequest,
@@ -12,6 +12,7 @@ import type {
 } from '@gdoc/shared';
 import { config } from '../config.js';
 import { ensureFolderPath, validateAnchor } from '../lib/folder-tree.js';
+import { hasAccess } from '../lib/access.js';
 
 interface FileRow {
   id: string;
@@ -39,10 +40,24 @@ function toFileSummaryResponse(row: FileRow): FileSummaryResponse {
   };
 }
 
-async function findFileById(ports: Ports, ctx: NonNullable<import('express').Request['tenantContext']>, fileId: string) {
+/**
+ * Busca o arquivo e resolve acesso (dono-ou-grant do verbo) na mesma
+ * transação tenant (design.md D2): recurso inexistente (ou escondido pela
+ * RLS de outra unidade) e recurso existente sem o verbo resolvem igual —
+ * `null`, sem distinguir os dois casos (fail-closed, sem vazar existência).
+ */
+async function findAccessibleFile(
+  ports: Ports,
+  ctx: NonNullable<import('express').Request['tenantContext']>,
+  fileId: string,
+  permission: Permission,
+) {
   return ports.database.withTenantTransaction(ctx, async (client) => {
     const { rows } = await client.query<FileRow>('SELECT * FROM files WHERE id = $1', [fileId]);
-    return rows[0] ?? null;
+    const file = rows[0];
+    if (!file) return null;
+    const allowed = await hasAccess(client, ctx, GrantResourceType.FILE, file.id, permission);
+    return allowed ? file : null;
   });
 }
 
@@ -66,11 +81,9 @@ export function filesRouter(ports: Ports): Router {
   router.post('/files/:id/view-url', async (req, res, next) => {
     try {
       const ctx = req.tenantContext!;
-      const file = await findFileById(ports, ctx, req.params.id);
-      // RLS já restringe `findFileById` à unidade do usuário (ou bypass de
-      // global_admin) — se nada voltou, o usuário não tem permissão de
-      // enxergar esse arquivo. Nenhuma URL é emitida, nenhuma auditoria é
-      // gravada.
+      const file = await findAccessibleFile(ports, ctx, req.params.id, Permission.VIEW);
+      // Dono-ou-grant `view` (design.md D2): sem posse nem o verbo, nenhuma
+      // URL é emitida e nenhuma auditoria é gravada (US 4.2, fail-closed).
       if (!file) {
         res.status(403).json({ error: 'forbidden' });
         return;
@@ -87,7 +100,7 @@ export function filesRouter(ports: Ports): Router {
   router.post('/files/:id/download-url', async (req, res, next) => {
     try {
       const ctx = req.tenantContext!;
-      const file = await findFileById(ports, ctx, req.params.id);
+      const file = await findAccessibleFile(ports, ctx, req.params.id, Permission.DOWNLOAD);
       if (!file) {
         res.status(403).json({ error: 'forbidden' });
         return;
@@ -122,9 +135,11 @@ export function filesRouter(ports: Ports): Router {
         if (folderId) {
           // RLS restringe a leitura à unidade do remetente — pasta de outra
           // unidade não aparece aqui (navegacao spec: "a pasta de destino
-          // SHALL pertencer à mesma unidade do remetente").
-          const { rows } = await client.query('SELECT id FROM folders WHERE id = $1', [folderId]);
-          if (!rows[0]) return { ok: false as const, reason: 'folder not found' as const };
+          // SHALL pertencer à mesma unidade do remetente"). Pasta própria
+          // segue livre; pasta de outra pessoa exige grant `upload`
+          // (design.md D3, Épico 4).
+          const anchor = await validateAnchor(client, ctx, folderId);
+          if (!anchor.ok) return { ok: false as const, status: anchor.status };
         }
 
         const { rows } = await client.query<{ storage_used_bytes: string }>(
@@ -133,7 +148,7 @@ export function filesRouter(ports: Ports): Router {
         );
         const currentUsage = Number(rows[0]?.storage_used_bytes ?? '0');
         if (currentUsage + declaredSizeBytes! > config.storageQuotaBytesPerUser) {
-          return { ok: false as const, reason: 'quota exceeded' as const };
+          return { ok: false as const, status: 400 as const };
         }
 
         await client.query(
@@ -145,7 +160,8 @@ export function filesRouter(ports: Ports): Router {
       });
 
       if (!outcome.ok) {
-        res.status(outcome.reason === 'folder not found' ? 404 : 400).json({ error: outcome.reason });
+        const error = outcome.status === 404 ? 'folder not found' : outcome.status === 403 ? 'forbidden' : 'quota exceeded';
+        res.status(outcome.status).json({ error });
         return;
       }
 
@@ -268,11 +284,11 @@ export function filesRouter(ports: Ports): Router {
         return;
       }
 
-      const file = await findFileById(ports, ctx, req.params.id);
-      // Checagem por dono até o Épico 4 (design.md D6) — arquivo não
-      // visível pela RLS ou de outro dono recebe o mesmo 403, sem
-      // distinguir os dois casos.
-      if (!file || file.owner_id !== ctx.userId) {
+      const file = await findAccessibleFile(ports, ctx, req.params.id, Permission.RENAME);
+      // Dono-ou-grant `rename` (design.md D2/D3) — arquivo não visível pela
+      // RLS, de outro dono sem grant, recebe o mesmo 403, sem distinguir os
+      // dois casos.
+      if (!file) {
         res.status(403).json({ error: 'forbidden' });
         return;
       }
@@ -301,8 +317,8 @@ export function filesRouter(ports: Ports): Router {
         return;
       }
 
-      const file = await findFileById(ports, ctx, req.params.id);
-      if (!file || file.owner_id !== ctx.userId) {
+      const file = await findAccessibleFile(ports, ctx, req.params.id, Permission.RENAME);
+      if (!file) {
         res.status(403).json({ error: 'forbidden' });
         return;
       }

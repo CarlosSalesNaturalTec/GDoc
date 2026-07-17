@@ -129,10 +129,11 @@ describe('Navegação: pastas aninhadas, trilha e visibilidade só-por-dono', ()
     expect(res.status).toBe(404);
   });
 
-  it('visibilidade só-por-dono: pasta com arquivos de dois donos lista só os do solicitante', async () => {
+  it('visibilidade próprio-ou-liberado: pasta com arquivos de dois donos lista só os do solicitante', async () => {
     const app = createApp(ports);
     const cookieA = await sessionCookieFor(ports, ids.userA);
     const cookieA2 = await sessionCookieFor(ports, userA2Id);
+    const cookieAdmin = await sessionCookieFor(ports, ids.globalAdmin);
 
     const shared = await request(app).post('/folders').set('Cookie', cookieA).send({ name: 'Pasta Compartilhada' });
     const sharedFolderId = (shared.body as FolderBody).id;
@@ -142,6 +143,15 @@ describe('Navegação: pastas aninhadas, trilha e visibilidade só-por-dono', ()
       .set('Cookie', cookieA)
       .send({ fileName: 'meu.txt', contentType: 'text/plain', declaredSizeBytes: 5, folderId: sharedFolderId });
     expect(uploadA.status).toBe(200);
+
+    // Épico 4: enviar para pasta de outra pessoa exige grant `upload` sobre ela.
+    const grant = await request(app).post('/grants').set('Cookie', cookieAdmin).send({
+      subjectUserId: userA2Id,
+      resourceType: 'folder',
+      resourceId: sharedFolderId,
+      permissions: ['upload'],
+    });
+    expect(grant.status).toBe(201);
 
     const uploadA2 = await request(app)
       .post('/files/upload-url')

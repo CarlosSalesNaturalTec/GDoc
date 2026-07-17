@@ -1,5 +1,7 @@
 import type { PoolClient } from 'pg';
+import { GrantResourceType, Permission } from '@gdoc/shared';
 import type { TenantContext } from '../ports/database-port.js';
+import { hasAccess } from './access.js';
 
 export interface FolderRow {
   id: string;
@@ -23,7 +25,9 @@ export type AnchorValidation =
  * Valida a pasta-âncora (`parentId`/`destinationFolderId`): RLS já restringe
  * a leitura à unidade do usuário — pasta de outra unidade simplesmente não
  * aparece aqui, sem distinguir "não existe" de "é de outra unidade"
- * (design.md D3/D4: "sem vazar"). `anchorId` ausente/`null` = raiz.
+ * (design.md D3/D4: "sem vazar"). `anchorId` ausente/`null` = raiz. Enviar
+ * para pasta própria segue livre (posse); para pasta de outra pessoa exige
+ * grant `upload` sobre ela (Épico 4, design.md D3).
  */
 export async function validateAnchor(
   client: PoolClient,
@@ -33,7 +37,8 @@ export async function validateAnchor(
   if (!anchorId) return { ok: true, anchor: null };
   const anchor = await findFolderById(client, anchorId);
   if (!anchor) return { ok: false, status: 404 };
-  if (anchor.owner_id !== ctx.userId) return { ok: false, status: 403 };
+  const allowed = await hasAccess(client, ctx, GrantResourceType.FOLDER, anchor.id, Permission.UPLOAD);
+  if (!allowed) return { ok: false, status: 403 };
   return { ok: true, anchor };
 }
 
