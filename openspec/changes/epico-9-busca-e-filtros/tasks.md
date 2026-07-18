@@ -2,78 +2,75 @@
 
 ## 1. Banco (migração aditiva)
 
-- [ ] 1.1 Criar `apps/api/src/db/migrations/00NN_search_indexes.sql` (próximo
-  número livre, sem editar migração aplicada): `CREATE EXTENSION IF NOT EXISTS
-  pg_trgm` + índice GIN trigram em `files (file_name gin_trgm_ops)` para o
-  `ILIKE` parcial de nome (design.md D5).
-- [ ] 1.2 No mesmo arquivo, índice B-tree em `files (owner_id)` para o filtro de
-  autor (design.md D6/Open Question) — se confirmado desnecessário na
-  implementação, remover, mas por padrão incluir.
-- [ ] 1.3 Rodar `npm run migrate --workspace apps/api` e confirmar aplicação
-  (extensão criada + índices presentes).
+- [x] 1.1 Criado `apps/api/src/db/migrations/0010_search_indexes.sql`:
+  `CREATE EXTENSION IF NOT EXISTS pg_trgm` + índice GIN trigram em
+  `files (file_name gin_trgm_ops)` para o `ILIKE` parcial de nome (design.md D5).
+- [x] 1.2 No mesmo arquivo, índice B-tree em `files (owner_id)` para o filtro de
+  autor.
+- [x] 1.3 `npm run migrate --workspace apps/api` aplicado; confirmado via
+  `\dx pg_trgm` + `\di` (extensão e os dois índices presentes).
 
 ## 2. Contratos compartilhados (packages/shared)
 
-- [ ] 2.1 Criar `packages/shared/src/search.ts`: enum `FileCategory`
-  (`IMAGE`/`VIDEO`/`AUDIO`/`PDF`/`DOCUMENT`/`OTHER`) e função
-  `fileCategory(contentType: string | null): FileCategory` — fonte única do
-  mapeamento categoria↔MIME (design.md D4), com a lista de MIMEs Office
-  (Word/Excel/PowerPoint, OOXML + legados) e `text/*` em `DOCUMENT`, `null` ⇒
-  `OTHER`.
-- [ ] 2.2 No mesmo arquivo, contrato `SearchFilesQuery` (`q?`, `type?:
-  FileCategory`, `author?`, `dateFrom?`, `dateTo?`) e reuso de
-  `FileSummaryResponse` como item da resposta (`SearchFilesResponse`).
-- [ ] 2.3 Exportar `./search.js` em `packages/shared/src/index.ts` e rodar
-  `npm run build --workspace packages/shared` (consumido compilado).
+- [x] 2.1 **Revisado (design.md D4):** `FileCategory`/`fileCategory` já
+  existem em `packages/shared/src/dashboard.ts` (Épico 8, 7 valores —
+  `IMAGE`/`VIDEO`/`AUDIO`/`PDF`/`OFFICE`/`TEXT`/`OTHER`). Não criar um
+  segundo enum (colidiria no barrel `export *`); reusar tal como está.
+  Exportar `OFFICE_CONTENT_TYPES` de `dashboard.ts` (antes privado) para o
+  helper de predicados do item 3 consumir a mesma lista de MIMEs Office.
+- [x] 2.2 Criado `packages/shared/src/search.ts` com `SearchFilesQuery`
+  (`q?`, `type?: FileCategory` — importado de `./dashboard.js`, `author?`,
+  `dateFrom?`, `dateTo?`) e `SearchFilesResponse` (`{ files: FileSummaryResponse[] }`).
+- [x] 2.3 Exportado `./search.js` em `packages/shared/src/index.ts`; `npm run
+  build --workspace packages/shared` verde.
 
 ## 3. Tradução categoria → predicados SQL (helper reutilizável)
 
-- [ ] 3.1 Em `apps/api/src/lib` (ex.: `search-filters.ts`), helper que recebe a
-  `FileCategory` e devolve o fragmento SQL de `content_type` correspondente
-  (design.md D4): `LIKE 'image/%'` etc.; `document` = `text/%` OU `IN (<MIMEs
-  Office>)`; `other` = negação dos anteriores incluindo `content_type IS NULL`.
-  A categoria é constante interna do enum (não entra como texto de usuário).
-- [ ] 3.2 Helper de intervalo de data: `created_at >= dateFrom` e `created_at <
-  dateTo + 1 dia`, com valores como parâmetros `$n` (design.md D6).
+- [x] 3.1 `apps/api/src/lib/search-filters.ts`: `categoryContentTypeClause(FileCategory)`
+  devolve o fragmento SQL de `content_type` (design.md D4); `office` usa
+  `OFFICE_CONTENT_TYPES` importado do `shared`; `other` nega as demais
+  categorias incluindo `content_type IS NULL`. Também `isValidFileCategory`
+  para a validação de entrada (item 4.4).
+- [x] 3.2 Mesmo arquivo: `parseDateBoundary`/`exclusiveDayAfter` — `created_at
+  >= dateFrom` e `created_at < dateTo + 1 dia`, valores passados como
+  parâmetros `$n` pela rota (design.md D6).
 
 ## 4. Rota de busca (routes/search.ts)
 
-- [ ] 4.1 Criar `apps/api/src/routes/search.ts` com `GET /files/search`, rodando
-  em `withTenantTransaction(ctx, …)` (design.md D3): isolamento por unidade e
-  exclusão de lixeira herdados da transação + do fragmento de visibilidade.
-- [ ] 4.2 Montar o `WHERE` começando **sempre** por
-  `visibleResourceClause(GrantResourceType.FILE, ownerPlaceholder, ctx)`
-  (verbo `view`), replicando o cuidado de `listContents`: `ownerPlaceholder`/
-  param do dono só entram quando **não**-admin (design.md D2).
-- [ ] 4.3 Anexar em **AND** os filtros presentes: nome (`file_name ILIKE '%' ||
-  $n || '%'`), tipo (helper 3.1), autor (`owner_id = $n`), data (helper 3.2);
-  todos os valores de usuário como parâmetros `$n`. `SELECT` das mesmas colunas
-  de `FileSummaryRow`, `ORDER BY created_at DESC` com `LIMIT` superior fixo.
-- [ ] 4.4 Validar entrada: `type` fora do enum, data inválida ou `author`
-  não-uuid ⇒ `400` sem executar a busca (design.md D6). Ausência de todos os
-  filtros é válida e devolve todo o visível (design.md D7).
-- [ ] 4.5 Registrar `searchRouter(ports)` em `apps/api/src/app.ts` sob
-  `attachTenantContext`, junto das demais rotas de conteúdo.
+- [x] 4.1 Criado `apps/api/src/routes/search.ts` com `GET /files/search`,
+  rodando em `withTenantTransaction(ctx, …)` (design.md D3).
+- [x] 4.2 `WHERE` começa sempre por `visibleResourceClause(GrantResourceType.FILE,
+  ownerPlaceholder, ctx)`; `ownerPlaceholder`/param do dono só entram quando
+  não-admin (design.md D2), mesmo padrão de `listContents`.
+- [x] 4.3 Filtros anexados em AND (nome/tipo/autor/data), todos os valores de
+  usuário como parâmetros `$n`; `SELECT` das colunas de `FileSummaryRow`,
+  `ORDER BY created_at DESC LIMIT 500`.
+- [x] 4.4 Validação: `type` fora do enum, `author` não-uuid, `dateFrom`/`dateTo`
+  inválidos ⇒ `400` sem executar a busca. Ausência de filtros é válida
+  (design.md D7).
+- [x] 4.5 `searchRouter(ports)` registrado em `apps/api/src/app.ts` sob
+  `attachTenantContext`.
 
 ## 5. Testes (apps/api/src/__tests__, padrão seedTwoUnits/withSystemBypass)
 
-- [ ] 5.1 `search.test.ts`: busca por nome parcial (case-insensível) retorna os
+- [x] 5.1 `search.test.ts`: busca por nome parcial (case-insensível) retorna os
   arquivos visíveis que casam; nome sem correspondência ⇒ vazio.
-- [ ] 5.2 Cada filtro isolado e todos combinados (AND): tipo por categoria
-  (um arquivo de cada categoria, incluindo `content_type IS NULL` ⇒ `other`),
-  autor, intervalo de data; resultado é a interseção.
-- [ ] 5.3 Alcance de permissão: colaborador **não** acha arquivo de terceiro sem
-  grant; com grant `view` acha; admin da unidade acha os da unidade; a permissão
-  vale mesmo quando o nome/filtro casaria (design.md D2).
-- [ ] 5.4 Isolamento entre unidades: nome idêntico em arquivo de outra unidade
+- [x] 5.2 Cada filtro isolado (um arquivo por categoria, incluindo
+  `content_type IS NULL` ⇒ `other`) e todos combinados (AND: nome + tipo +
+  autor + data) ⇒ interseção.
+- [x] 5.3 Alcance de permissão: colaborador **não** acha arquivo de terceiro sem
+  grant; com grant `view` acha; admin da unidade acha.
+- [x] 5.4 Isolamento entre unidades: nome idêntico em arquivo de outra unidade
   **não** aparece; `global_admin` não vira alcance sobre outra unidade (US 5.1
   cenário 2).
-- [ ] 5.5 Item na lixeira não aparece na busca; busca sem filtros devolve todo o
-  visível; ordenação `created_at` desc; entrada malformada ⇒ 400.
-- [ ] 5.6 `fileCategory` (unit test em `packages/shared` ou no api): um MIME de
-  cada categoria mapeia para a categoria esperada, `null` ⇒ `OTHER`.
+- [x] 5.5 Item na lixeira não aparece na busca; busca sem filtros devolve todo o
+  visível; ordenação `created_at` desc; entrada malformada (`type`/`author`/
+  `dateFrom`) ⇒ 400.
+- [x] 5.6 `apps/api/src/__tests__/file-category.test.ts`: as 7 categorias
+  existentes (incluindo `office` com MIME legado e OOXML) mapeiam
+  corretamente, `null` ⇒ `OTHER`.
 
 ## 6. Gates
 
-- [ ] 6.1 Rodar `npm run lint`, `npm run build` e `npm run test` (vitest
-  sequencial) verdes.
+- [x] 6.1 `npm run lint`, `npm run build` e `npm run test` (117 testes, 16
+  arquivos) verdes.

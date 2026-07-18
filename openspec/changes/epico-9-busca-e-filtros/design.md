@@ -64,27 +64,38 @@ filtra cada linha por baixo (fecha US 5.1 cenário 2 para a busca), e o
 `deleted_at IS NULL` já embutido em `visibleResourceClause` exclui itens na
 lixeira. Nenhuma lógica nova de isolamento — é o mesmo caminho da navegação.
 
-### D4 — Categorização de tipo em `packages/shared`, filtro traduzido para predicados de `content_type`
-Novo enum `FileCategory` (`IMAGE` / `VIDEO` / `AUDIO` / `PDF` / `DOCUMENT` /
-`OTHER`) e função `fileCategory(contentType)` em `packages/shared`. O filtro
-`type` recebido é validado contra o enum e **traduzido em SQL** para predicados
-sobre `content_type`:
+### D4 — Categorização de tipo: reusar o `FileCategory` já entregue pelo Épico 8, sem enum novo
+**Revisão pós-implementação:** o Épico 8 (`packages/shared/src/dashboard.ts`,
+já entregue) já define `FileCategory` (`IMAGE`/`VIDEO`/`AUDIO`/`PDF`/`OFFICE`/
+`TEXT`/`OTHER`, 7 valores) e `fileCategory(contentType)` como fonte única do
+mapeamento categoria↔MIME, hoje consumida por `routes/dashboard.ts`. A
+intenção original desta decisão — declarar um `FileCategory` novo em
+`packages/shared/src/search.ts` com 6 valores, fundindo `office`+`text` num
+`document` — colidiria com esse export já existente no barrel
+(`packages/shared/src/index.ts` faz `export *` de ambos os módulos) e
+contrariaria o próprio objetivo do proposal.md de "fonte única compartilhada"
+com o painel. Decisão tomada: **reusar o `FileCategory` de 7 valores tal como
+está**, sem declarar um segundo enum. `type=office` e `type=text` continuam
+filtros distintos (não existe `document` unificado); a única mudança de
+acabamento é exportar `OFFICE_CONTENT_TYPES` de `dashboard.ts` (antes privado
+ao módulo) para o helper de tradução em `apps/api` montar o predicado SQL de
+`office` sem duplicar a lista de MIMEs.
+
+O filtro `type` recebido é validado contra o enum existente e **traduzido em
+SQL** para predicados sobre `content_type`:
 - `image` → `content_type LIKE 'image/%'`
 - `video` → `content_type LIKE 'video/%'`
 - `audio` → `content_type LIKE 'audio/%'`
 - `pdf`   → `content_type = 'application/pdf'`
-- `document` → `content_type LIKE 'text/%'` **OU** `content_type IN (<MIMEs
-  Office: Word/Excel/PowerPoint, incl. OOXML e legados>)`
+- `office` → `content_type IN (<mesma lista de OFFICE_CONTENT_TYPES: Word/
+  Excel/PowerPoint, incl. OOXML, legados e ODF>)`
+- `text` → `content_type LIKE 'text/%'`
 - `other` → negação dos anteriores (`NOT (…)`), incluindo `content_type IS NULL`
 
-O mapeamento categoria↔MIME fica **numa única fonte** compartilhada, para a
-futura UI e o painel (Épico 8) rotularem tipos de forma coerente com o filtro.
-*Por que não uma coluna `category` materializada:* `content_type` já é gravado e
-o conjunto de MIMEs por categoria é pequeno e estável — traduzir em predicados
-evita migração de dados e mantém a categoria como função pura do MIME, sem risco
-de dessincronia. A lista de MIMEs Office e os predicados de tradução ficam
-centralizados (helper em `apps/api` que consome o enum do `shared`), para o
-`document` cobrir os mesmos formatos que a US 9.2 promete pré-visualizar.
+*Por que não uma coluna `category` materializada:* `content_type` já é
+gravado e o conjunto de MIMEs por categoria é pequeno e estável — traduzir em
+predicados evita migração de dados e mantém a categoria como função pura do
+MIME, sem risco de dessincronia.
 
 ### D5 — Nome: `ILIKE` parcial; índice `pg_trgm` como otimização aditiva
 Busca por nome usa `file_name ILIKE '%' || $q || '%'` (parcial, insensível a
