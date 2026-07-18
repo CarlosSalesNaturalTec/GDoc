@@ -11,6 +11,7 @@ import { storageEventsRouter } from './routes/storage-events.js';
 import { trashRouter } from './routes/trash.js';
 import { auditRouter } from './routes/audit.js';
 import { dashboardRouter } from './routes/dashboard.js';
+import { searchRouter } from './routes/search.js';
 import { attachTenantContext } from './middleware/tenant-context.js';
 
 export function createApp(ports: Ports): Express {
@@ -28,6 +29,7 @@ export function createApp(ports: Ports): Express {
   app.use(attachTenantContext(ports), trashRouter(ports));
   app.use(attachTenantContext(ports), auditRouter(ports));
   app.use(attachTenantContext(ports), dashboardRouter(ports));
+  app.use(attachTenantContext(ports), searchRouter(ports));
 
   const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
     console.error(err);

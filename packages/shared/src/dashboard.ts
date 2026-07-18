@@ -11,7 +11,8 @@ export const FileCategory = {
 
 export type FileCategory = (typeof FileCategory)[keyof typeof FileCategory];
 
-const OFFICE_CONTENT_TYPES = new Set([
+/** MIMEs Office (Word/Excel/PowerPoint, OOXML + legados + ODF) — fonte única, reusada pelo filtro de tipo da busca (US 9.1). */
+export const OFFICE_CONTENT_TYPES = new Set([
   'application/msword',
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   'application/vnd.ms-excel',
