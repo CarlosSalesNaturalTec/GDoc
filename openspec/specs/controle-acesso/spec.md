@@ -36,14 +36,24 @@ aplicação, ainda que a RLS deixe a linha visível). Para o `collaborator`, a
 regra permanece **dono OU grant**. A resolução SHALL ser fail-closed (recurso
 inexistente ou escondido pela RLS ⇒ negado, sem distinguir os casos).
 
+A autorização do verbo `view` SHALL ser condição necessária para a
+visualização, mas NÃO SHALL, por si só, garantir a emissão de URL de
+visualização: quando o formato do arquivo não é pré-visualizável, deter `view`
+resulta na resposta de indisponibilidade definida pela capability
+`visualizacao` (sem URL e sem auditoria `view`), não em uma URL `inline`. A
+emissão de URL de visualização com auditoria `view` SHALL ocorrer apenas quando
+o formato é pré-visualizável. O verbo `download` permanece inalterado: quando
+autorizado, SHALL sempre emitir a URL de download e auditar `download`.
+
 Um recurso que esteja na lixeira (excluído, ainda não expurgado) SHALL resolver
 como **inexistente** para todos os verbos de conteúdo vivos (`view`, `download`,
 `rename`, `upload`) — negado com 403 fail-closed, sem vazar a existência —, de
 modo que a exclusão o retire imediatamente de toda via de acesso viva; apenas as
 operações de lixeira (listar a lixeira e restaurar) SHALL alcançá-lo.
-Referência: PRD US 4.1, US 5.1, US 6.1, RF #10, RF #12, NFR de confidencialidade;
-revisão do D6 do change `epico-4-permissoes-granulares`; design.md D2/D3 do
-change `epico-6-lixeira-retencao`.
+Referência: PRD US 4.1, US 5.1, US 6.1, US 9.2, RF #10, RF #12, RF #16, NFR de
+confidencialidade; revisão do D6 do change `epico-4-permissoes-granulares`;
+design.md D2/D3 do change `epico-6-lixeira-retencao`; design.md D4 do change
+`epico-9-preview-cenario-2`.
 
 #### Scenario: Não-dono da mesma unidade sem permissão é bloqueado
 - **WHEN** um `collaborator` solicita a URL de visualização ou de download de um
@@ -53,10 +63,20 @@ change `epico-6-lixeira-retencao`.
   registro de auditoria é gravado
 
 #### Scenario: Detentor do verbo acessa e é auditado
-- **WHEN** uma pessoa com grant `view` (ou `download`) sobre um arquivo solicita a
-  URL correspondente
+- **WHEN** uma pessoa com grant `download` solicita a URL de download, ou uma
+  pessoa com grant `view` solicita a URL de visualização de um arquivo de
+  **formato pré-visualizável**
 - **THEN** a URL assinada de TTL curto é emitida e o acesso é registrado na auditoria
   com a ação correspondente
+
+#### Scenario: Detentor de view sobre formato não pré-visualizável não gera URL nem auditoria
+- **WHEN** uma pessoa com grant `view` (ou posse, ou alcance de admin da unidade)
+  solicita a URL de visualização de um arquivo cujo formato não é
+  pré-visualizável (ex.: documento Office nesta fase)
+- **THEN** nenhuma URL de visualização é emitida e nenhuma auditoria `view` é
+  gravada; a resposta segue o comportamento de indisponibilidade da capability
+  `visualizacao` (informa indisponível e oferece download conforme a permissão
+  `download`)
 
 #### Scenario: Renomear/substituir exige o verbo rename
 - **WHEN** um `collaborator` sem posse e sem grant `rename` tenta renomear ou
@@ -86,7 +106,7 @@ change `epico-6-lixeira-retencao`.
   solicita a URL de visualização/download, renomeia ou substitui um arquivo da
   sua unidade que não criou nem lhe foi concedido
 - **THEN** o acesso é concedido pelo ramo admin-da-unidade e auditado quando for
-  visualização/download
+  visualização de formato pré-visualizável ou download
 
 #### Scenario: global_admin não acessa conteúdo de outra unidade
 - **WHEN** um `global_admin` solicita a URL de visualização/download de um
