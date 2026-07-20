@@ -94,11 +94,22 @@ em `github_repository` (`CarlosSalesNaturalTec/GDoc` por padrão).
   SessionStart hook). Por isso `STORAGE_SIGNER_KEY_PATH` não é setada no
   Cloud Run — ver `cloud_run.tf` (`google_service_account_iam_member.api_self_sign`)
   e `apps/api/src/adapters/gcs-storage-port.ts`.
-- **Frontend sem domínio ainda.** `apps/web` é só o layout reservado (sem
-  build da SPA). O bucket+CDN existem desde já; o balanceador de carga e o
-  certificado gerenciado só são criados quando `frontend_domain` é definido
-  (o Google exige um domínio real para emitir o certificado). Ver
+- **Frontend sem domínio ainda.** `apps/web` já existe (change
+  `web-shell-e-auth`), mas o bucket+CDN seguem sem tráfego real: o balanceador
+  de carga e o certificado gerenciado só são criados quando `frontend_domain`
+  é definido (o Google exige um domínio real para emitir o certificado). Ver
   `variables.tf`/`frontend.tf`.
+- **Mesma origem SPA+API é pré-requisito de deploy do frontend.** O cookie de
+  sessão é `HttpOnly`/`SameSite=Strict` e a API não tem CORS (ver
+  `apps/api/src/lib/session-cookie.ts`), então a SPA só funciona em produção
+  se o `path_matcher` do `google_compute_url_map.frontend` (`frontend.tf`)
+  estiver ativo: ele roteia os prefixos de `local.api_proxy_prefixes`
+  (`locals.tf`) para o serverless NEG da Cloud Run
+  (`google_compute_backend_service.api`) e tudo o mais para o bucket+CDN da
+  SPA. Essa lista de prefixos espelha `apps/web/vite.config.ts`
+  (`API_PROXY_PREFIXES`, usado pelo proxy do servidor de dev) — mantenha as
+  duas em sincronia ao adicionar uma rota nova. Design completo em
+  `openspec/changes/web-shell-e-auth/design.md` (decisões D1/D2).
 - **Gap de segurança conhecido, não fechado aqui:** o endpoint
   `POST /internal/storage-events` (reconciliação de cota) recebe o push do
   Pub/Sub autenticado por OIDC, e o Cloud Run exige `roles/run.invoker` para
