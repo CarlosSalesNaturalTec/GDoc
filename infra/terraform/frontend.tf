@@ -38,10 +38,62 @@ resource "google_compute_backend_bucket" "frontend" {
   depends_on = [google_project_service.required]
 }
 
+# Serverless NEG + backend service apontando para a API (Cloud Run) — permite
+# ao load balancer da SPA rotear os prefixos de API para o mesmo serviço já
+# provisionado em cloud_run.tf, sem expor um endpoint/IP separado (design.md
+# D1 do change `web-shell-e-auth`: SPA e API na mesma origem, para que o
+# cookie de sessão HttpOnly/SameSite=Strict funcione sem CORS).
+resource "google_compute_region_network_endpoint_group" "api" {
+  project               = var.project_id
+  name                  = "${local.name_prefix}-api-neg"
+  region                = var.region
+  network_endpoint_type = "SERVERLESS"
+
+  cloud_run {
+    service = google_cloud_run_v2_service.api.name
+  }
+}
+
+resource "google_compute_backend_service" "api" {
+  project = var.project_id
+  name    = "${local.name_prefix}-api-backend"
+
+  backend {
+    group = google_compute_region_network_endpoint_group.api.id
+  }
+
+  log_config {
+    enable = true
+  }
+
+  depends_on = [google_project_service.required]
+}
+
 resource "google_compute_url_map" "frontend" {
   project         = var.project_id
   name            = "${local.name_prefix}-web-urlmap"
   default_service = google_compute_backend_bucket.frontend.id
+
+  # Mesma origem para SPA + API: os prefixos de `local.api_proxy_prefixes`
+  # (espelhados em apps/web/vite.config.ts) vão para a Cloud Run; qualquer
+  # outro caminho continua servido pelo bucket+CDN da SPA.
+  host_rule {
+    hosts        = ["*"]
+    path_matcher = "api-routing"
+  }
+
+  path_matcher {
+    name            = "api-routing"
+    default_service = google_compute_backend_bucket.frontend.id
+
+    dynamic "path_rule" {
+      for_each = local.api_proxy_prefixes
+      content {
+        paths   = [path_rule.value, "${path_rule.value}/*"]
+        service = google_compute_backend_service.api.id
+      }
+    }
+  }
 }
 
 # Recursos de domínio/TLS/LB só são criados quando `frontend_domain` é

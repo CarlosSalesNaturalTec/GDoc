@@ -7,7 +7,7 @@ cookie de sessão `HttpOnly`/`SameSite=Strict` acompanhe as requisições sem
 necessidade de CORS e sem qualquer alteração no backend. Em desenvolvimento,
 o servidor de dev SHALL encaminhar (proxy) os prefixos de API existentes
 (`/auth`, `/files`, `/folders`, `/users`, `/grants`, `/trash`, `/audit`,
-`/dashboard`, `/search`, `/healthz`) para a API local. Em produção, o url-map
+`/dashboard`, `/search`, `/health`) para a API local. Em produção, o url-map
 do load balancer SHALL rotear esses mesmos prefixos para a API (Cloud Run) e as
 demais rotas para o bucket estático da SPA. O cliente NÃO SHALL ler nem
 persistir o token de sessão (é `HttpOnly`).
@@ -25,14 +25,17 @@ design.md D1/D2/D3 do change `web-shell-e-auth`.
 A SPA SHALL oferecer uma página de **login** que envia e-mail e senha a
 `POST /auth/login`; em caso de sucesso, SHALL registrar a identidade retornada
 (`AuthenticatedIdentity`) e navegar para o shell autenticado. Em caso de
-credenciais inválidas, SHALL exibir **uma mensagem genérica** que não revela se
-o e-mail existe ou se a senha estava errada (US 1.2 cenário 2). Ao abrir a
-aplicação, a SPA SHALL fazer **bootstrap da sessão** por `GET /auth/me`; se
-houver sessão válida, entra autenticada, caso contrário permanece deslogada. O
-**logout** SHALL chamar `POST /auth/logout` e limpar o estado de sessão do
-cliente.
+credenciais inválidas (`401`), SHALL exibir **uma mensagem genérica** que não
+revela se o e-mail existe ou se a senha estava errada (US 1.2 cenário 2). Em
+caso de conta desativada (`403`, resposta distinta que a API já produz em
+`POST /auth/login`), SHALL exibir um **aviso específico de conta indisponível**,
+sem confundir com a mensagem genérica de credenciais inválidas (US 1.2
+cenário 3). Ao abrir a aplicação, a SPA SHALL fazer **bootstrap da sessão** por
+`GET /auth/me`; se houver sessão válida, entra autenticada, caso contrário
+permanece deslogada. O **logout** SHALL chamar `POST /auth/logout` e limpar o
+estado de sessão do cliente.
 
-Referência: PRD US 1.2 (cenários 1 e 2); design.md D3.
+Referência: PRD US 1.2 (cenários 1, 2 e 3); design.md D3.
 
 #### Scenario: Login com credenciais válidas
 - **WHEN** a pessoa informa e-mail e senha corretos e confirma o login
@@ -43,6 +46,12 @@ Referência: PRD US 1.2 (cenários 1 e 2); design.md D3.
 - **WHEN** a pessoa informa e-mail inexistente ou senha incorreta
 - **THEN** a SPA exibe uma única mensagem genérica de credenciais inválidas, sem
   distinguir e-mail de senha, e permanece na página de login
+
+#### Scenario: Conta desativada mostra aviso específico no login
+- **WHEN** a pessoa informa credenciais corretas de uma conta desativada pela
+  administração
+- **THEN** a SPA exibe um aviso específico de conta indisponível (distinto da
+  mensagem genérica de credenciais inválidas) e permanece na página de login
 
 #### Scenario: Bootstrap de sessão ao abrir a aplicação
 - **WHEN** a aplicação é aberta e existe uma sessão válida no cookie

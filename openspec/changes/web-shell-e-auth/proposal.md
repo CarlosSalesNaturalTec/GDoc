@@ -41,7 +41,7 @@ realiza sem tocar na API: **proxy do Vite** em desenvolvimento e regra de
   o casco onde as fatias seguintes montam suas telas.
 - **Mesma origem (dev + prod)**: **proxy do Vite** encaminhando os prefixos de
   API (`/auth`, `/files`, `/folders`, `/users`, `/grants`, `/trash`, `/audit`,
-  `/dashboard`, `/search`, `/healthz`) para a API local — o browser vê tudo como
+  `/dashboard`, `/search`, `/health`) para a API local — o browser vê tudo como
   mesma origem, o cookie `Strict` flui e **nenhum CORS é necessário**; em
   produção, um `path_matcher` no url-map (`infra/terraform/frontend.tf`)
   roteando esses prefixos para um **serverless NEG** da Cloud Run, mantendo

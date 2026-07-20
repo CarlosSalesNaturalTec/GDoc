@@ -5,7 +5,7 @@ O backend está completo e autentica por **cookie de sessão `HttpOnly`,
 (`apps/api/src/middleware/tenant-context.ts`, `lib/session-cookie.ts`). A API
 **não tem CORS** e os handlers ficam em prefixos de topo (`/auth`, `/files`,
 `/folders`, `/users`, `/grants`, `/trash`, `/audit`, `/dashboard`, `/search`,
-`/healthz`) — não há prefixo `/api`. O frontend ainda não existe: `apps/web` é
+`/health`) — não há prefixo `/api`. O frontend ainda não existe: `apps/web` é
 só o workspace reservado; a infra prevê a SPA como **bucket estático + CDN atrás
 de um load balancer** (`infra/terraform/frontend.tf`), cujo url-map hoje só
 aponta para o bucket.
