@@ -39,6 +39,24 @@ export function fileCategory(contentType: string | null): FileCategory {
   return FileCategory.OTHER;
 }
 
+/**
+ * Categorias que o navegador renderiza nativamente (US 9.2 cenário 2,
+ * design.md D2). `office` migra para este conjunto quando a conversão
+ * Office → PDF do cenário 1 (`PreviewConversionPort`, fase futura) existir.
+ */
+const PREVIEWABLE_CATEGORIES = new Set<FileCategory>([
+  FileCategory.PDF,
+  FileCategory.IMAGE,
+  FileCategory.VIDEO,
+  FileCategory.AUDIO,
+  FileCategory.TEXT,
+]);
+
+/** Deriva de `fileCategory` — fonte única para api e web concordarem sobre o que é pré-visualizável. */
+export function isPreviewable(contentType: string | null): boolean {
+  return PREVIEWABLE_CATEGORIES.has(fileCategory(contentType));
+}
+
 export interface DashboardCards {
   totalFiles: number;
   totalPeople: number;

@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { Router } from 'express';
 import type { Ports } from '../ports/index.js';
-import { AuditAction, FileAccessAction, GrantResourceType, Permission } from '@gdoc/shared';
+import { AuditAction, FileAccessAction, GrantResourceType, Permission, isPreviewable } from '@gdoc/shared';
 import type {
   BatchUploadItemResult,
   BatchUploadUrlRequest,
@@ -10,6 +10,7 @@ import type {
   RenameFileRequest,
   ReplaceFileRequest,
   UploadUrlRequest,
+  ViewUrlResponse,
 } from '@gdoc/shared';
 import { config } from '../config.js';
 import { ensureFolderPath, validateAnchor } from '../lib/folder-tree.js';
@@ -90,9 +91,30 @@ export function filesRouter(ports: Ports): Router {
         return;
       }
 
+      // Formato não pré-visualizável (US 9.2 cenário 2, design.md D2/D4):
+      // nenhuma URL é emitida, nenhum `view` é auditado — nada foi visto. A
+      // oferta de download é só um sinal (design.md D5): resolve o verbo
+      // `download` sem emitir a URL de download nem auditá-lo.
+      if (!isPreviewable(file.content_type)) {
+        const downloadable = await findAccessibleFile(ports, ctx, file.id, Permission.DOWNLOAD);
+        const response: ViewUrlResponse = {
+          previewAvailable: false,
+          reason: 'unsupported_format',
+          download: { available: downloadable !== null },
+        };
+        res.json(response);
+        return;
+      }
+
       await recordAudit(ports, ctx, file, FileAccessAction.VIEW);
       const signed = await ports.storage.getViewUrl(file.object_path);
-      res.json({ url: signed.url, expiresAt: signed.expiresAt.toISOString(), action: FileAccessAction.VIEW });
+      const response: ViewUrlResponse = {
+        previewAvailable: true,
+        url: signed.url,
+        expiresAt: signed.expiresAt.toISOString(),
+        action: FileAccessAction.VIEW,
+      };
+      res.json(response);
     } catch (err) {
       next(err);
     }

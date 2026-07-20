@@ -16,6 +16,16 @@ export interface SignedUrlResponse {
   action: FileAccessAction;
 }
 
+/**
+ * Resposta de `POST /files/:id/view-url` (US 9.2 cenário 2, design.md D3):
+ * ramo pré-visualizável é um superset aditivo de `SignedUrlResponse`; ramo
+ * indisponível não emite URL e sinaliza a oferta de download conforme a
+ * permissão do solicitante (design.md D5).
+ */
+export type ViewUrlResponse =
+  | ({ previewAvailable: true } & SignedUrlResponse)
+  | { previewAvailable: false; reason: 'unsupported_format'; download: { available: boolean } };
+
 export interface UploadUrlRequest {
   fileName: string;
   contentType: string;
