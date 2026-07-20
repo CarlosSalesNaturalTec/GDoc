@@ -23,8 +23,8 @@ describe('Endpoints de URL assinada: checagem de permissão', () => {
 
     const { rows } = await withSystemBypass(pool, (client) =>
       client.query<{ id: string }>(
-        `INSERT INTO files (unit_id, owner_id, object_path, file_name, status)
-         VALUES ($1, $2, 'unitA/f1', 'a.txt', 'active') RETURNING id`,
+        `INSERT INTO files (unit_id, owner_id, object_path, file_name, content_type, status)
+         VALUES ($1, $2, 'unitA/f1', 'a.txt', 'text/plain', 'active') RETURNING id`,
         [ids.unitA, ids.userA],
       ),
     );
@@ -123,8 +123,8 @@ describe('Épico 4: grants por pessoa — imposição dono-ou-grant', () => {
   async function insertFile(ownerId: string, objectPath: string, fileName: string, folderId: string | null = null) {
     const { rows } = await withSystemBypass(pool, (client) =>
       client.query<{ id: string }>(
-        `INSERT INTO files (unit_id, owner_id, folder_id, object_path, file_name, status)
-         VALUES ($1, $2, $3, $4, $5, 'active') RETURNING id`,
+        `INSERT INTO files (unit_id, owner_id, folder_id, object_path, file_name, content_type, status)
+         VALUES ($1, $2, $3, $4, $5, 'text/plain', 'active') RETURNING id`,
         [ids.unitA, ownerId, folderId, objectPath, fileName],
       ),
     );
