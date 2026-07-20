@@ -48,5 +48,5 @@
 
 - [x] 4.1 `npm run lint`, `npm run build` e `npm run test --workspace apps/api`
   passando
-- [ ] 4.2 `openspec verify --change epico-9-preview-cenario-2` (specs coerentes
+- [x] 4.2 `openspec verify --change epico-9-preview-cenario-2` (specs coerentes
   com a implementação) antes de arquivar
