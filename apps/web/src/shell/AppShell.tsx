@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Avatar, Button, Layout, Menu, Space, Typography } from 'antd';
 import {
   DashboardOutlined,
+  DeleteOutlined,
   FolderOutlined,
   HomeOutlined,
   LogoutOutlined,
@@ -39,6 +40,7 @@ export function AppShell() {
       { key: '/', icon: <HomeOutlined />, label: <Link to="/">Início</Link> },
       { key: '/pastas', icon: <FolderOutlined />, label: <Link to="/pastas">Arquivos</Link> },
       { key: '/busca', icon: <SearchOutlined />, label: <Link to="/busca">Buscar</Link> },
+      { key: '/lixeira', icon: <DeleteOutlined />, label: <Link to="/lixeira">Lixeira</Link> },
       ...(isAdmin
         ? [
             {

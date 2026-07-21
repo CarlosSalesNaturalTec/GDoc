@@ -3,6 +3,7 @@ import type {
   AuthenticatedIdentity,
   BatchUploadItemResult,
   BatchUploadUrlResponse,
+  FileRestoreResponse,
   FileSummaryResponse,
   FolderContentsResponse,
   FolderResponse,
@@ -10,6 +11,7 @@ import type {
   GrantResponse,
   SearchFilesResponse,
   SignedUrlResponse,
+  TrashListResponse,
   ViewUrlResponse,
 } from '@gdoc/shared';
 import { FileAccessAction, GrantResourceType, Permission, UserRole } from '@gdoc/shared';
@@ -140,3 +142,25 @@ export const grantResponseSchema: z.ZodType<GrantResponse> = z.object({
 export const grantListResponseSchema: z.ZodType<GrantListResponse> = z.object({
   grants: z.array(grantResponseSchema),
 });
+
+/** Espelha `TrashListResponse` (design.md D7, `web-lixeira`): item de raiz de exclusão. */
+export const trashListResponseSchema: z.ZodType<TrashListResponse> = z.object({
+  items: z.array(
+    z.object({
+      id: z.string(),
+      type: z.enum([GrantResourceType.FOLDER, GrantResourceType.FILE]),
+      name: z.string(),
+      deletedAt: z.string(),
+      expiresAt: z.string(),
+    }),
+  ),
+});
+
+/**
+ * Valida só o campo que a UI usa além de `FileSummaryResponse`
+ * (`redirectedToRoot`, design.md D7, `web-lixeira`) — reusa
+ * `fileSummaryResponseSchema` por interseção em vez de repetir os campos.
+ */
+export const fileRestoreResponseSchema: z.ZodType<FileRestoreResponse> = fileSummaryResponseSchema.and(
+  z.object({ redirectedToRoot: z.boolean() }),
+);
