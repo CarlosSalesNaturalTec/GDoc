@@ -9,10 +9,14 @@ import {
   FileOutlined,
   FolderAddOutlined,
   FolderOutlined,
+  LockOutlined,
 } from '@ant-design/icons';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import type { FileSummaryResponse, FolderResponse } from '@gdoc/shared';
+import { GrantResourceType, UserRole } from '@gdoc/shared';
 import { ApiError } from '../lib/api-client';
+import { useSession } from '../auth/session-context';
+import { PermissoesModal } from '../permissoes/PermissoesModal';
 import { PreviewModal } from '../visualizacao/PreviewModal';
 import { useDownloadFile } from '../visualizacao/useDownloadFile';
 import { UploadArea } from '../upload/UploadArea';
@@ -20,6 +24,12 @@ import { useCreateFolder, useDeleteFile, useDeleteFolder, useFolderContents, use
 import { NewFolderModal } from './NewFolderModal';
 import { RenameFileModal } from './RenameFileModal';
 import { formatDate, formatFileSize } from './format';
+
+interface ManagingResource {
+  resourceType: GrantResourceType;
+  resourceId: string;
+  resourceName: string;
+}
 
 type Row =
   | { key: string; kind: 'folder'; folder: FolderResponse }
@@ -35,6 +45,10 @@ export function ExplorerPage() {
   const currentFolderId = folderId ?? null;
   const navigate = useNavigate();
   const { message } = App.useApp();
+  const { identity } = useSession();
+  // US 4.1 / design.md D2 (`web-permissoes`): ação "Permissões" só para admin,
+  // espelhando o admin-only das rotas de `grants` no backend.
+  const isAdmin = identity?.role === UserRole.UNIT_ADMIN || identity?.role === UserRole.GLOBAL_ADMIN;
 
   const { data, isLoading, isError, error } = useFolderContents(currentFolderId);
   const createFolder = useCreateFolder();
@@ -45,6 +59,7 @@ export function ExplorerPage() {
   const [newFolderOpen, setNewFolderOpen] = useState(false);
   const [renamingFile, setRenamingFile] = useState<FileSummaryResponse | null>(null);
   const [previewingFile, setPreviewingFile] = useState<FileSummaryResponse | null>(null);
+  const [managingResource, setManagingResource] = useState<ManagingResource | null>(null);
   const { download, isPending: downloading } = useDownloadFile();
 
   // US 2.2 cenário 2 / design.md D4: o cliente não infere permissão, oferece
@@ -165,17 +180,34 @@ export function ExplorerPage() {
       key: 'actions',
       render: (_, row) =>
         row.kind === 'folder' ? (
-          <Popconfirm
-            title="Excluir pasta"
-            description="A pasta e seu conteúdo vão para a lixeira."
-            okText="Sim, excluir"
-            cancelText="Cancelar"
-            onConfirm={() => handleDeleteChildFolder(row.folder.id)}
-          >
-            <Button danger size="small" icon={<DeleteOutlined />}>
-              Excluir
-            </Button>
-          </Popconfirm>
+          <Space>
+            {isAdmin && (
+              <Button
+                size="small"
+                icon={<LockOutlined />}
+                onClick={() =>
+                  setManagingResource({
+                    resourceType: GrantResourceType.FOLDER,
+                    resourceId: row.folder.id,
+                    resourceName: row.folder.name,
+                  })
+                }
+              >
+                Permissões
+              </Button>
+            )}
+            <Popconfirm
+              title="Excluir pasta"
+              description="A pasta e seu conteúdo vão para a lixeira."
+              okText="Sim, excluir"
+              cancelText="Cancelar"
+              onConfirm={() => handleDeleteChildFolder(row.folder.id)}
+            >
+              <Button danger size="small" icon={<DeleteOutlined />}>
+                Excluir
+              </Button>
+            </Popconfirm>
+          </Space>
         ) : (
           <Space>
             <Button size="small" icon={<EyeOutlined />} onClick={() => setPreviewingFile(row.file)}>
@@ -192,6 +224,21 @@ export function ExplorerPage() {
             <Button size="small" icon={<EditOutlined />} onClick={() => setRenamingFile(row.file)}>
               Renomear
             </Button>
+            {isAdmin && (
+              <Button
+                size="small"
+                icon={<LockOutlined />}
+                onClick={() =>
+                  setManagingResource({
+                    resourceType: GrantResourceType.FILE,
+                    resourceId: row.file.id,
+                    resourceName: row.file.fileName,
+                  })
+                }
+              >
+                Permissões
+              </Button>
+            )}
             <Popconfirm
               title="Excluir arquivo"
               description="O arquivo vai para a lixeira."
@@ -271,6 +318,13 @@ export function ExplorerPage() {
         onSubmit={handleRenameFile}
       />
       <PreviewModal file={previewingFile} onClose={() => setPreviewingFile(null)} />
+      <PermissoesModal
+        resourceType={managingResource ? managingResource.resourceType : GrantResourceType.FILE}
+        resourceId={managingResource ? managingResource.resourceId : ''}
+        resourceName={managingResource ? managingResource.resourceName : ''}
+        open={managingResource !== null}
+        onClose={() => setManagingResource(null)}
+      />
     </div>
   );
 }

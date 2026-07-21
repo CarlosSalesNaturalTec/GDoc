@@ -6,11 +6,13 @@ import type {
   FileSummaryResponse,
   FolderContentsResponse,
   FolderResponse,
+  GrantListResponse,
+  GrantResponse,
   SearchFilesResponse,
   SignedUrlResponse,
   ViewUrlResponse,
 } from '@gdoc/shared';
-import { FileAccessAction, UserRole } from '@gdoc/shared';
+import { FileAccessAction, GrantResourceType, Permission, UserRole } from '@gdoc/shared';
 
 /**
  * Valida a fronteira com a API, espelhando `@gdoc/shared` (fonte única de
@@ -115,3 +117,26 @@ export const authorPersonSchema = z.object({
   fullName: z.string().nullable(),
 });
 export const authorPersonListSchema = z.array(authorPersonSchema);
+
+/** Espelha `GrantResponse` (design.md D6, `web-permissoes`): uma linha por (pessoa, verbo). */
+export const grantResponseSchema: z.ZodType<GrantResponse> = z.object({
+  id: z.string(),
+  unitId: z.string(),
+  subjectUserId: z.string(),
+  resourceType: z.enum([GrantResourceType.FOLDER, GrantResourceType.FILE]),
+  resourceId: z.string(),
+  permission: z.enum([
+    Permission.VIEW,
+    Permission.DOWNLOAD,
+    Permission.UPLOAD,
+    Permission.RENAME,
+    Permission.DELETE,
+  ]),
+  grantedBy: z.string(),
+  createdAt: z.string(),
+});
+
+/** Espelha `GrantListResponse` (design.md D6, `web-permissoes`). */
+export const grantListResponseSchema: z.ZodType<GrantListResponse> = z.object({
+  grants: z.array(grantResponseSchema),
+});
