@@ -4,16 +4,18 @@ Repositório documental corporativo com governança de acesso — permissões
 granulares, isolamento por unidade, auditoria e lixeira com retenção. Ver
 `docs/prd_final.md` para o produto completo.
 
-Este README cobre apenas a **fundação de infraestrutura** (mudança
+Este README cobre a **fundação de infraestrutura** (mudança
 `bootstrap-infrastructure` em `openspec/changes/`) — monorepo, seams de
 aplicação, ambiente de desenvolvimento e a prova de que os trilhos funcionam.
-Nenhuma feature do PRD está implementada ainda.
+As features do PRD são entregues por épico/fatia como changes OpenSpec já
+arquivados em `openspec/changes/archive/` (backend dos épicos 1–9 e as fatias
+da SPA web); ver `openspec/specs/` para o comportamento consolidado.
 
 ## Estrutura
 
 ```
 apps/api/            # backend Node/TS — único guardião de permissão
-apps/web/            # layout reservado para a SPA (mudança futura)
+apps/web/            # SPA React (Vite + Ant Design) — reflete o que a API autoriza
 packages/shared/     # tipos/contratos compartilhados
 infra/terraform/      # IaC de produção (GCP)
 .github/workflows/    # CI (lint/build/test) e deploy (build+push+Cloud Run)
@@ -50,6 +52,14 @@ make dev-api
 # ou: npm run dev --workspace apps/api
 ```
 
+E, opcionalmente, a SPA (Vite, proxy para a API na mesma origem — ver
+`apps/web/vite.config.ts`):
+
+```bash
+npm run dev:web
+# ou: npm run dev --workspace apps/web
+```
+
 ## Testes e lint
 
 ```bash
@@ -61,34 +71,47 @@ npm run test
 ## Prova de fundação ponta a ponta (manual)
 
 Com a API rodando em `:8080`, o fluxo abaixo exercita GCS (via emulador) e
-Postgres (RLS + auditoria) de ponta a ponta. Requer um `x-gdoc-user-id` de um
-usuário existente (o seed de dev cria alguns — ver `apps/api/src/db/seed.ts`).
+Postgres (RLS + auditoria) de ponta a ponta. A identidade vem de uma **sessão
+em cookie `HttpOnly`** (`POST /auth/login`) — o `curl` guarda o cookie num
+_cookie jar_ (`-c`/`-b cookies.txt`) e o reenvia nas chamadas seguintes. Use
+as credenciais de um usuário existente; o seed de dev cria alguns (ver
+`apps/api/src/db/seed.ts`), incluindo o admin global de bootstrap
+(`BOOTSTRAP_ADMIN_EMAIL` / `BOOTSTRAP_ADMIN_PASSWORD`, padrões em
+`apps/api/src/config.ts`).
 
 ```bash
 # 1. Saúde
 curl http://127.0.0.1:8080/health
 
-# 2. Pedir URL de upload (checa cota, cria o registro do arquivo)
-curl -X POST http://127.0.0.1:8080/files/upload-url \
-  -H "x-gdoc-user-id: <USER_ID>" -H "Content-Type: application/json" \
+# 2. Login — grava a sessão em cookies.txt
+curl -X POST http://127.0.0.1:8080/auth/login -c cookies.txt \
+  -H "Content-Type: application/json" \
+  -d '{"email":"admin.global@gdoc.dev","password":"dev-password-only"}'
+# -> { id, unitId, role }
+
+# 3. Pedir URL de upload (checa cota, cria o registro do arquivo)
+curl -X POST http://127.0.0.1:8080/files/upload-url -b cookies.txt \
+  -H "Content-Type: application/json" \
   -d '{"fileName":"teste.txt","contentType":"text/plain","declaredSizeBytes":5}'
 # -> { uploadUrl, objectPath, expiresAt }
 
-# 3. Enviar os bytes de verdade
+# 4. Enviar os bytes de verdade
 curl -X PUT "<uploadUrl>" -H "Content-Type: text/plain" --data-binary "olar"
 
-# 4. Reconciliar cota (em prod: push subscription do Pub/Sub; em dev: manual)
+# 5. Reconciliar cota (em prod: push subscription do Pub/Sub; em dev: manual)
+#    Rota interna, sem sessão (não passa pelo attachTenantContext).
 curl -X POST http://127.0.0.1:8080/internal/storage-events \
   -H "Content-Type: application/json" \
   -d '{"objectPath":"<objectPath>","sizeBytes":5}'
 
-# 5. Pedir URL de visualização/download (checa permissão via RLS, grava auditoria)
-curl -X POST http://127.0.0.1:8080/files/<FILE_ID>/view-url -H "x-gdoc-user-id: <USER_ID>"
-curl -X POST http://127.0.0.1:8080/files/<FILE_ID>/download-url -H "x-gdoc-user-id: <USER_ID>"
+# 6. Pedir URL de visualização/download (checa permissão via RLS, grava auditoria)
+curl -X POST http://127.0.0.1:8080/files/<FILE_ID>/view-url -b cookies.txt
+curl -X POST http://127.0.0.1:8080/files/<FILE_ID>/download-url -b cookies.txt
 ```
 
-Um usuário de outra unidade recebe `403` em `view-url`/`download-url` sem
-nenhuma URL emitida nem auditoria gravada (isolamento por RLS, fail-closed).
+Logado como usuário de outra unidade, `view-url`/`download-url` sobre esse
+arquivo retornam `403` sem nenhuma URL emitida nem auditoria gravada
+(isolamento por RLS, fail-closed).
 
 ## Expurgo da lixeira (manual, em dev)
 

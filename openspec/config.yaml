@@ -13,7 +13,7 @@ context: |
   ports), nunca por acoplamento direto a SDKs de nuvem.
 
   Stack de aplicação: monorepo Node/TypeScript.
-    - apps/api: backend (NestJS ou Express) — único guardião de permissão;
+    - apps/api: backend Express/TypeScript — único guardião de permissão;
       toda ação (visualizar, baixar, enviar, alterar, excluir) é validada
       no servidor a cada requisição.
     - apps/web: frontend React (Vite), SPA.
