@@ -132,13 +132,23 @@ shell da fatia 1.
 - **AntD**: `Modal`, `Form`, `Select`, `Checkbox.Group`, `Tag`, `Popconfirm`
 - **Depende de**: Fatia 2 (ação no explorador), Fatia 5 (hook de pessoas)
 
-### Fatia 7 — Lixeira e retenção
-- **Capability sugerida**: `web-lixeira`
+### Fatia 7 — Lixeira e retenção  ✅ entregue
+- **Capability**: `web-lixeira`
 - **PRD**: Épico 6 (US 6.1), RF #12
-- **Endpoints**: listar lixeira, restaurar (o expurgo é rotina do servidor)
-- **Entrega**: tela de lixeira com itens excluídos, prazo de retenção e
-  **restauração ao local de origem**
-- **AntD**: `Table`, `Popconfirm`, `Tag` (dias restantes), `message`
+- **Endpoints**: `GET /trash`, `POST /files/:id/restore`,
+  `POST /folders/:id/restore` (o expurgo é rotina do servidor, já arquivados)
+- **Entrega**: tela de lixeira (`/lixeira`, qualquer papel) listando as raízes
+  de exclusão no alcance do requisitante — nome, tipo, data de exclusão e `Tag`
+  de dias restantes por urgência (≤3 dias vermelho, ≤7 laranja); restaurar por
+  linha despachando por tipo, com aviso distinto quando um arquivo volta à raiz
+  (`redirectedToRoot`); invalidação cruzada com o explorador; 403 fail-closed;
+  estado vazio
+- **Lacunas conhecidas**: **sem exclusão permanente pela UI** — o expurgo é só
+  a rotina diária de servidor (US 6.1 cenário 2), não há endpoint sob demanda;
+  **sem preview/download na lixeira** — itens excluídos não são
+  visualizáveis nem baixáveis; **sem coluna "quem excluiu"** —
+  `TrashEntryResponse` não carrega `deleted_by`
+- **AntD**: `Table`, `Popconfirm`, `Tag` (dias restantes), `message`, `Empty`
 - **Depende de**: Fatia 2
 
 ### Fatia 8 — Auditoria
