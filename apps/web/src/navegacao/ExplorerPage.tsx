@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { App, Breadcrumb, Button, Popconfirm, Result, Space, Spin, Table, Tag } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import {
+  AuditOutlined,
   CloudDownloadOutlined,
   DeleteOutlined,
   EditOutlined,
@@ -16,6 +17,7 @@ import type { FileSummaryResponse, FolderResponse } from '@gdoc/shared';
 import { GrantResourceType, UserRole } from '@gdoc/shared';
 import { ApiError } from '../lib/api-client';
 import { useSession } from '../auth/session-context';
+import { AuditoriaModal } from '../auditoria/AuditoriaModal';
 import { PermissoesModal } from '../permissoes/PermissoesModal';
 import { PreviewModal } from '../visualizacao/PreviewModal';
 import { useDownloadFile } from '../visualizacao/useDownloadFile';
@@ -60,6 +62,7 @@ export function ExplorerPage() {
   const [renamingFile, setRenamingFile] = useState<FileSummaryResponse | null>(null);
   const [previewingFile, setPreviewingFile] = useState<FileSummaryResponse | null>(null);
   const [managingResource, setManagingResource] = useState<ManagingResource | null>(null);
+  const [auditingFile, setAuditingFile] = useState<FileSummaryResponse | null>(null);
   const { download, isPending: downloading } = useDownloadFile();
 
   // US 2.2 cenário 2 / design.md D4: o cliente não infere permissão, oferece
@@ -239,6 +242,14 @@ export function ExplorerPage() {
                 Permissões
               </Button>
             )}
+            {/* US 7.1/US 7.2, design.md D1 (`web-auditoria`, Opção A): estende o
+                gate de admin ao dono do arquivo — visibilidade é UX, o 403
+                fail-closed do servidor (`canReadAudit`) é a defesa real. */}
+            {(isAdmin || row.file.ownerId === identity?.id) && (
+              <Button size="small" icon={<AuditOutlined />} onClick={() => setAuditingFile(row.file)}>
+                Auditoria
+              </Button>
+            )}
             <Popconfirm
               title="Excluir arquivo"
               description="O arquivo vai para a lixeira."
@@ -318,6 +329,7 @@ export function ExplorerPage() {
         onSubmit={handleRenameFile}
       />
       <PreviewModal file={previewingFile} onClose={() => setPreviewingFile(null)} />
+      <AuditoriaModal file={auditingFile} onClose={() => setAuditingFile(null)} />
       <PermissoesModal
         resourceType={managingResource ? managingResource.resourceType : GrantResourceType.FILE}
         resourceId={managingResource ? managingResource.resourceId : ''}

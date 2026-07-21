@@ -151,14 +151,26 @@ shell da fatia 1.
 - **AntD**: `Table`, `Popconfirm`, `Tag` (dias restantes), `message`, `Empty`
 - **Depende de**: Fatia 2
 
-### Fatia 8 — Auditoria
-- **Capability sugerida**: `web-auditoria`
+### Fatia 8 — Auditoria  ✅ entregue
+- **Capability**: `web-auditoria`
 - **PRD**: Épico 7 (US 7.x), RF #11
-- **Endpoints**: consulta de auditoria de acesso a arquivo (por dono e por
-  administrador dentro do alcance)
-- **Entrega**: consulta do registro (pessoa, ação, data/hora) do arquivo, com o
-  alcance respeitado
-- **AntD**: `Table`, `DatePicker.RangePicker`, `Descriptions`
+- **Endpoints**: `GET /files/:id/audit` (por dono e por administrador dentro
+  do alcance, já arquivado)
+- **Entrega**: ação "Auditoria" por-linha de **arquivo** no explorador (dono ou
+  administrador — colaborador não vê em arquivo alheio, pasta não tem a ação),
+  abrindo um `AuditoriaModal` com a `Table` do registro de acessos (pessoa via
+  `name ?? email`, ação como `Tag` "Visualizar"/"Baixar", data/hora), do mais
+  recente ao mais antigo; estado vazio ("nenhum acesso registrado") não é erro;
+  403 fail-closed exibe aviso neutro
+- **Lacunas conhecidas**: **sem filtro/paginação server-side** (data/pessoa/
+  ação) — o endpoint devolve só os ≤500 eventos mais recentes
+  (`AUDIT_QUERY_LIMIT`), sem query params; o `DatePicker.RangePicker` sugerido
+  fica fora até o backend expor filtro; **só `view`/`download`** — não é um
+  log de atividade completo (`rename`/`replace`/`delete`/`restore` não
+  aparecem); **sem exportação** (CSV/PDF) do registro — não há endpoint;
+  **sem auditoria a partir da busca (Fatia 5) ou do `PreviewModal` (Fatia 3)**
+  — escopo desta fatia é só o explorador
+- **AntD**: `Table`, `Modal`, `Tag`, `Empty`, `Result`, `Spin`
 - **Depende de**: Fatia 2 (abre a partir do arquivo)
 
 ### Fatia 9 — Gestão de pessoas (admin)

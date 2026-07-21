@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import type {
+  AuditQueryResponse,
   AuthenticatedIdentity,
   BatchUploadItemResult,
   BatchUploadUrlResponse,
@@ -164,3 +165,18 @@ export const trashListResponseSchema: z.ZodType<TrashListResponse> = z.object({
 export const fileRestoreResponseSchema: z.ZodType<FileRestoreResponse> = fileSummaryResponseSchema.and(
   z.object({ redirectedToRoot: z.boolean() }),
 );
+
+/** Espelha `AuditQueryResponse` (design.md D6, `web-auditoria`): acessos (`view`/`download`) de um arquivo. */
+export const auditQueryResponseSchema: z.ZodType<AuditQueryResponse> = z.object({
+  events: z.array(
+    z.object({
+      actor: z.object({
+        id: z.string(),
+        name: z.string().nullable(),
+        email: z.string(),
+      }),
+      action: z.enum(['view', 'download']),
+      createdAt: z.string(),
+    }),
+  ),
+});
