@@ -44,15 +44,22 @@ shell da fatia 1.
 - **AntD**: `ConfigProvider`, `<App>`, `Layout`, `Menu`, `Form`, `Result`, `Spin`
 - **Depende de**: — (base de todas)
 
-### Fatia 2 — Navegação e explorador de arquivos/pastas
-- **Capability sugerida**: `web-navegacao`
+### Fatia 2 — Navegação e explorador de arquivos/pastas  ✅ entregue
+- **Capability**: `web-navegacao`
 - **PRD**: Épico 2 (US 2.x), Épico 4 (visibilidade), RF #5
-- **Endpoints**: `GET /folders/:id/contents`, criar pasta, renomear/excluir
-  (arquivo e pasta) conforme permissão
+- **Endpoints**: `GET /folders/root/contents`, `GET /folders/:id/contents`,
+  `POST /folders`, `DELETE /folders/:id`, `PATCH /files/:id`,
+  `DELETE /files/:id`
 - **Entrega**: explorador estilo file-manager com **breadcrumb**, listagem
-  (arquivos+subpastas), ações por item respeitando o papel/permissão
-- **AntD**: `Breadcrumb`, `Table` (e/ou `Tree`), `Dropdown`, `Modal`,
-  `Popconfirm`, `message`
+  unificada (arquivos+subpastas), criar/excluir pasta, renomear/excluir
+  arquivo com confirmação e aviso de permissão insuficiente em 403,
+  deep-link bloqueado a pasta sem acesso (US 4.2)
+- **AntD**: `Breadcrumb`, `Table`, `Modal`, `Popconfirm`, `Result`, `message`
+- **Lacuna conhecida**: **renomear pasta** não está disponível — o backend
+  não expõe `PATCH /folders/:id` (só `POST`/`GET contents`/`DELETE`/
+  `restore`). Fica para uma change de backend futura que adicione o endpoint
+  (dono-ou-grant `rename` + auditoria); o frontend ganha a ação correspondente
+  quando ele existir.
 - **Depende de**: Fatia 1
 
 ### Fatia 3 — Visualização e download

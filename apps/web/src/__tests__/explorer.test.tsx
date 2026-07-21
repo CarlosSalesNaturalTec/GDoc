@@ -1,0 +1,206 @@
+import { screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { describe, expect, it } from 'vitest';
+import { UserRole } from '@gdoc/shared';
+import type { FileSummaryResponse, FolderContentsResponse, FolderResponse } from '@gdoc/shared';
+import { mockFetch } from './mock-fetch';
+import { renderApp } from './render-app';
+
+const IDENTITY = { id: 'user-1', unitId: 'unit-1', role: UserRole.COLLABORATOR };
+
+function folder(overrides: Partial<FolderResponse> & { id: string; name: string }): FolderResponse {
+  return {
+    unitId: 'unit-1',
+    ownerId: 'user-1',
+    parentId: null,
+    createdAt: '2026-07-01T10:00:00.000Z',
+    ...overrides,
+  };
+}
+
+function file(overrides: Partial<FileSummaryResponse> & { id: string; fileName: string }): FileSummaryResponse {
+  return {
+    ownerId: 'user-1',
+    folderId: null,
+    contentType: 'application/pdf',
+    sizeBytes: 2048,
+    status: 'active',
+    createdAt: '2026-07-02T10:00:00.000Z',
+    ...overrides,
+  };
+}
+
+function contents(overrides: Partial<FolderContentsResponse> = {}): FolderContentsResponse {
+  return { folder: null, breadcrumb: [], folders: [], files: [], ...overrides };
+}
+
+/**
+ * `rc-util`'s `useId` sempre devolve o literal `"test-id"` em ambiente de
+ * teste (`process.env.NODE_ENV === 'test'`), então todo `Modal` do AntD
+ * recebe o mesmo `aria-labelledby` — role+name não distingue diálogos
+ * simultâneos aqui. Localiza pelo texto do título em vez disso.
+ */
+async function findDialogByTitle(title: string): Promise<HTMLElement> {
+  return waitFor(() => {
+    const dialog = screen.getAllByRole('dialog').find((el) => el.textContent?.startsWith(title));
+    if (!dialog) throw new Error(`dialog "${title}" ainda não está no DOM`);
+    return dialog;
+  });
+}
+
+describe('Explorador de pastas/arquivos (web-navegacao)', () => {
+  it('navegação em subpasta atualiza conteúdo e trilha; clique em nível anterior volta (US 2.1 cenário 1)', async () => {
+    const folderA = folder({ id: 'folder-a', name: 'Pasta A' });
+    const fileX = file({ id: 'file-x', fileName: 'relatorio.pdf', folderId: 'folder-a' });
+
+    mockFetch({
+      'GET /auth/me': { status: 200, body: IDENTITY },
+      'GET /folders/root/contents': { status: 200, body: contents({ folders: [folderA] }) },
+      'GET /folders/folder-a/contents': {
+        status: 200,
+        body: contents({ folder: folderA, files: [fileX] }),
+      },
+    });
+
+    renderApp(['/pastas']);
+
+    await screen.findByText('Pasta A');
+    await userEvent.click(screen.getByRole('link', { name: 'Pasta A' }));
+
+    await screen.findByText('relatorio.pdf');
+    expect(screen.queryByRole('link', { name: 'Pasta A' })).not.toBeInTheDocument();
+    expect(screen.getByText('Pasta A')).toBeInTheDocument(); // agora só na trilha, sem link
+
+    // "Arquivos" também é item do menu lateral — escopa à trilha (`<nav>`).
+    const breadcrumb = screen.getByRole('navigation');
+    await userEvent.click(within(breadcrumb).getByRole('link', { name: 'Arquivos' }));
+
+    await screen.findByRole('link', { name: 'Pasta A' });
+    expect(screen.queryByText('relatorio.pdf')).not.toBeInTheDocument();
+  });
+
+  it('item sem permissão não é listado — a API já filtra por dono-ou-grant (US 2.1 cenário 2)', async () => {
+    const visibleFolder = folder({ id: 'folder-v', name: 'Visível' });
+    const visibleFile = file({ id: 'file-v', fileName: 'visivel.pdf' });
+
+    mockFetch({
+      'GET /auth/me': { status: 200, body: IDENTITY },
+      'GET /folders/root/contents': {
+        status: 200,
+        body: contents({ folders: [visibleFolder], files: [visibleFile] }),
+      },
+    });
+
+    renderApp(['/pastas']);
+
+    await screen.findByText('Visível');
+    await screen.findByText('visivel.pdf');
+    // cabeçalho + as 2 linhas retornadas pela API — nada além disso é renderizado.
+    expect(screen.getAllByRole('row')).toHaveLength(3);
+  });
+
+  it('criar pasta e renomear arquivo refletem na listagem (US 2.2 cenário 1)', async () => {
+    const newFolder = folder({ id: 'folder-new', name: 'Relatórios' });
+    const fileOld = file({ id: 'file-1', fileName: 'antigo.pdf' });
+    const fileRenamed = { ...fileOld, fileName: 'novo.pdf' };
+
+    mockFetch({
+      'GET /auth/me': { status: 200, body: IDENTITY },
+      'GET /folders/root/contents': [
+        { status: 200, body: contents({ files: [fileOld] }) },
+        { status: 200, body: contents({ folders: [newFolder], files: [fileOld] }) },
+        { status: 200, body: contents({ folders: [newFolder], files: [fileRenamed] }) },
+      ],
+      'POST /folders': { status: 201, body: newFolder },
+      'PATCH /files/file-1': { status: 200, body: fileRenamed },
+    });
+
+    renderApp(['/pastas']);
+
+    await screen.findByText('antigo.pdf');
+
+    await userEvent.click(screen.getByRole('button', { name: /nova pasta/i }));
+    const createDialog = await findDialogByTitle('Nova pasta');
+    await userEvent.type(within(createDialog).getByLabelText('Nome'), 'Relatórios');
+    await userEvent.click(within(createDialog).getByRole('button', { name: 'Criar' }));
+
+    await screen.findByText('Relatórios');
+
+    await userEvent.click(screen.getByRole('button', { name: /renomear/i }));
+    const renameDialog = await findDialogByTitle('Renomear arquivo');
+    const nameInput = within(renameDialog).getByLabelText('Nome');
+    await userEvent.clear(nameInput);
+    await userEvent.type(nameInput, 'novo.pdf');
+    await userEvent.click(within(renameDialog).getByRole('button', { name: 'Renomear' }));
+
+    await screen.findByText('novo.pdf');
+    expect(screen.queryByText('antigo.pdf')).not.toBeInTheDocument();
+  });
+
+  it('excluir arquivo e excluir pasta (com confirmação) removem o item da listagem', async () => {
+    const folderToDelete = folder({ id: 'folder-del', name: 'Descartável' });
+    const fileToDelete = file({ id: 'file-del', fileName: 'temp.pdf' });
+
+    mockFetch({
+      'GET /auth/me': { status: 200, body: IDENTITY },
+      'GET /folders/root/contents': [
+        { status: 200, body: contents({ folders: [folderToDelete], files: [fileToDelete] }) },
+        { status: 200, body: contents({ folders: [folderToDelete] }) },
+        { status: 200, body: contents() },
+      ],
+      'DELETE /files/file-del': { status: 204 },
+      'DELETE /folders/folder-del': { status: 204 },
+    });
+
+    renderApp(['/pastas']);
+
+    await screen.findByText('temp.pdf');
+
+    const fileRow = screen.getByText('temp.pdf').closest('tr')!;
+    await userEvent.click(within(fileRow).getByRole('button', { name: /excluir/i }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Sim, excluir' }));
+
+    await screen.findByText('Descartável');
+    expect(screen.queryByText('temp.pdf')).not.toBeInTheDocument();
+
+    const folderRow = screen.getByText('Descartável').closest('tr')!;
+    await userEvent.click(within(folderRow).getByRole('button', { name: /excluir/i }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Sim, excluir' }));
+
+    await waitFor(() => expect(screen.queryByText('Descartável')).not.toBeInTheDocument());
+  });
+
+  it('403 em ação de gestão exibe aviso de permissão insuficiente, sem aplicar a mudança (US 2.2 cenário 2)', async () => {
+    const fileNoPerm = file({ id: 'file-np', fileName: 'protegido.pdf' });
+
+    mockFetch({
+      'GET /auth/me': { status: 200, body: IDENTITY },
+      'GET /folders/root/contents': { status: 200, body: contents({ files: [fileNoPerm] }) },
+      'DELETE /files/file-np': { status: 403, body: { error: 'forbidden' } },
+    });
+
+    renderApp(['/pastas']);
+
+    await screen.findByText('protegido.pdf');
+
+    const fileRow = screen.getByText('protegido.pdf').closest('tr')!;
+    await userEvent.click(within(fileRow).getByRole('button', { name: /excluir/i }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Sim, excluir' }));
+
+    await screen.findByText('Permissão insuficiente para executar esta ação.');
+    expect(screen.getByText('protegido.pdf')).toBeInTheDocument();
+  });
+
+  it('deep-link a pasta que responde 403 mostra bloqueio, sem conteúdo (US 4.2 cenário 1)', async () => {
+    mockFetch({
+      'GET /auth/me': { status: 200, body: IDENTITY },
+      'GET /folders/folder-blocked/contents': { status: 403, body: { error: 'forbidden' } },
+    });
+
+    renderApp(['/pastas/folder-blocked']);
+
+    await screen.findByText('Sem permissão');
+    expect(screen.queryByRole('table')).not.toBeInTheDocument();
+    expect(screen.queryByText('folder-blocked')).not.toBeInTheDocument();
+  });
+});

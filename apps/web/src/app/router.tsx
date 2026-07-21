@@ -3,6 +3,7 @@ import { UserRole } from '@gdoc/shared';
 import { LoginPage } from '../auth/LoginPage';
 import { RequireAuth } from '../auth/RequireAuth';
 import { AppShell } from '../shell/AppShell';
+import { ExplorerPage } from '../navegacao/ExplorerPage';
 import { HomePage } from './HomePage';
 import { PlaceholderPage } from './PlaceholderPage';
 
@@ -21,6 +22,8 @@ export const routes: RouteObject[] = [
         element: <AppShell />,
         children: [
           { path: '/', element: <HomePage /> },
+          { path: '/pastas', element: <ExplorerPage /> },
+          { path: '/pastas/:folderId', element: <ExplorerPage /> },
           {
             element: <RequireAuth roles={[UserRole.UNIT_ADMIN, UserRole.GLOBAL_ADMIN]} />,
             children: [
