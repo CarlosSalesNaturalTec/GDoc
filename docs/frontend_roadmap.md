@@ -93,12 +93,19 @@ shell da fatia 1.
   `notification`, `message`
 - **Depende de**: Fatia 2
 
-### Fatia 5 — Busca e filtros
-- **Capability sugerida**: `web-busca`
+### Fatia 5 — Busca e filtros  ✅ entregue
+- **Capability**: `web-busca`
 - **PRD**: US 9.1, RF #15
-- **Endpoints**: `GET /files/search` (nome + filtros tipo/autor/data)
-- **Entrega**: página de busca com filtros combináveis e **botão de limpar
-  filtros** (volta ao estado inicial permitido)
+- **Endpoints**: `GET /files/search` (nome + filtros tipo/autor/data); `GET
+  /users` (admin-only, popula o filtro de autor)
+- **Entrega**: página de busca (`/busca`) com filtros combináveis (nome, tipo,
+  data) e **botão de limpar filtros** (volta ao estado inicial permitido);
+  tabela de resultados só-arquivos reusando `PreviewModal`/`useDownloadFile`
+  da Fatia 3
+- **Lacuna conhecida**: filtro de autor restrito a `unit_admin`/`global_admin`
+  (Opção A, `GET /users` é admin-only) — colaborador não vê o filtro de autor
+  nem a coluna de autor até existir um endpoint de pessoas
+  seguro-para-colaborador
 - **AntD**: `Input.Search`, `Select` (tipo/autor), `DatePicker.RangePicker`,
   `Button`, `Table`
 - **Depende de**: Fatia 2 (reusa a listagem/visualização)
