@@ -2,8 +2,10 @@ import { useMemo, useState } from 'react';
 import { App, Breadcrumb, Button, Popconfirm, Result, Space, Spin, Table, Tag } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import {
+  CloudDownloadOutlined,
   DeleteOutlined,
   EditOutlined,
+  EyeOutlined,
   FileOutlined,
   FolderAddOutlined,
   FolderOutlined,
@@ -11,6 +13,8 @@ import {
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import type { FileSummaryResponse, FolderResponse } from '@gdoc/shared';
 import { ApiError } from '../lib/api-client';
+import { PreviewModal } from '../visualizacao/PreviewModal';
+import { useDownloadFile } from '../visualizacao/useDownloadFile';
 import { useCreateFolder, useDeleteFile, useDeleteFolder, useFolderContents, useRenameFile } from './queries';
 import { NewFolderModal } from './NewFolderModal';
 import { RenameFileModal } from './RenameFileModal';
@@ -39,6 +43,8 @@ export function ExplorerPage() {
 
   const [newFolderOpen, setNewFolderOpen] = useState(false);
   const [renamingFile, setRenamingFile] = useState<FileSummaryResponse | null>(null);
+  const [previewingFile, setPreviewingFile] = useState<FileSummaryResponse | null>(null);
+  const { download, isPending: downloading } = useDownloadFile();
 
   // US 2.2 cenário 2 / design.md D4: o cliente não infere permissão, oferece
   // a ação e trata o 403 do servidor com um aviso — sem aplicar a mudança.
@@ -136,7 +142,9 @@ export function ExplorerPage() {
           <Link to={`/pastas/${row.folder.id}`}>{row.folder.name}</Link>
         ) : (
           <Space>
-            <span>{row.file.fileName}</span>
+            <Button type="link" style={{ padding: 0, height: 'auto' }} onClick={() => setPreviewingFile(row.file)}>
+              {row.file.fileName}
+            </Button>
             {row.file.status !== 'active' && <Tag>{row.file.status}</Tag>}
           </Space>
         ),
@@ -169,6 +177,17 @@ export function ExplorerPage() {
           </Popconfirm>
         ) : (
           <Space>
+            <Button size="small" icon={<EyeOutlined />} onClick={() => setPreviewingFile(row.file)}>
+              Visualizar
+            </Button>
+            <Button
+              size="small"
+              icon={<CloudDownloadOutlined />}
+              loading={downloading}
+              onClick={() => download(row.file.id)}
+            >
+              Baixar
+            </Button>
             <Button size="small" icon={<EditOutlined />} onClick={() => setRenamingFile(row.file)}>
               Renomear
             </Button>
@@ -249,6 +268,7 @@ export function ExplorerPage() {
         onCancel={() => setRenamingFile(null)}
         onSubmit={handleRenameFile}
       />
+      <PreviewModal file={previewingFile} onClose={() => setPreviewingFile(null)} />
     </div>
   );
 }

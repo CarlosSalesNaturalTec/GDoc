@@ -62,14 +62,18 @@ shell da fatia 1.
   quando ele existir.
 - **Depende de**: Fatia 1
 
-### Fatia 3 — Visualização e download
-- **Capability sugerida**: `web-visualizacao`
+### Fatia 3 — Visualização e download  ✅ entregue
+- **Capability**: `web-visualizacao`
 - **PRD**: US 9.2 (cenários 1 e 2), Épico 2, RF #10/#16
 - **Endpoints**: `POST /files/:id/view-url` (retorna `ViewUrlResponse`
   discriminado), `POST /files/:id/download-url`
-- **Entrega**: preview inline dos formatos pré-visualizáveis; para
-  `previewAvailable: false`, mensagem **"pré-visualização indisponível"** + botão
-  de download **conforme `download.available`** (o cenário 2 já entregue no back)
+- **Entrega**: nome do arquivo clicável e ação "Visualizar" abrem um `Modal`
+  de preview que chama `view-url` uma vez e ramifica pela resposta —
+  renderização inline por categoria de MIME (imagem, vídeo, áudio, PDF/texto
+  em `<iframe>`) ou mensagem **"pré-visualização indisponível"** + botão de
+  download **conforme `download.available`**; ação "Baixar" por navegação numa
+  âncora para a URL assinada `attachment`; 403 em qualquer uma das duas
+  chamadas exibe aviso de permissão insuficiente, sem expor conteúdo
 - **AntD**: `Modal`, `Image`, `<iframe>` (PDF/nativos), `Result`/`Empty`, `Button`
 - **Depende de**: Fatia 2
 

@@ -4,8 +4,10 @@ import type {
   FileSummaryResponse,
   FolderContentsResponse,
   FolderResponse,
+  SignedUrlResponse,
+  ViewUrlResponse,
 } from '@gdoc/shared';
-import { UserRole } from '@gdoc/shared';
+import { FileAccessAction, UserRole } from '@gdoc/shared';
 
 /**
  * Valida a fronteira com a API, espelhando `@gdoc/shared` (fonte única de
@@ -47,3 +49,28 @@ export const folderContentsResponseSchema: z.ZodType<FolderContentsResponse> = z
   folders: z.array(folderResponseSchema),
   files: z.array(fileSummaryResponseSchema),
 });
+
+/** Espelha `SignedUrlResponse` (design.md D7, `web-visualizacao`). */
+export const signedUrlResponseSchema: z.ZodType<SignedUrlResponse> = z.object({
+  url: z.string(),
+  expiresAt: z.string(),
+  action: z.enum([FileAccessAction.VIEW, FileAccessAction.DOWNLOAD]),
+});
+
+/** Espelha `ViewUrlResponse` (união discriminada, design.md D7). */
+export const viewUrlResponseSchema: z.ZodType<ViewUrlResponse> = z.discriminatedUnion(
+  'previewAvailable',
+  [
+    z.object({
+      previewAvailable: z.literal(true),
+      url: z.string(),
+      expiresAt: z.string(),
+      action: z.enum([FileAccessAction.VIEW, FileAccessAction.DOWNLOAD]),
+    }),
+    z.object({
+      previewAvailable: z.literal(false),
+      reason: z.literal('unsupported_format'),
+      download: z.object({ available: z.boolean() }),
+    }),
+  ],
+);
