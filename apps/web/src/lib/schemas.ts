@@ -1,6 +1,8 @@
 import { z } from 'zod';
 import type {
   AuthenticatedIdentity,
+  BatchUploadItemResult,
+  BatchUploadUrlResponse,
   FileSummaryResponse,
   FolderContentsResponse,
   FolderResponse,
@@ -74,3 +76,25 @@ export const viewUrlResponseSchema: z.ZodType<ViewUrlResponse> = z.discriminated
     }),
   ],
 );
+
+/** Espelha `BatchUploadItemResult` (união discriminada em `ok`, design.md D8, `web-upload`). */
+export const batchUploadItemResultSchema: z.ZodType<BatchUploadItemResult> = z.discriminatedUnion('ok', [
+  z.object({
+    fileName: z.string(),
+    ok: z.literal(true),
+    uploadUrl: z.string(),
+    objectPath: z.string(),
+    folderId: z.string().nullable(),
+    expiresAt: z.string(),
+  }),
+  z.object({
+    fileName: z.string(),
+    ok: z.literal(false),
+    error: z.string(),
+  }),
+]);
+
+/** Espelha `BatchUploadUrlResponse` (design.md D8, `web-upload`). */
+export const batchUploadUrlResponseSchema: z.ZodType<BatchUploadUrlResponse> = z.object({
+  results: z.array(batchUploadItemResultSchema),
+});
