@@ -1,6 +1,11 @@
 import '@testing-library/jest-dom/vitest';
-import { cleanup } from '@testing-library/react';
+import { cleanup, configure } from '@testing-library/react';
 import { afterEach, vi } from 'vitest';
+
+// CI é mais lento que o dev local, especialmente no primeiro teste do arquivo
+// (cold start de módulos/JIT) — o timeout padrão de 1000ms do
+// findBy/waitFor causava falha intermitente sem indicar bug real.
+configure({ asyncUtilTimeout: 5000 });
 
 // jsdom não implementa matchMedia — o Sider/useBreakpoint do Ant Design o exige.
 Object.defineProperty(window, 'matchMedia', {
