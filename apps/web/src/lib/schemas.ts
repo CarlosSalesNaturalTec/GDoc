@@ -6,6 +6,7 @@ import type {
   FileSummaryResponse,
   FolderContentsResponse,
   FolderResponse,
+  SearchFilesResponse,
   SignedUrlResponse,
   ViewUrlResponse,
 } from '@gdoc/shared';
@@ -98,3 +99,19 @@ export const batchUploadItemResultSchema: z.ZodType<BatchUploadItemResult> = z.d
 export const batchUploadUrlResponseSchema: z.ZodType<BatchUploadUrlResponse> = z.object({
   results: z.array(batchUploadItemResultSchema),
 });
+
+/** Espelha `SearchFilesResponse` (design.md D6, `web-busca`), reusando `fileSummaryResponseSchema`. */
+export const searchFilesResponseSchema: z.ZodType<SearchFilesResponse> = z.object({
+  files: z.array(fileSummaryResponseSchema),
+});
+
+/**
+ * Schema mínimo para `GET /users` (design.md D6, `web-busca`): valida só os
+ * campos usados pelo filtro de autor (id + nome), tolerando os demais campos
+ * de `PersonResponse` que o `Select` não precisa.
+ */
+export const authorPersonSchema = z.object({
+  id: z.string(),
+  fullName: z.string().nullable(),
+});
+export const authorPersonListSchema = z.array(authorPersonSchema);
