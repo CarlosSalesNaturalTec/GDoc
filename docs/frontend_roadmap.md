@@ -77,16 +77,20 @@ shell da fatia 1.
 - **AntD**: `Modal`, `Image`, `<iframe>` (PDF/nativos), `Result`/`Empty`, `Button`
 - **Depende de**: Fatia 2
 
-### Fatia 4 — Upload (múltiplos arquivos e pasta)
-- **Capability sugerida**: `web-upload`
+### Fatia 4 — Upload (múltiplos arquivos e pasta)  ✅ entregue
+- **Capability**: `web-upload`
 - **PRD**: Épico 3 (US 3.x), RF #6, cota (RF #13)
-- **Endpoints**: `POST /files/upload-url` (unitário), `POST /files/upload-urls`
-  (lote/pasta, com `relativePath`), reconciliação por `storage-events` (server)
-- **Entrega**: upload de múltiplos arquivos com **progresso individual** e
-  **falha independente**; upload de **pasta** preservando hierarquia; aviso ao
-  atingir a cota
-- **AntD**: `Upload` (`customRequest` → pede URL assinada e faz PUT ao GCS com
-  `onProgress`; `directory` para pasta), `Progress`, `notification`
+- **Endpoints**: `POST /files/upload-urls` (lote/pasta, com `relativePath`,
+  **sempre** usado — arquivo único vira lote de 1); reconciliação por
+  `storage-events` é out-of-band (server)
+- **Entrega**: botões "Enviar arquivos"/"Enviar pasta" na toolbar do
+  explorador; **uma** chamada de lote por envio, PUT direto ao GCS por
+  `XMLHttpRequest` com **progresso individual** e **falha independente** por
+  arquivo; upload de **pasta** preservando hierarquia via `relativePath`
+  (`webkitRelativePath`); aviso reativo ao atingir a cota; repetir reenvia só
+  o item falho; sucesso invalida a listagem sem polling por `active`
+- **AntD**: `Upload` (seleção `multiple`/`directory`), `List`, `Progress`,
+  `notification`, `message`
 - **Depende de**: Fatia 2
 
 ### Fatia 5 — Busca e filtros

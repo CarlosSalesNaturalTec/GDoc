@@ -13,7 +13,7 @@ import {
   folderResponseSchema,
 } from '../lib/schemas';
 
-const FOLDER_CONTENTS_KEY = 'folder-contents';
+export const FOLDER_CONTENTS_KEY = 'folder-contents';
 
 /** `folderId: null` = raiz da unidade — chave `['folder-contents', 'root']` (design.md D5). */
 export function folderContentsQueryKey(folderId: string | null) {

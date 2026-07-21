@@ -15,6 +15,7 @@ import type { FileSummaryResponse, FolderResponse } from '@gdoc/shared';
 import { ApiError } from '../lib/api-client';
 import { PreviewModal } from '../visualizacao/PreviewModal';
 import { useDownloadFile } from '../visualizacao/useDownloadFile';
+import { UploadArea } from '../upload/UploadArea';
 import { useCreateFolder, useDeleteFile, useDeleteFolder, useFolderContents, useRenameFile } from './queries';
 import { NewFolderModal } from './NewFolderModal';
 import { RenameFileModal } from './RenameFileModal';
@@ -255,6 +256,7 @@ export function ExplorerPage() {
           </Popconfirm>
         )}
       </Space>
+      <UploadArea destinationFolderId={currentFolderId} />
       <Table<Row> rowKey="key" columns={columns} dataSource={rows} pagination={false} />
       <NewFolderModal
         open={newFolderOpen}
