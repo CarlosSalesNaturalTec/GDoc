@@ -110,16 +110,27 @@ shell da fatia 1.
   `Button`, `Table`
 - **Depende de**: Fatia 2 (reusa a listagem/visualização)
 
-### Fatia 6 — Permissões granulares
-- **Capability sugerida**: `web-permissoes`
-- **PRD**: Épico 4 (US 4.x), RF #7/#8
-- **Endpoints**: rotas de `grants` (conceder/revogar por pasta ou arquivos,
-  verbos, expiração opcional)
-- **Entrega**: diálogo de concessão por pasta/arquivo — seleção de pessoa(s),
-  verbos (`view`/`download`/`upload`/`rename`/`delete`) e **prazo de expiração**;
-  visão das permissões vigentes
-- **AntD**: `Modal`, `Form`, `Select`, `Checkbox.Group`, `DatePicker`, `Table`
-- **Depende de**: Fatia 2
+### Fatia 6 — Permissões granulares  ✅ entregue (proposta)
+- **Capability**: `web-permissoes`
+- **PRD**: US 4.1, RF #7/#8
+- **Endpoints**: `POST /grants` (concede um ou mais verbos a uma pessoa sobre
+  um recurso, idempotente), `GET /grants?resourceType=&resourceId=` (vigentes
+  de **um** recurso), `DELETE /grants/:id` (revoga um verbo) — todos
+  admin-only, já arquivados (Épico 4)
+- **Entrega**: ação "Permissões" por-linha no explorador (só
+  `unit_admin`/`global_admin`), abrindo o `PermissoesModal` do recurso —
+  `Select` de pessoa (reusa o hook admin-only da Fatia 5) + `Checkbox.Group`
+  de verbos numa única `POST /grants`; lista de vigentes agrupada por pessoa
+  com revogação por verbo (`DELETE /grants/:id`); aviso explícito de
+  não-herança ao gerir uma pasta
+- **Lacunas conhecidas**: **sem prazo de expiração** — o backend não suporta
+  (`CreateGrantRequest` não tem `expiresAt`); precisa de change de backend
+  futura (coluna `expires_at`, filtro em `access.ts`, aviso via Job) antes de
+  existir controle de prazo na SPA. **Sem concessão em lote** — `POST /grants`
+  é por **um** `resourceId`; a gestão é por-item nesta fatia, multi-seleção
+  fica para uma fatia futura
+- **AntD**: `Modal`, `Form`, `Select`, `Checkbox.Group`, `Tag`, `Popconfirm`
+- **Depende de**: Fatia 2 (ação no explorador), Fatia 5 (hook de pessoas)
 
 ### Fatia 7 — Lixeira e retenção
 - **Capability sugerida**: `web-lixeira`
