@@ -1,6 +1,12 @@
 import { useMemo, useState } from 'react';
 import { Avatar, Button, Layout, Menu, Space, Typography } from 'antd';
-import { DashboardOutlined, HomeOutlined, LogoutOutlined, TeamOutlined } from '@ant-design/icons';
+import {
+  DashboardOutlined,
+  FolderOutlined,
+  HomeOutlined,
+  LogoutOutlined,
+  TeamOutlined,
+} from '@ant-design/icons';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { UserRole } from '@gdoc/shared';
 import { useSession } from '../auth/session-context';
@@ -23,9 +29,14 @@ export function AppShell() {
   const isAdmin =
     identity?.role === UserRole.UNIT_ADMIN || identity?.role === UserRole.GLOBAL_ADMIN;
 
+  // Prefixo (design.md D1, `web-navegacao`): qualquer rota sob `/pastas`
+  // mantém "Arquivos" selecionado no menu, não só a raiz do explorador.
+  const selectedKey = location.pathname.startsWith('/pastas') ? '/pastas' : location.pathname;
+
   const items = useMemo(
     () => [
       { key: '/', icon: <HomeOutlined />, label: <Link to="/">Início</Link> },
+      { key: '/pastas', icon: <FolderOutlined />, label: <Link to="/pastas">Arquivos</Link> },
       ...(isAdmin
         ? [
             {
@@ -57,7 +68,7 @@ export function AppShell() {
         <div style={{ height: 48, margin: 16, color: '#fff', fontWeight: 600, fontSize: 18 }}>
           {collapsed ? 'GD' : 'GDoc'}
         </div>
-        <Menu theme="dark" mode="inline" selectedKeys={[location.pathname]} items={items} />
+        <Menu theme="dark" mode="inline" selectedKeys={[selectedKey]} items={items} />
       </Sider>
       <Layout>
         <Header
