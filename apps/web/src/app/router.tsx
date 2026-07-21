@@ -4,7 +4,6 @@ import { LoginPage } from '../auth/LoginPage';
 import { RequireAuth } from '../auth/RequireAuth';
 import { AppShell } from '../shell/AppShell';
 import { ExplorerPage } from '../navegacao/ExplorerPage';
-import { BuscaPage } from '../busca/BuscaPage';
 import { HomePage } from './HomePage';
 import { PlaceholderPage } from './PlaceholderPage';
 
@@ -25,7 +24,6 @@ export const routes: RouteObject[] = [
           { path: '/', element: <HomePage /> },
           { path: '/pastas', element: <ExplorerPage /> },
           { path: '/pastas/:folderId', element: <ExplorerPage /> },
-          { path: '/busca', element: <BuscaPage /> },
           {
             element: <RequireAuth roles={[UserRole.UNIT_ADMIN, UserRole.GLOBAL_ADMIN]} />,
             children: [

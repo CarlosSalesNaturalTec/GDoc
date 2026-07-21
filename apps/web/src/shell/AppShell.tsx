@@ -5,7 +5,6 @@ import {
   FolderOutlined,
   HomeOutlined,
   LogoutOutlined,
-  SearchOutlined,
   TeamOutlined,
 } from '@ant-design/icons';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
@@ -38,7 +37,6 @@ export function AppShell() {
     () => [
       { key: '/', icon: <HomeOutlined />, label: <Link to="/">Início</Link> },
       { key: '/pastas', icon: <FolderOutlined />, label: <Link to="/pastas">Arquivos</Link> },
-      { key: '/busca', icon: <SearchOutlined />, label: <Link to="/busca">Buscar</Link> },
       ...(isAdmin
         ? [
             {
