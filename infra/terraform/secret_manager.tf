@@ -43,3 +43,28 @@ resource "google_secret_manager_secret_version" "auth_session_secret" {
   secret      = google_secret_manager_secret.auth_session_secret.id
   secret_data = random_password.auth_session_secret.result
 }
+
+# Senha do administrador global de bootstrap (change bootstrap-admin-producao,
+# design.md D7). Só o CONTAINER do secret é criado aqui — sem versão gerenciada
+# pelo Terraform, para que a senha real nunca fique no state nem no código. O
+# operador cria a versão manualmente antes de rodar o Job (ver bootstrap_job.tf
+# e README.md).
+resource "google_secret_manager_secret" "bootstrap_admin_password" {
+  project   = var.project_id
+  secret_id = "${local.name_prefix}-bootstrap-admin-password"
+  labels    = local.labels
+
+  replication {
+    auto {}
+  }
+
+  depends_on = [google_project_service.required]
+}
+
+# Reusa a service account da API (design.md D6) — já tem cloudsql.client e
+# acesso ao secret database_url; só precisa ganhar acesso a este novo secret.
+resource "google_secret_manager_secret_iam_member" "api_bootstrap_admin_password" {
+  secret_id = google_secret_manager_secret.bootstrap_admin_password.id
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${google_service_account.api.email}"
+}

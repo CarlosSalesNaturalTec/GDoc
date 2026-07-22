@@ -81,6 +81,42 @@ Sem chave de service account em lugar nenhum — `cicd.tf` provisiona um
 Workload Identity Pool que só aceita tokens OIDC do repositório configurado
 em `github_repository` (`CarlosSalesNaturalTec/GDoc` por padrão).
 
+## Bootstrap do administrador global
+
+Depois do `apply` (que cria o Job `${local.name_prefix}-bootstrap` e o secret
+container `${local.name_prefix}-bootstrap-admin-password`) e de o CI/CD ter
+publicado a imagem real da API, inicialize o primeiro `global_admin` — **não**
+existe outro caminho seguro para criar essa conta em produção; o seed de
+desenvolvimento (`npm run seed`) se recusa a rodar quando `NODE_ENV=production`
+(ver `openspec/changes/bootstrap-admin-producao/design.md`).
+
+```bash
+PROJECT_ID="gdoc-prod-123456"   # ajustar
+ENVIRONMENT="prod"
+NAME_PREFIX="gdoc-${ENVIRONMENT}"
+
+# 1. Cria a versão do secret com a senha real do administrador (só o
+#    container é gerenciado pelo Terraform — a senha nunca fica no state).
+echo -n "SUA-SENHA-FORTE-AQUI" | gcloud secrets versions add \
+  "${NAME_PREFIX}-bootstrap-admin-password" --data-file=- --project="$PROJECT_ID"
+
+# 2. Confirma/ajusta o e-mail (variável bootstrap_admin_email em
+#    terraform.tfvars) e reaplica se tiver mudado.
+terraform apply
+
+# 3. Executa o Job uma vez — aplica migrações pendentes e cria só o
+#    administrador global (idempotente: reexecutar depois é no-op).
+gcloud run jobs execute "${NAME_PREFIX}-bootstrap" \
+  --project="$PROJECT_ID" --region="$REGION" --wait
+```
+
+Depois de logar com essa conta na URL de produção, cadastre as pessoas reais
+pela tela **Pessoas** e, se este projeto já teve um `npm run seed` rodado
+antes desta mudança existir, exclua/desative pela mesma tela as eventuais
+contas de demonstração (`colaborador.a@gdoc.dev`, `admin.a@gdoc.dev`,
+`colaborador.b@gdoc.dev`) — a trava de produção no seed impede que elas sejam
+recriadas, mas não remove o que já foi criado antes dela existir.
+
 ## Decisões que valem conhecer antes de mexer
 
 - **Cloud SQL com IP público, sem `authorized_networks`.** A API se conecta
@@ -133,6 +169,15 @@ em `github_repository` (`CarlosSalesNaturalTec/GDoc` por padrão).
   controla o corte de retenção; ver `apps/api/src/jobs/purge-trash.ts` e
   design.md D6-D10 do change para a lógica. A topologia Scheduler → Job e a
   IAM do invoker não mudaram.
+- **Job de bootstrap do administrador global (change `bootstrap-admin-producao`).**
+  `${local.name_prefix}-bootstrap` (`bootstrap_job.tf`) roda a mesma imagem/SA/
+  integração Cloud SQL da API, entrypoint `apps/api/dist/db/bootstrap.js`
+  (`apps/api/src/db/bootstrap.ts`): aplica migrações pendentes e cria
+  **somente** o `global_admin` inicial, fail-closed sem as credenciais do
+  secret `bootstrap-admin-password` + `var.bootstrap_admin_email`, idempotente
+  em reexecuções. Não é agendado — sempre `gcloud run jobs execute` manual
+  (ver seção "Bootstrap do administrador global" acima). Mesmo racional de
+  imagem "não avança sozinho" do Job de expurgo, abaixo.
 - **A imagem do Job não é redeployada automaticamente pelo CI/CD.**
   `.github/workflows/deploy.yml` só faz `gcloud run deploy` do **serviço**
   (API) a cada push em `main`; o **Job** de expurgo só pega uma imagem nova

@@ -128,6 +128,22 @@ variable "scheduler_time_zone" {
   default     = "America/Sao_Paulo"
 }
 
+variable "bootstrap_admin_email" {
+  description = <<-EOT
+    E-mail do administrador global criado pelo Job de bootstrap
+    (name_prefix-bootstrap). A senha correspondente vem do secret
+    bootstrap-admin-password (ver secret_manager.tf), nunca de uma variável do
+    Terraform. Ver openspec/changes/bootstrap-admin-producao/design.md D3/D7.
+  EOT
+  type        = string
+}
+
+variable "bootstrap_admin_unit" {
+  description = "Nome da unidade do administrador global de bootstrap."
+  type        = string
+  default     = "Administração"
+}
+
 variable "labels" {
   description = "Labels aplicadas a todos os recursos que suportam labels."
   type        = map(string)

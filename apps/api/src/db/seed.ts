@@ -19,6 +19,15 @@ import { config } from '../config.js';
  * logar" (design.md Decisão D5).
  */
 export async function seedIfEmpty(pool?: Pool): Promise<boolean> {
+  // Trava de produção (design.md D5): fecha o furo de dados de demonstração
+  // com senha pública mesmo se `npm run seed` for disparado por engano contra
+  // produção. Inicialização de produção usa `npm run bootstrap` (bootstrap.ts).
+  if (config.nodeEnv === 'production') {
+    throw new Error(
+      'seed: recusado em produção (NODE_ENV=production). Use "npm run bootstrap" (apps/api/src/db/bootstrap.ts) para inicializar o administrador global.',
+    );
+  }
+
   const ownedPool = pool ?? new Pool({ connectionString: config.databaseUrl });
   try {
     const { rows: adminRows } = await ownedPool.query<{ count: string }>(

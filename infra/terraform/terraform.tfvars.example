@@ -14,3 +14,10 @@ cors_allowed_origins = [
   "http://localhost:5173",
   # "https://app.gdoc.exemplo.com.br",
 ]
+
+# E-mail do administrador global criado pelo Job de bootstrap (obrigatório —
+# ver infra/terraform/README.md, seção "Bootstrap do administrador global").
+# A senha NÃO vai aqui: é criada como versão do secret bootstrap-admin-password
+# depois do apply.
+bootstrap_admin_email = "admin@exemplo.com.br"
+# bootstrap_admin_unit  = "Administração"
