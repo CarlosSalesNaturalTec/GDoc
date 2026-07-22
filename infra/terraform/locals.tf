@@ -28,10 +28,12 @@ locals {
   create_frontend_lb = var.frontend_domain != ""
 
   # Prefixos servidos pela API (apps/api/src/app.ts) — espelha
-  # apps/web/vite.config.ts (API_PROXY_PREFIXES), o proxy de dev equivalente.
-  # Mesma origem para SPA + API (design.md D1/D2 do change
-  # `web-shell-e-auth`): preserva o cookie de sessão HttpOnly/SameSite=Strict
-  # sem CORS. Mantenha as duas listas em sincronia ao adicionar uma rota.
+  # apps/web/vite.config.ts (API_PROXY_PREFIXES) e apps/api/src/lib/
+  # api-prefixes.ts (que também tem `/internal`, sem equivalente aqui pois
+  # não passa pelo url-map). Mesma origem para SPA + API (design.md D1/D2 do
+  # change `web-shell-e-auth`): preserva o cookie de sessão
+  # HttpOnly/SameSite=Strict sem CORS. Mantenha as três listas em sincronia
+  # ao adicionar uma rota.
   api_proxy_prefixes = [
     "/auth",
     "/files",
