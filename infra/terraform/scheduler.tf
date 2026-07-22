@@ -88,9 +88,12 @@ resource "google_cloud_run_v2_job" "trash_purge" {
           name  = "GCP_PROJECT_ID"
           value = var.project_id
         }
+        # Segredos chegam resolvidos como env vars via secret_key_ref (mesmo
+        # modelo do serviço da API em cloud_run.tf). O job não emite/verifica
+        # sessão, mas mantemos o driver "env" coerente em todo o prod.
         env {
           name  = "SECRETS_DRIVER"
-          value = "secret-manager"
+          value = "env"
         }
         env {
           name  = "TRASH_RETENTION_DAYS"

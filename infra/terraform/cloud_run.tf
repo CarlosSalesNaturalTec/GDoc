@@ -112,9 +112,19 @@ resource "google_cloud_run_v2_service" "api" {
         name  = "STORAGE_QUOTA_BYTES_PER_USER"
         value = tostring(var.storage_quota_bytes_per_user)
       }
+      # O Cloud Run já injeta os segredos (AUTH_SESSION_SECRET, DATABASE_URL)
+      # como variáveis de ambiente resolvidas a partir do Secret Manager, via
+      # `value_source.secret_key_ref` abaixo (design.md: "valores sensíveis no
+      # Secret Manager, injetados no Cloud Run" — já chegam resolvidos). Logo o
+      # `SecretsPort` lê a env var já injetada (driver "env"), o mesmo caminho
+      # provado pelo DATABASE_URL. O nome lógico usado pelo código
+      # (`AUTH_SESSION_SECRET`) casa com a env var, não com o secret_id
+      # prefixado (`${name_prefix}-auth-session-secret`) — usar o driver
+      # "secret-manager" faria o SDK buscar um segredo com o nome errado e
+      # quebraria o login com 500 em `issueSession`.
       env {
         name  = "SECRETS_DRIVER"
-        value = "secret-manager"
+        value = "env"
       }
       # PUBSUB_STORAGE_EVENTS_TOPIC/SUBSCRIPTION não são passadas aqui: a API
       # não lê nenhuma delas (o endpoint de reconciliação só recebe o POST do
