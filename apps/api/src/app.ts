@@ -1,7 +1,7 @@
 import express, { type Express, type ErrorRequestHandler } from 'express';
 import cookieParser from 'cookie-parser';
 import { existsSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, sep } from 'node:path';
 import type { Ports } from './ports/index.js';
 import { healthRouter } from './routes/health.js';
 import { filesRouter } from './routes/files.js';
@@ -62,7 +62,7 @@ export function createApp(ports: Ports, options: CreateAppOptions = {}): Express
       express.static(webDistDir, {
         index: false,
         setHeaders: (res, filePath) => {
-          if (filePath.startsWith(join(webDistDir, 'assets') + '/')) {
+          if (filePath.startsWith(join(webDistDir, 'assets') + sep)) {
             res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
           }
         },
