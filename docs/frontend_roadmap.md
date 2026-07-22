@@ -198,13 +198,17 @@ shell da fatia 1.
 - **AntD**: `Table`, `Modal`, `Form`, `Select`, `Popconfirm`, `Tag`
 - **Depende de**: Fatia 1 (rota de administração, guarda por papel)
 
-### Fatia 10 — Painel gerencial
-- **Capability sugerida**: `web-painel`
+### Fatia 10 — Painel gerencial  ✅ entregue
+- **Capability**: `web-painel`
 - **PRD**: Épico 8 (US 8.2), RF #14
 - **Endpoints**: `GET /dashboard` (cartões + séries agregadas)
-- **Entrega**: cartões de estatística e gráficos (arquivos por tipo, envios por
-  mês, espaço usado vs. disponível), respeitando o alcance do administrador
-- **AntD**: `Card`, `Statistic`, `@ant-design/plots` (gráficos)
+- **Entrega**: página `/admin/painel` com os quatro cartões de estatística
+  (total de arquivos, total de pessoas, espaço utilizado, % da cota) e os três
+  gráficos — arquivos por tipo, envios por mês e espaço utilizado versus
+  disponível —, respeitando o alcance do administrador; rótulos pt-BR
+  (categorias e meses); 403 fail-closed exibe aviso neutro
+- **AntD**: `Card`, `Statistic`, `Progress` — gráficos de barras em SVG/HTML
+  próprio com `theme.useToken()`, sem `@ant-design/plots` (design.md D1)
 - **Depende de**: Fatia 1 (rota de administração)
 
 ## Grafo de dependências
