@@ -6,6 +6,7 @@ import { AppShell } from '../shell/AppShell';
 import { ExplorerPage } from '../navegacao/ExplorerPage';
 import { BuscaPage } from '../busca/BuscaPage';
 import { LixeiraPage } from '../lixeira/LixeiraPage';
+import { PessoasPage } from '../pessoas/PessoasPage';
 import { HomePage } from './HomePage';
 import { PlaceholderPage } from './PlaceholderPage';
 
@@ -31,7 +32,7 @@ export const routes: RouteObject[] = [
           {
             element: <RequireAuth roles={[UserRole.UNIT_ADMIN, UserRole.GLOBAL_ADMIN]} />,
             children: [
-              { path: '/admin/pessoas', element: <PlaceholderPage title="Gestão de pessoas" /> },
+              { path: '/admin/pessoas', element: <PessoasPage /> },
               { path: '/admin/painel', element: <PlaceholderPage title="Painel gerencial" /> },
             ],
           },

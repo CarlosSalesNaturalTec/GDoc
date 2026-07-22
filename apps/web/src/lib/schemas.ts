@@ -10,12 +10,13 @@ import type {
   FolderResponse,
   GrantListResponse,
   GrantResponse,
+  PersonResponse,
   SearchFilesResponse,
   SignedUrlResponse,
   TrashListResponse,
   ViewUrlResponse,
 } from '@gdoc/shared';
-import { FileAccessAction, GrantResourceType, Permission, UserRole } from '@gdoc/shared';
+import { FileAccessAction, GrantResourceType, Permission, PersonStatus, UserRole } from '@gdoc/shared';
 
 /**
  * Valida a fronteira com a API, espelhando `@gdoc/shared` (fonte única de
@@ -165,6 +166,24 @@ export const trashListResponseSchema: z.ZodType<TrashListResponse> = z.object({
 export const fileRestoreResponseSchema: z.ZodType<FileRestoreResponse> = fileSummaryResponseSchema.and(
   z.object({ redirectedToRoot: z.boolean() }),
 );
+
+/** Espelha `PersonResponse` (design.md D7, `web-pessoas`) — fronteira de `GET/POST/PATCH /users`. */
+export const personResponseSchema: z.ZodType<PersonResponse> = z.object({
+  id: z.string(),
+  unitId: z.string(),
+  fullName: z.string().nullable(),
+  email: z.string(),
+  phone: z.string().nullable(),
+  jobTitle: z.string().nullable(),
+  workArea: z.string().nullable(),
+  notes: z.string().nullable(),
+  role: z.enum([UserRole.COLLABORATOR, UserRole.UNIT_ADMIN, UserRole.GLOBAL_ADMIN]),
+  status: z.enum([PersonStatus.ACTIVE, PersonStatus.DISABLED]),
+  createdAt: z.string(),
+});
+
+/** Espelha a listagem de `GET /users` (design.md D7, `web-pessoas`). */
+export const personListSchema = z.array(personResponseSchema);
 
 /** Espelha `AuditQueryResponse` (design.md D6, `web-auditoria`): acessos (`view`/`download`) de um arquivo. */
 export const auditQueryResponseSchema: z.ZodType<AuditQueryResponse> = z.object({

@@ -16,7 +16,7 @@ describe('Guarda de rota por papel e shell condicionado ao papel', () => {
 
     // guarda por papel: navegado de volta para a home, a tela de admin nunca renderiza
     await screen.findByText('Bem-vindo ao GDoc');
-    expect(screen.queryByText('Gestão de pessoas')).not.toBeInTheDocument();
+    expect(screen.queryByText('Nova pessoa')).not.toBeInTheDocument();
     expect(screen.queryByText('Pessoas')).not.toBeInTheDocument();
     expect(screen.queryByText('Painel')).not.toBeInTheDocument();
     expect(screen.getByText('Colaborador')).toBeInTheDocument();
@@ -28,10 +28,11 @@ describe('Guarda de rota por papel e shell condicionado ao papel', () => {
         status: 200,
         body: { id: 'user-1', unitId: 'unit-1', role: UserRole.UNIT_ADMIN },
       },
+      'GET /users': { status: 200, body: [] },
     });
     renderApp(['/admin/pessoas']);
 
-    await screen.findByText('Gestão de pessoas');
+    await screen.findByText('Nova pessoa');
     expect(screen.getByText('Pessoas')).toBeInTheDocument();
     expect(screen.getByText('Painel')).toBeInTheDocument();
     expect(screen.getByText('Administrador da unidade')).toBeInTheDocument();
