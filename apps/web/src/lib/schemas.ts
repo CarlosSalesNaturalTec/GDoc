@@ -4,6 +4,7 @@ import type {
   AuthenticatedIdentity,
   BatchUploadItemResult,
   BatchUploadUrlResponse,
+  DashboardResponse,
   FileRestoreResponse,
   FileSummaryResponse,
   FolderContentsResponse,
@@ -16,7 +17,7 @@ import type {
   TrashListResponse,
   ViewUrlResponse,
 } from '@gdoc/shared';
-import { FileAccessAction, GrantResourceType, Permission, PersonStatus, UserRole } from '@gdoc/shared';
+import { FileAccessAction, FileCategory, GrantResourceType, Permission, PersonStatus, UserRole } from '@gdoc/shared';
 
 /**
  * Valida a fronteira com a API, espelhando `@gdoc/shared` (fonte única de
@@ -184,6 +185,43 @@ export const personResponseSchema: z.ZodType<PersonResponse> = z.object({
 
 /** Espelha a listagem de `GET /users` (design.md D7, `web-pessoas`). */
 export const personListSchema = z.array(personResponseSchema);
+
+/** Espelha `DashboardResponse` (design.md D4, `web-painel`): agregados de `GET /dashboard`. */
+export const dashboardResponseSchema: z.ZodType<DashboardResponse> = z.object({
+  cards: z.object({
+    totalFiles: z.number(),
+    totalPeople: z.number(),
+    usedBytes: z.number(),
+    quotaUsedPct: z.number(),
+  }),
+  filesByType: z.array(
+    z.object({
+      category: z.enum([
+        FileCategory.IMAGE,
+        FileCategory.VIDEO,
+        FileCategory.AUDIO,
+        FileCategory.PDF,
+        FileCategory.OFFICE,
+        FileCategory.TEXT,
+        FileCategory.OTHER,
+      ]),
+      count: z.number(),
+    }),
+  ),
+  uploadsByMonth: z.array(
+    z.object({
+      month: z.string(),
+      count: z.number(),
+    }),
+  ),
+  storage: z.object({
+    usedBytes: z.number(),
+    quotaBytesPerUser: z.number(),
+    userCount: z.number(),
+    capacityBytes: z.number(),
+    availableBytes: z.number(),
+  }),
+});
 
 /** Espelha `AuditQueryResponse` (design.md D6, `web-auditoria`): acessos (`view`/`download`) de um arquivo. */
 export const auditQueryResponseSchema: z.ZodType<AuditQueryResponse> = z.object({
