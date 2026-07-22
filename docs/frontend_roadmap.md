@@ -173,14 +173,29 @@ shell da fatia 1.
 - **AntD**: `Table`, `Modal`, `Tag`, `Empty`, `Result`, `Spin`
 - **Depende de**: Fatia 2 (abre a partir do arquivo)
 
-### Fatia 9 — Gestão de pessoas (admin)
-- **Capability sugerida**: `web-pessoas`
+### Fatia 9 — Gestão de pessoas (admin)  ✅ entregue
+- **Capability**: `web-pessoas`
 - **PRD**: Épico 1 (US 1.1), RF #1/#2/#3
-- **Endpoints**: rotas de `users` (criar/editar/desativar pessoas; sem
-  autocadastro)
-- **Entrega**: CRUD de pessoas (nome, unidade, telefone, e-mail, função, área,
-  observação; e-mail único), restrito a administradores
-- **AntD**: `Table`, `Modal`, `Form`, `Select`, `Switch` (ativo/inativo)
+- **Endpoints**: `GET /users`, `POST /users`, `PATCH /users/:id` (já
+  arquivados; sem autocadastro)
+- **Entrega**: página `/admin/pessoas` (`unit_admin`/`global_admin`) com a
+  `Table` de pessoas (nome ou e-mail quando `fullName` nulo, e-mail, função,
+  papel, status); cadastro com senha inicial (`POST /users`) e aviso "e-mail
+  já está em uso" em 409, sem fechar o formulário; edição de perfil/papel
+  (`PATCH /users/:id`, e-mail somente-leitura, sem campo de senha);
+  ativar/desativar via `PATCH status` com `Popconfirm` (sem exclusão
+  permanente); seletor de papel espelha as travas do servidor (`unit_admin`
+  não vê `global_admin`); guarda de auto-tiro-no-pé (o admin não desativa nem
+  rebaixa a si mesmo); 403 fail-closed exibe aviso neutro
+- **Lacunas conhecidas**: **sem criação cross-unit pelo `global_admin`** — a
+  pessoa é sempre criada na unidade do admin logado; falta `GET /units` para
+  um seletor de unidade; **sem redefinição de senha pela UI** —
+  `PATCH /users/:id` não aceita `password`; **sem paginação/filtro
+  server-side** — `GET /users` devolve tudo, a `Table` pagina no cliente;
+  **sem coluna de unidade legível** — sem `GET /units` só haveria o UUID cru;
+  **sem exclusão permanente de pessoa** — não há `DELETE /users`, só
+  desativação
+- **AntD**: `Table`, `Modal`, `Form`, `Select`, `Popconfirm`, `Tag`
 - **Depende de**: Fatia 1 (rota de administração, guarda por papel)
 
 ### Fatia 10 — Painel gerencial
