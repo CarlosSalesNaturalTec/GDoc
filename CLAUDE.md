@@ -75,6 +75,10 @@ Bytes **nunca** passam pela API. Fluxo: a rota checa permissão → emite **URL 
 
 `server.ts` → `app.ts` (monta os routers; rotas tenant-scoped passam por `attachTenantContext`) → `routes/*` (HTTP + validação) → `lib/*` (`access.ts`, `folder-tree.ts`, `search-filters.ts`, regras puras) → `ports/*` (seams). `db/migrations/*.sql` são numeradas e aplicadas em ordem por `db/migrate.ts`. Jobs (`jobs/purge-trash.ts`) rodam via Cloud Run Jobs + Scheduler em prod (03:00, retenção 30 dias) e por `npm run` em dev.
 
+### SPA servida pela API (mesma origem) — invariante de prefixos
+
+Em produção a própria API serve os estáticos da SPA e faz **fallback de `index.html`** para rotas de cliente, na **mesma origem** (sem domínio/CDN separado). Para que esse fallback não sombreie rotas de API inexistentes (ex.: `GET /files/rota-inexistente` deve ser `404` da API, nunca `index.html`), a lista `apps/api/src/lib/api-prefixes.ts` (`API_PREFIXES`) delimita o que é API. Ela **precisa ficar em sincronia com outras duas pontas** ao adicionar/remover um prefixo de rota de topo: `apps/web/vite.config.ts` (`API_PROXY_PREFIXES`, proxy de dev) e `infra/terraform/locals.tf` (`api_proxy_prefixes`, url-map). `/internal` (push do Pub/Sub) existe só na lista da API. Cobertura em `__tests__/web-serving.test.ts`.
+
 ### Testes
 
 Vitest em ambos os apps. A API testa contra o Postgres real (`__tests__/test-db.ts`) e usa um `in-memory-storage-port` no lugar do GCS. Os testes de segurança/isolamento (`rls-isolation.test.ts`, `isolamento-unidade.test.ts`, `permission.test.ts`) codificam os invariantes acima — trate-os como parte do contrato, não como testes descartáveis. A web testa componentes com Testing Library + jsdom, mockando `fetch`/`XHR`.
