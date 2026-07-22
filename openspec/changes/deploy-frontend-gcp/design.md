@@ -60,21 +60,42 @@ necessário para a fase 2.
 
 ### D2 — Fallback de `index.html` com guarda explícita de prefixos de API
 
-Montagem em `app.ts`, **depois** de todos os routers e antes do error
-handler: `express.static(webDistDir, { index: false })` seguido de um
-fallback que responde `index.html` **apenas** para `GET`/`HEAD` cujo caminho
-**não** começa por um prefixo de API. A lista vive num módulo novo
+Montagem em `app.ts`: `express.static(webDistDir, { index: false })` seguido
+de um fallback que responde `index.html` **apenas** para `GET`/`HEAD` cujo
+caminho **não** começa por um prefixo de API. A lista vive num módulo novo
 (`apps/api/src/lib/api-prefixes.ts`) e espelha
 `apps/web/vite.config.ts::API_PROXY_PREFIXES` e
 `infra/terraform/locals.tf::api_proxy_prefixes`, com o mesmo comentário de
 sincronia nas três pontas — **mais `/internal`** (o push do Pub/Sub é `POST`,
 mas a guarda cobre qualquer método por robustez).
 
-Por que a guarda, se os routers vêm antes? Porque um caminho de API que não
-casa com rota (ex.: `GET /files/rota-inexistente`) atravessaria os routers e
-cairia no fallback, devolvendo `index.html` com 200 onde hoje há 404 — um
-contrato de API silenciosamente corrompido. Com a guarda, sob prefixo de API
-o comportamento é **exatamente o atual**.
+Por que a guarda, se os routers de API existem? Porque um caminho de API que
+não casa com rota (ex.: `GET /files/rota-inexistente`) deve atravessar até o
+404 padrão da API, nunca cair no fallback e devolver `index.html` com 200 —
+um contrato de API silenciosamente corrompido. Com a guarda, sob prefixo de
+API o comportamento é **exatamente o atual**, independente de onde o
+fallback é montado.
+
+**Posição real de montagem (achado durante a implementação, diverge do
+parágrafo original desta decisão):** o serving da SPA é montado **depois**
+de `health`/`storage-events`/`auth`, mas **antes** dos routers tenant-scoped
+(`files`, `folders`, `users`, `grants`, `trash`, `audit`, `dashboard`,
+`search`), não depois de todos como planejado inicialmente. Motivo: esses
+routers eram montados via `app.use(attachTenantContext(ports), xRouter(ports))`
+— sem path próprio, o Express aplica `attachTenantContext` a **qualquer**
+caminho, não só aos do router. Um fallback montado depois desses `app.use`
+seria interceptado por esse middleware antes de rodar: `GET /busca` sem
+sessão devolveria `401` em vez do `index.html` esperado para um deep-link,
+quebrando o requisito para visitantes não autenticados. A correção real foi
+escopar `attachTenantContext` aos prefixos que os routers de fato atendem —
+`app.use(['/files', '/folders', '/users', '/grants', '/trash', '/dashboard'],
+attachTenantContext(ports))`, montado uma única vez antes dos routers (que
+passaram a ser montados sem middleware acoplado). Isso também corrige, como
+efeito colateral correto, um contrato pré-existente: hoje (antes deste
+change) um caminho qualquer sem sessão e sem rota correspondente já
+respondia `401` em vez do `404` padrão do Express — bug de escopo de
+middleware anterior a este change, não introduzido por ele, mas que só se
+tornou observável ao implementar o fallback da SPA.
 
 ### D3 — `WEB_DIST_DIR` opcional; ausente = comportamento de hoje; inválido = falha no arranque
 

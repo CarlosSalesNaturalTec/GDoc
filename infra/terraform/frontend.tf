@@ -3,9 +3,14 @@
 # (JS/CSS/HTML da aplicação), então leitura pública é o comportamento
 # esperado, não um risco — nenhum dado de usuário mora aqui.
 #
-# `apps/web` ainda é só o layout reservado (sem build da SPA) — este bucket
-# fica provisionado e vazio até a mudança que implementa o frontend publicar
-# o `dist/` aqui.
+# A SPA existe e está em produção, mas ainda não é servida por este bucket:
+# sem domínio, o certificado gerenciado do LB abaixo não pode ser emitido
+# (`local.create_frontend_lb`), então não há mesma origem possível via
+# bucket+CDN para o cookie de sessão HttpOnly/SameSite=Strict funcionar sem
+# CORS. Na fase sem domínio (change `deploy-frontend-gcp`), o próprio Cloud
+# Run da API serve o `dist/` (mesma origem em `*.run.app`). Este bucket fica
+# provisionado e vazio até a fase com domínio, quando o `dist/` passa a ser
+# publicado aqui e o LB abaixo assume o serving via CDN.
 resource "google_storage_bucket" "frontend" {
   project                     = var.project_id
   name                        = "${var.project_id}-${local.name_prefix}-web"

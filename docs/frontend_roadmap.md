@@ -34,7 +34,7 @@ shell da fatia 1.
 
 ## Fatias
 
-### Fatia 1 — Shell + Autenticação  ✅ proposta criada
+### Fatia 1 — Shell + Autenticação  ✅ entregue
 - **Capability**: `web-shell-e-auth`
 - **PRD**: US 1.2 (login/sessão), NFR de Usabilidade (shell premium)
 - **Endpoints**: `POST /auth/login`, `POST /auth/logout`, `GET /auth/me`
@@ -231,3 +231,21 @@ Ordem de execução sugerida: **1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 
 fatias 9 e 10 (administração) dependem só da fatia 1 e podem ser antecipadas se
 a prioridade for o valor gerencial; as fatias 3–8 dependem do explorador
 (fatia 2).
+
+## Produção sem domínio
+
+Com as 10 fatias entregues, a SPA foi colocada em produção pelo change
+`deploy-frontend-gcp`: como ainda não existe domínio registrado, o
+certificado gerenciado do load balancer planejado (bucket+CDN, ver
+`infra/terraform/frontend.tf`) não pode ser emitido. Decisão interina: o
+próprio serviço Cloud Run da API passa a servir o `dist/` da SPA, já que a
+URL `*.run.app` é a única URL bruta da GCP com TLS que pode ser a mesma
+origem de SPA e API — preservando o cookie de sessão
+`HttpOnly`/`Secure`/`SameSite=Strict` sem CORS. O Dockerfile do monorepo
+embute o build da web; `deploy.yml` não muda.
+
+Quando o domínio existir (change futura): definir `frontend_domain` no
+Terraform, publicar o `dist/` no bucket, aplicar o LB/certificado/IP e
+invalidar o CDN a cada deploy — o serving embutido na API fica inofensivo
+atrás do `path_matcher`, que passa a mandar só os prefixos de API para a
+Cloud Run.

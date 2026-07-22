@@ -8,7 +8,10 @@ import react from '@vitejs/plugin-react';
  * browser: o cookie de sessão é `HttpOnly`/`SameSite=Strict` e a API não tem
  * CORS (design.md D1/D2 do change `web-shell-e-auth`). Em produção, o
  * url-map do load balancer roteia os mesmos prefixos para a Cloud Run
- * (infra/terraform/frontend.tf) — mantenha as duas listas em sincronia.
+ * (infra/terraform/frontend.tf) e o fallback de `index.html` da própria API
+ * usa a mesma lista para não sombrear rotas de API (apps/api/src/lib/
+ * api-prefixes.ts, que também tem `/internal`) — mantenha as três listas em
+ * sincronia.
  */
 export const API_PROXY_PREFIXES = [
   '/auth',

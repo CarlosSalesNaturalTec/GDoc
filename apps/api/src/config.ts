@@ -45,6 +45,10 @@ export const config = {
   storageSignerKeyPath: resolveRepoPath(process.env.STORAGE_SIGNER_KEY_PATH),
   storageSignerClientEmail: process.env.STORAGE_SIGNER_CLIENT_EMAIL,
 
+  // Diretório do build da SPA (`apps/web/dist`). Ausente = comportamento de
+  // hoje, nenhum estático servido (dev usa o Vite) — design.md D3.
+  webDistDir: resolveRepoPath(process.env.WEB_DIST_DIR),
+
   signedUrlViewTtlSeconds: Number(optional('SIGNED_URL_VIEW_TTL_SECONDS', '300')),
   signedUrlDownloadTtlSeconds: Number(optional('SIGNED_URL_DOWNLOAD_TTL_SECONDS', '1800')),
   storageQuotaBytesPerUser: Number(
