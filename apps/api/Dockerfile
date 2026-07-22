@@ -9,6 +9,13 @@ COPY package.json package-lock.json ./
 COPY apps/api/package.json apps/api/package.json
 COPY apps/web/package.json apps/web/package.json
 COPY packages/shared/package.json packages/shared/package.json
+# O postinstall da raiz compila packages/shared (tsc -p tsconfig.json), então o
+# código-fonte e os tsconfigs do shared precisam existir ANTES do `npm ci` —
+# senão o tsc falha com TS5058 (tsconfig.json ausente) e o build da imagem
+# quebra. Deps nativas com install script (argon2, esbuild) continuam rodando
+# normalmente, por isso não usamos --ignore-scripts.
+COPY tsconfig.base.json ./
+COPY packages/shared packages/shared
 RUN npm ci
 
 FROM deps AS build
