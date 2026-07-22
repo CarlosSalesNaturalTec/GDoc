@@ -160,4 +160,5 @@ Referência: PRD US 1.1; design.md D6.
 #### Scenario: Operação negada exibe aviso neutro
 - **WHEN** uma operação de pessoas (`POST`/`PATCH /users`) retorna 403
 - **THEN** a SPA exibe um aviso de permissão insuficiente, sem distinguir se a
-  pessoa é de outra unidade ou se a ação foi barrada por papel, e sem expor dados
+  pessoa é de outra unidade ou se a ação foi barrada por papel, e sem expor
+  dados da pessoa alvo
