@@ -39,8 +39,8 @@ output "pubsub_topic" {
 }
 
 output "trash_purge_job_name" {
-  description = "Nome do Cloud Run Job de exemplo do expurgo da lixeira (substituir a imagem quando o Épico 6 existir)."
-  value       = google_cloud_run_v2_job.trash_purge_example.name
+  description = "Nome do Cloud Run Job de expurgo da lixeira (Épico 6)."
+  value       = google_cloud_run_v2_job.trash_purge.name
 }
 
 output "github_actions_workload_identity_provider" {
