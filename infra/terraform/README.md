@@ -146,6 +146,24 @@ recriadas, mas não remove o que já foi criado antes dela existir.
   (`API_PROXY_PREFIXES`, usado pelo proxy do servidor de dev) — mantenha as
   duas em sincronia ao adicionar uma rota nova. Design completo em
   `openspec/changes/web-shell-e-auth/design.md` (decisões D1/D2).
+- **CORS do bucket de arquivos precisa da origem do SPA em produção.** O upload
+  (`put-object.ts`) e a visualização/download fazem `PUT`/`GET` cross-origin
+  direto na URL assinada do bucket, com `Content-Type` — o que dispara um
+  preflight `OPTIONS`. O bucket só responde `Access-Control-Allow-Origin` se a
+  origem do SPA constar em `cors_allowed_origins` (`variables.tf` → `storage.tf`).
+  Como em produção a SPA é servida pela própria API no Cloud Run (mesma origem),
+  essa origem é a **URL do serviço Cloud Run da API**, definida em
+  `terraform.tfvars`. Enquanto não houver domínio custom (`frontend_domain`), o
+  Cloud Run expõe **duas** formas de URL (`-hash-<região>.a.run.app` e
+  `-<nº-projeto>.<região>.run.app`) e o `Origin` enviado é aquele por onde o SPA
+  foi aberto — **ambas** precisam estar na lista, senão o upload falha ("Falha
+  no envio." + erro de CORS no console) quando aberto pela forma ausente. O
+  default em `variables.tf` traz só `http://localhost:5173` (dev) de propósito,
+  para não versionar URL de ambiente. **Hotfix de produção sem esperar o apply:**
+  aplique o CORS direto no bucket com
+  `gcloud storage buckets update gs://<files_bucket_name> --cors-file=cors.json`
+  (o `terraform apply` seguinte reconcilia e volta a ser a fonte da verdade — sem
+  ele, o próximo apply reverteria o CORS para o default de dev).
 - **Gap de segurança conhecido, não fechado aqui:** o endpoint
   `POST /internal/storage-events` (reconciliação de cota) recebe o push do
   Pub/Sub autenticado por OIDC, e o Cloud Run exige `roles/run.invoker` para

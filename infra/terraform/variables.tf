@@ -75,7 +75,16 @@ variable "api_max_instances" {
 }
 
 variable "cors_allowed_origins" {
-  description = "Origens (browser) autorizadas a fazer upload/download direto no bucket de arquivos via CORS. Inclui o dev server do Vite por padrão; adicionar o domínio real do SPA em prod."
+  description = <<-EOT
+    Origens (browser) autorizadas a fazer upload/download direto no bucket de
+    arquivos via CORS. O default traz só o dev server do Vite — em produção,
+    defina em terraform.tfvars a(s) URL(s) do serviço Cloud Run da API (mesma
+    origem que serve o SPA). Enquanto não houver domínio custom, o Cloud Run
+    expõe duas formas de URL (-hash-<região>.a.run.app e
+    -<nº-projeto>.<região>.run.app) e AMBAS precisam constar aqui, senão o
+    preflight OPTIONS do upload direto falha na forma ausente. Ver
+    openspec/specs/platform-infrastructure (requisito de CORS do bucket).
+  EOT
   type        = list(string)
   default     = ["http://localhost:5173"]
 }
