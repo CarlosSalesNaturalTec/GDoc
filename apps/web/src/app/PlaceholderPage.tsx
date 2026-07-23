@@ -1,12 +1,11 @@
 import { Result } from 'antd';
 
-/** Tela reservada para as fatias catalogadas em docs/frontend_roadmap.md — ainda sem funcionalidade própria. */
+/** Tela de Início do shell autenticado, exibida após o login. */
 export function PlaceholderPage({ title }: { title: string }) {
   return (
     <Result
-      status="info"
+      icon={<img src="/favicon.svg" alt="" width={72} />}
       title={title}
-      subTitle="Esta tela chega em uma próxima fatia da implementação (ver docs/frontend_roadmap.md)."
     />
   );
 }

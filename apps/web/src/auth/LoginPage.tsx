@@ -1,18 +1,10 @@
 import { useState } from 'react';
 import { App, Button, Card, Form, Input, theme, Typography } from 'antd';
 import { FolderOutlined, LockOutlined, MailOutlined } from '@ant-design/icons';
-import { Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import type { LoginRequest } from '@gdoc/shared';
 import { useSession } from './session-context';
 import { ApiError } from '../lib/api-client';
-
-interface LocationState {
-  from?: { pathname: string };
-}
-
-function redirectTarget(state: unknown): string {
-  return (state as LocationState | null)?.from?.pathname ?? '/';
-}
 
 export function LoginPage() {
   const { status, login } = useSession();
@@ -20,17 +12,16 @@ export function LoginPage() {
   const { token } = theme.useToken();
   const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
-  const location = useLocation();
 
   if (status === 'authenticated') {
-    return <Navigate to={redirectTarget(location.state)} replace />;
+    return <Navigate to="/" replace />;
   }
 
   async function handleSubmit(values: LoginRequest) {
     setSubmitting(true);
     try {
       await login(values);
-      navigate(redirectTarget(location.state), { replace: true });
+      navigate('/', { replace: true });
     } catch (err) {
       if (err instanceof ApiError && err.status === 403) {
         // US 1.2 cenário 3: aviso específico, nunca confundido com a mensagem genérica.
