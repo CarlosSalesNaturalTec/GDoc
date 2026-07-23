@@ -44,9 +44,9 @@ Referência: PRD US 9.2 (cenário 1), RF #16; design.md D1/D2/D3.
 
 ### Requirement: Formato sem pré-visualização informa indisponibilidade e oferece download conforme permissão
 
-Quando `POST /files/:id/view-url` responder `previewAvailable: false`
-(`reason: 'unsupported_format'`), a SPA SHALL informar que a **pré-visualização
-não está disponível** e SHALL oferecer o **download apenas quando**
+A SPA SHALL informar que a **pré-visualização não está disponível** quando
+`POST /files/:id/view-url` responder `previewAvailable: false`
+(`reason: 'unsupported_format'`) e SHALL oferecer o **download apenas quando**
 `download.available` for `true`. Quando `download.available` for `false`, a SPA
 SHALL exibir somente a mensagem de indisponibilidade, sem botão de download.
 Nenhum conteúdo do arquivo SHALL ser renderizado nesse caso. Documentos de
@@ -85,10 +85,10 @@ Referência: PRD US 9.2, RF #16; design.md D4.
 
 ### Requirement: Acesso a arquivo sem permissão é bloqueado sem expor preview
 
-Quando o servidor responder **403** a `POST /files/:id/view-url` ou
-`POST /files/:id/download-url` (arquivo inexistente, de outra unidade ou sem a
-concessão do verbo correspondente), a SPA SHALL exibir um aviso de **permissão
-insuficiente** e NÃO SHALL renderizar qualquer conteúdo do arquivo. Uma resposta
+A SPA SHALL exibir um aviso de **permissão insuficiente** e NÃO SHALL renderizar
+qualquer conteúdo do arquivo quando o servidor responder **403** a
+`POST /files/:id/view-url` ou `POST /files/:id/download-url` (arquivo inexistente,
+de outra unidade ou sem a concessão do verbo correspondente). Uma resposta
 **401** SHALL continuar sendo tratada centralmente, encerrando a sessão e
 redirecionando a `/login`.
 

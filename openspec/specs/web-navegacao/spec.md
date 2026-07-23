@@ -79,12 +79,12 @@ Referência: PRD US 2.2 (cenários 1 e 2); design.md D4/D5/D7.
 
 ### Requirement: Acesso direto a pasta sem permissão é bloqueado
 
-Ao abrir diretamente a rota `/pastas/:folderId` de uma pasta para a qual o
-usuário não tem permissão (pasta inexistente, de outra unidade ou sem concessão
-`view`), o backend SHALL responder **403** e a SPA SHALL exibir um bloqueio de
-acesso (por exemplo, `Result status="403"`), **sem** renderizar qualquer
-conteúdo da pasta. Uma resposta **401** SHALL continuar sendo tratada
-centralmente, encerrando a sessão e redirecionando a `/login`.
+Ao abrir diretamente a rota `/pastas/:folderId`, a SPA SHALL exibir um bloqueio
+de acesso (por exemplo, `Result status="403"`) **sem** renderizar qualquer
+conteúdo da pasta sempre que o usuário não tiver permissão — pasta inexistente,
+de outra unidade ou sem concessão `view` —, caso em que o backend SHALL responder
+**403**. Uma resposta **401** SHALL continuar sendo tratada centralmente,
+encerrando a sessão e redirecionando a `/login`.
 
 Referência: PRD US 4.2 (cenário 1); design.md D6.
 
