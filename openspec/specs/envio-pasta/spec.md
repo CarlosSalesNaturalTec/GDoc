@@ -15,15 +15,15 @@ backend.
 
 ### Requirement: Recriação idempotente da hierarquia de pastas no envio
 
-Ao enviar em lote, cada item PODE informar um caminho relativo (`relativePath`) que
-descreve a subpasta em que o arquivo deve residir dentro da pasta de destino (ou da
-raiz da unidade, quando não houver pasta de destino). O sistema SHALL **garantir** a
-existência de toda a cadeia de pastas desse caminho, criando os níveis que faltarem e
-reaproveitando os que já existirem, e SHALL vincular o arquivo à pasta-folha
-resultante. A criação de caminho SHALL ser **idempotente**: reenviar o mesmo lote NÃO
-SHALL duplicar pastas. Todas as pastas criadas SHALL pertencer à unidade do remetente
-e residir sob a pasta de destino informada, com o isolamento entre unidades imposto
-por RLS. Referência: PRD US 3.2.
+O sistema SHALL **garantir** a existência de toda a cadeia de pastas descrita
+pelo caminho relativo (`relativePath`) que cada item do lote PODE informar — o
+caminho indica a subpasta em que o arquivo deve residir dentro da pasta de
+destino (ou da raiz da unidade, quando não houver pasta de destino) —, criando
+os níveis que faltarem e reaproveitando os que já existirem, e SHALL vincular o
+arquivo à pasta-folha resultante. A criação de caminho SHALL ser **idempotente**:
+reenviar o mesmo lote NÃO SHALL duplicar pastas. Todas as pastas criadas SHALL
+pertencer à unidade do remetente e residir sob a pasta de destino informada, com
+o isolamento entre unidades imposto por RLS. Referência: PRD US 3.2.
 
 #### Scenario: Estrutura de subpastas preservada
 - **WHEN** uma pessoa envia arquivos cujos caminhos relativos descrevem uma pasta com
@@ -43,11 +43,12 @@ por RLS. Referência: PRD US 3.2.
 
 ### Requirement: Envio de pasta ancorado no destino e isolado por unidade
 
-Quando o lote informar uma pasta de destino, a árvore recriada a partir dos caminhos
-relativos SHALL ser ancorada **sob essa pasta de destino**, e a pasta de destino SHALL
-pertencer à mesma unidade do remetente. Um caminho relativo que aponte para fora da
-unidade ou uma pasta de destino de outra unidade NÃO SHALL ser utilizável, sem revelar
-a existência de conteúdo de outra unidade. Referência: PRD US 3.2.
+A árvore recriada a partir dos caminhos relativos SHALL, quando o lote informar
+uma pasta de destino, ser ancorada **sob essa pasta de destino**, e a pasta de
+destino SHALL pertencer à mesma unidade do remetente. Um caminho relativo que
+aponte para fora da unidade ou uma pasta de destino de outra unidade NÃO SHALL
+ser utilizável, sem revelar a existência de conteúdo de outra unidade.
+Referência: PRD US 3.2.
 
 #### Scenario: Árvore ancorada na pasta de destino
 - **WHEN** uma pessoa envia uma pasta informando uma pasta de destino da sua unidade

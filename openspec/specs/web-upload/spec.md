@@ -81,11 +81,11 @@ Referência: PRD US 3.2 (cenário 1), RF #6; design.md D5.
 
 ### Requirement: Aviso reativo ao atingir a cota
 
-Quando o servidor recusar um item com erro de **cota excedida**
-(`ok: false` com `error` de cota), a SPA SHALL exibir um **aviso** informando
-que a cota de armazenamento foi atingida e SHALL marcar **apenas aquele item**
-como falho, deixando os demais itens do lote seguir. A SPA NÃO SHALL inferir a
-cota localmente; o limite é decidido e reservado pelo servidor.
+A SPA SHALL exibir um **aviso** informando que a cota de armazenamento foi
+atingida sempre que o servidor recusar um item com erro de **cota excedida**
+(`ok: false` com `error` de cota) e SHALL marcar **apenas aquele item** como
+falho, deixando os demais itens do lote seguir. A SPA NÃO SHALL inferir a cota
+localmente; o limite é decidido e reservado pelo servidor.
 
 Referência: PRD US 3.1, RF #13; design.md D4.
 
@@ -114,11 +114,12 @@ Referência: PRD US 3.1, RF #6; design.md D6.
 
 ### Requirement: Falha ao obter as URLs de envio é tratada sem bloquear a navegação
 
-Quando `POST /files/upload-urls` responder erro de destino
-(**404** destino inexistente ou **403** sem permissão sobre a pasta de destino),
-a SPA SHALL exibir um aviso de **permissão insuficiente** ou destino indisponível
-e NÃO SHALL iniciar transferência alguma. Uma resposta **401** SHALL continuar
-sendo tratada centralmente, encerrando a sessão e redirecionando a `/login`.
+A SPA SHALL exibir um aviso de **permissão insuficiente** ou destino
+indisponível e NÃO SHALL iniciar transferência alguma quando
+`POST /files/upload-urls` responder erro de destino (**404** destino inexistente
+ou **403** sem permissão sobre a pasta de destino). Uma resposta **401** SHALL
+continuar sendo tratada centralmente, encerrando a sessão e redirecionando a
+`/login`.
 
 Referência: PRD US 3.1, RF #10; design.md D4/D7.
 

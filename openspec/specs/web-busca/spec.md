@@ -63,15 +63,15 @@ Referência: PRD US 9.1 (cenário 2), RF #15; design.md D3.
 
 ### Requirement: Filtro de autor restrito a administrador
 
-O filtro de **autor** depende da lista de pessoas de `GET /users`, que é
-**exclusiva de administrador** (retorna 403 para colaborador). Por isso a SPA
-SHALL renderizar o filtro de autor **somente** para usuários com papel
-`unit_admin` ou `global_admin`, populando-o com as pessoas retornadas por
-`GET /users` e enviando o identificador da pessoa selecionada como `author` na
-busca. Para o colaborador, a SPA SHALL **omitir** o filtro de autor, oferecendo
-nome, tipo e data — sem quebra nem chamada a `GET /users`. O filtro de autor
-para colaborador fica como lacuna conhecida (depende de um endpoint de pessoas
-seguro-para-colaborador que ainda não existe).
+A SPA SHALL renderizar o filtro de **autor** **somente** para usuários com papel
+`unit_admin` ou `global_admin` — porque esse filtro depende da lista de pessoas
+de `GET /users`, **exclusiva de administrador** (retorna 403 para colaborador) —,
+populando-o com as pessoas retornadas por `GET /users` e enviando o identificador
+da pessoa selecionada como `author` na busca. Para o colaborador, a SPA SHALL
+**omitir** o filtro de autor, oferecendo nome, tipo e data — sem quebra nem
+chamada a `GET /users`. O filtro de autor para colaborador fica como lacuna
+conhecida (depende de um endpoint de pessoas seguro-para-colaborador que ainda
+não existe).
 
 Referência: PRD US 9.1, RF #15; design.md D2.
 
