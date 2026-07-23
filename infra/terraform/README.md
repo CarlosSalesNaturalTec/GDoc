@@ -1,8 +1,9 @@
 # infra/terraform — fundação de produção (GCP)
 
 IaC da mudança `bootstrap-infrastructure` (ver
-`openspec/changes/bootstrap-infrastructure/design.md` para o porquê de cada
-decisão). Provisiona os trilhos de produção — nenhuma feature do PRD.
+`openspec/changes/archive/2026-07-16-bootstrap-infrastructure/design.md` para
+o porquê de cada decisão). Provisiona os trilhos de produção — nenhuma feature
+do PRD.
 
 Recursos provisionados: Cloud Run (API), Cloud SQL (Postgres), Cloud Storage
 (bucket privado de arquivos + bucket público do SPA com CDN), Secret
@@ -14,7 +15,7 @@ desenvolvimento com `gcloud`/Terraform configurados) — 53 recursos criados,
 0 destruídos. Escrito e revisado originalmente num ambiente sandbox sem
 projeto GCP nem credenciais, onde só `terraform validate`/`fmt` rodavam;
 `plan`/`apply` aconteceram depois, num ambiente com acesso real ao projeto
-(ver `openspec/changes/bootstrap-infrastructure/tasks.md`, seção 8, para os
+(ver `openspec/changes/archive/2026-07-16-bootstrap-infrastructure/tasks.md`, seção 8, para os
 três ajustes que só a API real revelou). A API ainda sobe com a imagem
 placeholder pública até o CI/CD publicar a imagem real — ver "Uso" abaixo.
 
@@ -88,7 +89,7 @@ container `${local.name_prefix}-bootstrap-admin-password`) e de o CI/CD ter
 publicado a imagem real da API, inicialize o primeiro `global_admin` — **não**
 existe outro caminho seguro para criar essa conta em produção; o seed de
 desenvolvimento (`npm run seed`) se recusa a rodar quando `NODE_ENV=production`
-(ver `openspec/changes/bootstrap-admin-producao/design.md`).
+(ver `openspec/changes/archive/2026-07-22-bootstrap-admin-producao/design.md`).
 
 ```bash
 PROJECT_ID="gdoc-prod-123456"   # ajustar
@@ -145,7 +146,7 @@ recriadas, mas não remove o que já foi criado antes dela existir.
   SPA. Essa lista de prefixos espelha `apps/web/vite.config.ts`
   (`API_PROXY_PREFIXES`, usado pelo proxy do servidor de dev) — mantenha as
   duas em sincronia ao adicionar uma rota nova. Design completo em
-  `openspec/changes/web-shell-e-auth/design.md` (decisões D1/D2).
+  `openspec/changes/archive/2026-07-20-web-shell-e-auth/design.md` (decisões D1/D2).
 - **CORS do bucket de arquivos precisa da origem do SPA em produção.** O upload
   (`put-object.ts`) e a visualização/download fazem `PUT`/`GET` cross-origin
   direto na URL assinada do bucket, com `Content-Type` — o que dispara um

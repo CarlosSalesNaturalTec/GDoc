@@ -5,8 +5,9 @@ granulares, isolamento por unidade, auditoria e lixeira com retenção. Ver
 `docs/prd_final.md` para o produto completo.
 
 Este README cobre a **fundação de infraestrutura** (mudança
-`bootstrap-infrastructure` em `openspec/changes/`) — monorepo, seams de
-aplicação, ambiente de desenvolvimento e a prova de que os trilhos funcionam.
+`bootstrap-infrastructure`, arquivada em `openspec/changes/archive/`) —
+monorepo, seams de aplicação, ambiente de desenvolvimento e a prova de que os
+trilhos funcionam.
 As features do PRD são entregues por épico/fatia como changes OpenSpec já
 arquivados em `openspec/changes/archive/` (backend dos épicos 1–9 e as fatias
 da SPA web); ver `openspec/specs/` para o comportamento consolidado.

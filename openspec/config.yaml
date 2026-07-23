@@ -40,8 +40,14 @@ context: |
     - Artifact Registry — imagens de container.
     - IAM — privilégio mínimo em todos os recursos.
     - Pub/Sub — notificação de finalização de upload (GCS finalize) para
-      reconciliação de cota.
-    - Bucket + CDN — hospedagem do frontend SPA.
+      reconciliação de cota; push autenticado por OIDC no endpoint
+      /internal/storage-events.
+    - Frontend SPA: na fase atual (sem domínio) é servido pelo próprio
+      Cloud Run da API a partir do `dist/`, na mesma origem em `*.run.app`
+      (necessário para o cookie de sessão HttpOnly/SameSite=Strict sem
+      CORS). O bucket+CDN de frontend fica provisionado e vazio; só assume
+      o serving na fase com domínio, com o load balancer roteando os
+      prefixos de API para a Cloud Run.
 
   Ambiente de desenvolvimento (sandbox, efêmero): PostgreSQL local +
   fake-gcs-server (mesmo protocolo do GCS), provisionados pelo SessionStart
@@ -55,10 +61,11 @@ context: |
   ser sempre bloqueado (403, sem preview) — é a rota da app que é
   protegida, nunca o objeto no bucket.
 
-  Convenções: commits em português ou inglês curto e descritivo; specs e
-  propostas OpenSpec em português, seguindo o estilo já usado em
-  openspec/changes/bootstrap-infrastructure (proposal.md, design.md,
-  specs/*/spec.md, tasks.md).
+  Convenções: toda saída do modelo (respostas, commits, PRs, specs) em
+  pt_BR; merge de PR usa merge commit (nunca squash). Specs e propostas
+  OpenSpec em português, seguindo o estilo já consolidado nas specs em
+  openspec/specs/ e nos changes arquivados em openspec/changes/archive/
+  (proposal.md, design.md, specs/*/spec.md, tasks.md).
 
 # Per-artifact rules
 rules:
