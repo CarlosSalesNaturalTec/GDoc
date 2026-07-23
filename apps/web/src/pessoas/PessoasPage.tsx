@@ -4,8 +4,10 @@ import type { ColumnsType } from 'antd/es/table';
 import { PlusOutlined } from '@ant-design/icons';
 import type { PersonResponse } from '@gdoc/shared';
 import { PersonStatus } from '@gdoc/shared';
+import { UserRole } from '@gdoc/shared';
 import { ApiError } from '../lib/api-client';
 import { useSession } from '../auth/session-context';
+import { useUnits } from '../unidades/queries';
 import { ROLE_LABEL, PessoaFormModal } from './PessoaFormModal';
 import { useUpdatePerson, useUsers } from './queries';
 
@@ -24,6 +26,14 @@ export function PessoasPage() {
   const { identity } = useSession();
   const { data, isLoading, isError } = useUsers();
   const updatePerson = useUpdatePerson();
+
+  // gestao-de-unidades (web-pessoas): a coluna de unidade (nome, não UUID) é
+  // resolvida via `GET /units`, que é exclusivo do global_admin (403 para
+  // unit_admin). Por isso a coluna e a consulta só existem para o global_admin
+  // — que é justamente quem lista pessoas de mais de uma unidade.
+  const isGlobalAdmin = identity?.role === UserRole.GLOBAL_ADMIN;
+  const { data: units } = useUnits({ enabled: isGlobalAdmin });
+  const unitNameById = new Map((units ?? []).map((unit) => [unit.id, unit.name]));
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editingPerson, setEditingPerson] = useState<PersonResponse | null>(null);
@@ -57,6 +67,15 @@ export function PessoasPage() {
     { title: 'Nome', key: 'name', render: (_, person) => person.fullName ?? person.email },
     { title: 'E-mail', key: 'email', dataIndex: 'email' },
     { title: 'Função', key: 'jobTitle', render: (_, person) => person.jobTitle ?? '—' },
+    ...(isGlobalAdmin
+      ? [
+          {
+            title: 'Unidade',
+            key: 'unit',
+            render: (_: unknown, person: PersonResponse) => unitNameById.get(person.unitId) ?? '—',
+          },
+        ]
+      : []),
     {
       title: 'Papel',
       key: 'role',

@@ -4,6 +4,7 @@ import type { PersonResponse } from '@gdoc/shared';
 import { UserRole } from '@gdoc/shared';
 import { ApiError } from '../lib/api-client';
 import { useSession } from '../auth/session-context';
+import { useUnits } from '../unidades/queries';
 import { useCreatePerson, useUpdatePerson } from './queries';
 
 interface PessoaFormModalProps {
@@ -17,6 +18,7 @@ interface PessoaFormValues {
   fullName: string;
   email: string;
   password?: string;
+  unitId?: string;
   phone?: string;
   jobTitle?: string;
   workArea?: string;
@@ -52,6 +54,13 @@ export function PessoaFormModal({ target, open, onClose }: PessoaFormModalProps)
   // design.md D5: na própria linha, o seletor não oferece papel abaixo do
   // atual — evita que o administrador rebaixe a si mesmo.
   const isSelf = isEdit && target.id === identity?.id;
+
+  // gestao-de-unidades D7: só o global_admin escolhe a unidade, e apenas no
+  // cadastro (mover pessoa entre unidades está fora de escopo). O unit_admin
+  // não vê seletor — o servidor força `ctx.unitId`. Só busca as unidades
+  // quando o seletor será exibido, para não disparar um 403 no unit_admin.
+  const showUnitSelector = !isEdit && identity?.role === UserRole.GLOBAL_ADMIN;
+  const { data: units } = useUnits({ onlyActive: true, enabled: showUnitSelector });
 
   useEffect(() => {
     if (!open) return;
@@ -96,6 +105,9 @@ export function PessoaFormModal({ target, open, onClose }: PessoaFormModalProps)
           fullName: values.fullName,
           email: values.email,
           password: values.password!,
+          // gestao-de-unidades D7: só o global_admin envia unitId; para o
+          // unit_admin o servidor força a própria unidade de qualquer forma.
+          unitId: showUnitSelector ? values.unitId : undefined,
           phone: values.phone || undefined,
           jobTitle: values.jobTitle || undefined,
           workArea: values.workArea || undefined,
@@ -105,6 +117,12 @@ export function PessoaFormModal({ target, open, onClose }: PessoaFormModalProps)
       }
       onClose();
     } catch (err) {
+      // gestao-de-unidades D7: 409 "unit is disabled" (unidade desativada
+      // escolhida) sinaliza no seletor de unidade, não no e-mail.
+      if (err instanceof ApiError && err.status === 409 && err.message === 'unit is disabled') {
+        form.setFields([{ name: 'unitId', errors: ['Unidade desativada; escolha outra'] }]);
+        return;
+      }
       // design.md D6: 409 (e-mail já em uso) sinaliza no campo, mantendo o
       // modal aberto com o restante preenchido — não é uma falha genérica.
       if (err instanceof ApiError && err.status === 409) {
@@ -148,6 +166,18 @@ export function PessoaFormModal({ target, open, onClose }: PessoaFormModalProps)
             rules={[{ required: true, message: 'Informe uma senha' }]}
           >
             <Input.Password autoComplete="new-password" />
+          </Form.Item>
+        )}
+        {showUnitSelector && (
+          <Form.Item
+            name="unitId"
+            label="Unidade"
+            rules={[{ required: true, message: 'Selecione uma unidade' }]}
+          >
+            <Select
+              placeholder="Selecione a unidade"
+              options={(units ?? []).map((unit) => ({ value: unit.id, label: unit.name }))}
+            />
           </Form.Item>
         )}
         <Form.Item name="phone" label="Telefone">

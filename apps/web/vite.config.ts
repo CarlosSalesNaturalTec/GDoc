@@ -18,6 +18,7 @@ export const API_PROXY_PREFIXES = [
   '/files',
   '/folders',
   '/users',
+  '/units',
   '/grants',
   '/trash',
   '/audit',
@@ -39,5 +40,9 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: ['./src/__tests__/setup.ts'],
+    // Testes de interação (AntD + jsdom + userEvent) são pesados; o default de
+    // 5s é apertado em máquinas carregadas (espelha o testTimeout já elevado do
+    // vitest da API).
+    testTimeout: 15000,
   },
 });

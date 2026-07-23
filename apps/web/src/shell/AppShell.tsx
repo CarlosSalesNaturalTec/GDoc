@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Avatar, Button, Layout, Menu, Space, Typography } from 'antd';
 import {
+  ApartmentOutlined,
   DashboardOutlined,
   DeleteOutlined,
   FolderOutlined,
@@ -30,6 +31,7 @@ export function AppShell() {
 
   const isAdmin =
     identity?.role === UserRole.UNIT_ADMIN || identity?.role === UserRole.GLOBAL_ADMIN;
+  const isGlobalAdmin = identity?.role === UserRole.GLOBAL_ADMIN;
 
   // Prefixo (design.md D1, `web-navegacao`): qualquer rota sob `/pastas`
   // mantém "Arquivos" selecionado no menu, não só a raiz do explorador.
@@ -55,8 +57,17 @@ export function AppShell() {
             },
           ]
         : []),
+      ...(isGlobalAdmin
+        ? [
+            {
+              key: '/admin/unidades',
+              icon: <ApartmentOutlined />,
+              label: <Link to="/admin/unidades">Unidades</Link>,
+            },
+          ]
+        : []),
     ],
-    [isAdmin],
+    [isAdmin, isGlobalAdmin],
   );
 
   async function handleLogout() {

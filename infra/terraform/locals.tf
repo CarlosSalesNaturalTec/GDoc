@@ -39,6 +39,7 @@ locals {
     "/files",
     "/folders",
     "/users",
+    "/units",
     "/grants",
     "/trash",
     "/audit",

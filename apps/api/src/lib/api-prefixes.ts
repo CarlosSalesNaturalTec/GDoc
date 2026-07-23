@@ -13,6 +13,7 @@ export const API_PREFIXES = [
   '/files',
   '/folders',
   '/users',
+  '/units',
   '/grants',
   '/trash',
   '/audit',

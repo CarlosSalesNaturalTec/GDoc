@@ -15,9 +15,10 @@ import type {
   SearchFilesResponse,
   SignedUrlResponse,
   TrashListResponse,
+  UnitResponse,
   ViewUrlResponse,
 } from '@gdoc/shared';
-import { FileAccessAction, FileCategory, GrantResourceType, Permission, PersonStatus, UserRole } from '@gdoc/shared';
+import { FileAccessAction, FileCategory, GrantResourceType, Permission, PersonStatus, UnitStatus, UserRole } from '@gdoc/shared';
 
 /**
  * Valida a fronteira com a API, espelhando `@gdoc/shared` (fonte única de
@@ -185,6 +186,17 @@ export const personResponseSchema: z.ZodType<PersonResponse> = z.object({
 
 /** Espelha a listagem de `GET /users` (design.md D7, `web-pessoas`). */
 export const personListSchema = z.array(personResponseSchema);
+
+/** Espelha `UnitResponse` (change `gestao-de-unidades`, `web-unidades`) — fronteira de `GET/POST/PATCH /units`. */
+export const unitResponseSchema: z.ZodType<UnitResponse> = z.object({
+  id: z.string(),
+  name: z.string(),
+  status: z.enum([UnitStatus.ACTIVE, UnitStatus.DISABLED]),
+  createdAt: z.string(),
+});
+
+/** Espelha a listagem de `GET /units`. */
+export const unitListSchema = z.array(unitResponseSchema);
 
 /** Espelha `DashboardResponse` (design.md D4, `web-painel`): agregados de `GET /dashboard`. */
 export const dashboardResponseSchema: z.ZodType<DashboardResponse> = z.object({
