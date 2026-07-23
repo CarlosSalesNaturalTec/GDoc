@@ -9,7 +9,7 @@ import { foldersRouter } from './routes/folders.js';
 import { usersRouter } from './routes/users.js';
 import { grantsRouter } from './routes/grants.js';
 import { authRouter } from './routes/auth.js';
-import { storageEventsRouter } from './routes/storage-events.js';
+import { storageEventsRouter, type StorageEventsOptions } from './routes/storage-events.js';
 import { trashRouter } from './routes/trash.js';
 import { auditRouter } from './routes/audit.js';
 import { dashboardRouter } from './routes/dashboard.js';
@@ -20,6 +20,8 @@ import { isApiPath } from './lib/api-prefixes.js';
 
 export interface CreateAppOptions {
   webDistDir?: string;
+  /** Injeção do verificador/flag OIDC do endpoint de finalização (testes). */
+  storageEvents?: StorageEventsOptions;
 }
 
 export function createApp(ports: Ports, options: CreateAppOptions = {}): Express {
@@ -28,7 +30,7 @@ export function createApp(ports: Ports, options: CreateAppOptions = {}): Express
   app.use(cookieParser());
 
   app.use(healthRouter(ports));
-  app.use(storageEventsRouter(ports));
+  app.use(storageEventsRouter(ports, options.storageEvents));
   app.use(authRouter(ports));
 
   // Serving da SPA em produção (mesma origem que a API) — design.md D1-D4 do

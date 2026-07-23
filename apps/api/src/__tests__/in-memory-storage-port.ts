@@ -5,6 +5,7 @@ export class InMemoryStoragePort implements StoragePort {
   readonly bucketName = 'test-bucket';
   calls: { method: string; objectPath: string }[] = [];
   private readonly deletedObjects = new Set<string>();
+  private readonly objectSizes = new Map<string, number>();
 
   buildObjectPath(unitId: string, ownerId: string, objectId: string): string {
     return `${unitId}/${ownerId}/${objectId}`;
@@ -37,5 +38,16 @@ export class InMemoryStoragePort implements StoragePort {
 
   wasDeleted(objectPath: string): boolean {
     return this.deletedObjects.has(objectPath);
+  }
+
+  /** Simula um objeto finalizado no bucket (existência + tamanho) para o backfill. */
+  setObject(objectPath: string, sizeBytes: number): void {
+    this.objectSizes.set(objectPath, sizeBytes);
+  }
+
+  async statObject(objectPath: string): Promise<{ sizeBytes: number } | null> {
+    this.calls.push({ method: 'stat', objectPath });
+    const size = this.objectSizes.get(objectPath);
+    return size === undefined ? null : { sizeBytes: size };
   }
 }

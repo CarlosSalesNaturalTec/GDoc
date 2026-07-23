@@ -23,6 +23,12 @@ cors_allowed_origins = [
   # "https://gdoc-prod-api-434553790439.southamerica-east1.run.app",
 ]
 
+# Audience do token OIDC do push do Pub/Sub → POST /internal/storage-events.
+# Defina como "<api_url>/internal/storage-events" (api_url = output do serviço
+# Cloud Run, a forma -hash-<região>.a.run.app). Definir este valor LIGA a
+# validação OIDC na API; vazio mantém desligado (dev). Ver variables.tf.
+# pubsub_push_audience = "https://gdoc-prod-api-hmwigy67mq-rj.a.run.app/internal/storage-events"
+
 # E-mail do administrador global criado pelo Job de bootstrap (obrigatório —
 # ver infra/terraform/README.md, seção "Bootstrap do administrador global").
 # A senha NÃO vai aqui: é criada como versão do secret bootstrap-admin-password
