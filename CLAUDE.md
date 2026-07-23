@@ -32,7 +32,9 @@ npm run dev:web         # SPA Vite (proxy p/ a API na mesma origem)
 # banco / storage (dev)
 npm run migrate --workspace apps/api    # aplica migrations SQL numeradas
 npm run seed --workspace apps/api       # popula dados de dev (idempotente)
-npm run purge:trash --workspace apps/api  # roda o job de expurgo da lixeira
+npm run bootstrap --workspace apps/api  # provisiona o primeiro global_admin/unidade
+npm run purge:trash --workspace apps/api      # roda o job de expurgo da lixeira
+npm run backfill:pending --workspace apps/api # reconcilia uploads pendentes (finalize do Pub/Sub)
 
 # se editar packages/shared/src, recompile para os consumidores enxergarem:
 npm run build --workspace packages/shared
