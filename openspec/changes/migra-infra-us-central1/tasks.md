@@ -83,22 +83,28 @@
       README, seção "Bootstrap do administrador global".
       (Versão 2 = senha real (v1 placeholder desabilitada); execução
       `gdoc-prod-bootstrap-hfpcd` concluída com sucesso.)
-- [ ] 6.2 Logar com o `global_admin` na URL nova; criar unidade/pessoa de
+- [x] 6.2 Logar com o `global_admin` na URL nova; criar unidade/pessoa de
       teste pela tela Pessoas.
-      Login **verificado** (`POST /auth/login` → 200, `role: global_admin`,
-      cookie de sessão emitido). Criar unidade/pessoa pela tela segue
-      **pendente com o usuário (navegador)**.
+      Login verificado (`POST /auth/login` → 200, `role: global_admin`, cookie
+      emitido); unidades/pessoas criadas pela tela (dashboard: 5 pessoas).
       Incidente resolvido: o `echo -n` do README é bash; no PowerShell gravou a
       senha com `\r\r\n` no secret → todo login dava 401. Secret regravado
-      byte-exato, admin removido e Job de bootstrap reexecutado. Armadilha
+      byte-exato, admin removido (Job one-off, pois o `bootstrapAdmin()` é
+      no-op com admin existente) e Job de bootstrap reexecutado. Armadilha
       documentada no `infra/terraform/README.md`.
-- [ ] 6.3 Upload real pelas **duas** formas de URL do serviço (valida o CORS
+- [x] 6.3 Upload real pelas **duas** formas de URL do serviço (valida o CORS
       nas duas origens — spec: "Upload direto funcional pelas duas formas de
-      URL").  **(navegador — pendente com o usuário)**
-- [ ] 6.4 Confirmar reconciliação de cota: arquivo sai de `pending` e a cota
+      URL").
+      4 objetos no bucket, sob 2 prefixos de unidade distintos; sem erro de
+      preflight.
+- [x] 6.4 Confirmar reconciliação de cota: arquivo sai de `pending` e a cota
       reflete o tamanho (push OIDC aceito, sem 401 nos logs do serviço);
-      resíduos via `npm run backfill:pending` se necessário.  **(depende do
-      6.3 — validar após o upload)**
+      resíduos via `npm run backfill:pending` se necessário.
+      Logs de `/internal/storage-events`: **nenhum 401** (audience OIDC ok).
+      Dashboard (que filtra `status = 'active'`): `totalFiles: 4`,
+      `usedBytes: 537745` — os 4 saíram de `pending`, cota correta, nada preso.
+      Dois 404 no endpoint = finalize sem registro correspondente (arquivo já
+      reconciliado/removido no teste), sem resíduo pendente.
 - [x] 6.5 Verificar invariantes de segurança no ambiente novo: acesso direto a
       objeto do bucket sem URL assinada → negado sem bytes/preview;
       view-url/download-url emitidas só com permissão e auditadas.
