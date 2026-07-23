@@ -8,9 +8,7 @@ privado, emissão de URLs assinadas com auditoria, isolamento por unidade,
 paridade dev↔prod, segredos, jobs agendados e o pipeline de entrega. Não cobre
 nenhuma feature de produto (login, navegador, permissões de negócio, painel),
 que virão como mudanças próprias.
-
 ## Requirements
-
 ### Requirement: Armazenamento privado por padrão
 
 O sistema SHALL armazenar os bytes dos arquivos em um bucket de object storage
@@ -57,7 +55,13 @@ e registrem um evento de auditoria no momento da emissão.
 
 O sistema SHALL impor a cota de armazenamento por pessoa mesmo quando o upload
 é feito direto ao storage, combinando pré-checagem na emissão e reconciliação
-após a finalização do objeto.
+após a finalização do objeto. A reconciliação SHALL aceitar o transporte de
+notificação usado em produção — a entrega push do Pub/Sub, cujo corpo é o
+envelope `{ message: { data } }` com o metadata do objeto do GCS codificado em
+base64 — e SHALL autenticar essa notificação antes de tocar em qualquer dado. Ao
+reconciliar um objeto recém-finalizado, o sistema SHALL tornar o arquivo
+correspondente consultável (status ativo), de modo que um upload concluído deixe
+de ficar pendente indefinidamente.
 
 #### Scenario: Pré-checagem bloqueia estouro declarado
 
@@ -65,11 +69,30 @@ após a finalização do objeto.
   atual excede a cota
 - **THEN** o backend recusa a emissão da URL e informa que a cota seria excedida.
 
-#### Scenario: Reconciliação após finalização
+#### Scenario: Reconciliação após finalização em produção
 
-- **WHEN** um objeto termina de ser enviado ao storage
-- **THEN** o backend recebe a notificação de finalização, atualiza o uso real da
-  pessoa e sinaliza/remove o objeto caso o limite tenha sido ultrapassado.
+- **WHEN** o objeto termina de ser enviado ao storage e a notificação de
+  finalização chega no formato de produção (envelope de push do Pub/Sub com o
+  metadata do objeto do GCS)
+- **THEN** o backend decodifica a notificação, identifica o arquivo pelo caminho
+  do objeto, atualiza o uso real da pessoa, torna o arquivo ativo/consultável e
+  sinaliza/remove o objeto caso o limite tenha sido ultrapassado.
+
+#### Scenario: Notificação de finalização não autenticada é recusada
+
+- **WHEN** uma requisição chega ao endpoint de finalização sem uma credencial de
+  notificação válida (token OIDC ausente, com assinatura inválida ou com audience
+  incorreta)
+- **THEN** o backend recusa a requisição sem alterar cota nem status de nenhum
+  arquivo.
+
+#### Scenario: Notificação de objeto desconhecido é reconhecida sem reprocessar
+
+- **WHEN** a notificação de finalização se refere a um objeto que não corresponde
+  a nenhum arquivo pendente (por exemplo, evento duplicado tardio ou objeto já
+  reconciliado)
+- **THEN** o backend reconhece a notificação como processada — sem reter a
+  mensagem em retentativa infinita — e não altera cota nem status.
 
 ### Requirement: Isolamento por unidade imposto no banco
 
@@ -191,3 +214,32 @@ ambos os ambientes, sem implementar qualquer feature do PRD.
 - **WHEN** a prova de fundação executa
 - **THEN** um endpoint de saúde responde e um fluxo mínimo de upload → emissão de
   URL assinada → download conclui com sucesso, exercitando storage e banco.
+
+### Requirement: CORS do bucket autoriza a origem do SPA em produção
+
+A configuração de CORS do bucket de arquivos SHALL autorizar a(s) origem(ns) do
+SPA em produção nos métodos usados pelo upload/download direto (`GET`, `PUT`,
+`HEAD`), de modo que o preflight `OPTIONS` do navegador retorne
+`Access-Control-Allow-Origin` e a transferência direta ao storage conclua sem ser
+bloqueada pela política de CORS. Como em produção a SPA é servida pela própria API
+no Cloud Run (mesma origem), a origem autorizada é a(s) URL(s) do serviço Cloud
+Run da API; enquanto o serviço for exposto por mais de uma forma de URL, **todas**
+SHALL constar na lista de origens autorizadas.
+
+#### Scenario: Upload direto do SPA de produção conclui o preflight
+
+- **WHEN** o SPA carregado a partir de uma URL de produção do serviço Cloud Run
+  faz um `PUT` cross-origin de um arquivo na URL assinada emitida pelo backend
+- **THEN** o preflight `OPTIONS` do bucket responde com
+  `Access-Control-Allow-Origin` correspondente à origem do SPA e o `PUT` dos bytes
+  é aceito pelo storage.
+
+#### Scenario: Origem não autorizada continua bloqueada
+
+- **WHEN** uma origem que não é uma origem configurada do SPA tenta um `PUT`/`GET`
+  cross-origin no bucket
+- **THEN** o bucket não retorna `Access-Control-Allow-Origin` para essa origem e o
+  navegador bloqueia a requisição — o CORS não amplia o acesso além das origens
+  explicitamente autorizadas, e a privacidade do bucket (sem acesso público)
+  permanece intacta.
+

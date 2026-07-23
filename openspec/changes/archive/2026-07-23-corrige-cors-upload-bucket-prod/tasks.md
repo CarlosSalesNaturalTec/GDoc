@@ -22,9 +22,9 @@
 - [x] 2.2 Aplicar ao bucket:
   `gcloud storage buckets update gs://<files_bucket_name> --cors-file=cors.json`.
   → hotfix já aplicado; bucket continha as duas URLs de prod antes do apply.
-- [ ] 2.3 Validar no navegador: reenviar um arquivo pelo SPA de produção e
+- [x] 2.3 Validar no navegador: reenviar um arquivo pelo SPA de produção e
   confirmar que o `PUT` conclui (item vai a 100%, mensagem "enviado"), sem erro de
-  CORS no console. **(pendente — verificação manual do usuário no navegador)**
+  CORS no console. → validado pelo usuário: upload de teste concluído com sucesso.
 
 ## 3. Fixar em Terraform (fonte da verdade — design.md D2/D3)
 
@@ -50,6 +50,6 @@
   `http://localhost:5173` (Cloud Run reconciliado de drift do último deploy).
 - [x] 4.2 `terraform -chdir=infra/terraform apply`.
   → aplicado; CORS final com as 3 origens, Terraform como fonte da verdade.
-- [ ] 4.3 Reconfirmar o upload direto no SPA de produção após o apply (mesma
+- [x] 4.3 Reconfirmar o upload direto no SPA de produção após o apply (mesma
   verificação da task 2.3), garantindo que o Terraform manteve o CORS correto.
-  **(pendente — verificação manual do usuário no navegador)**
+  → validado pelo usuário: upload de teste concluído com sucesso após o apply.
