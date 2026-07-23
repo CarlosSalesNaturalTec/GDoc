@@ -118,6 +118,35 @@ gcloud run jobs execute "${NAME_PREFIX}-bootstrap" \
   --project="$PROJECT_ID" --region="$REGION" --wait
 ```
 
+> ⚠️ **No Windows/PowerShell, NÃO use o `echo -n` acima.** `echo` é alias de
+> `Write-Output` e `-n` casa com `-NoEnumerate` — não suprime a quebra de
+> linha. Pior: ao encanar (`|`) para um executável nativo, o PowerShell anexa
+> `\r\r\n`. O secret fica com a senha + 3 bytes invisíveis, o bootstrap grava
+> o hash desse valor sujo e **todo login legítimo vira 401**, sem nenhum erro
+> que aponte a causa. Grave byte-exato via arquivo:
+>
+> ```powershell
+> $pw = "$env:TEMP\pw.bin"
+> [System.IO.File]::WriteAllText($pw, "SUA-SENHA-FORTE-AQUI", (New-Object System.Text.UTF8Encoding($false)))
+> gcloud secrets versions add "$NAME_PREFIX-bootstrap-admin-password" --data-file="$pw" --project="$PROJECT_ID"
+> Remove-Item $pw
+> ```
+>
+> Conferir sempre o que ficou gravado (deve ser exatamente o nº de caracteres
+> da senha, sem `0D`/`0A` no fim):
+>
+> ```powershell
+> cmd /c "gcloud secrets versions access latest --secret=$NAME_PREFIX-bootstrap-admin-password --project=$PROJECT_ID > `"$env:TEMP\s.bin`""
+> [System.IO.File]::ReadAllBytes("$env:TEMP\s.bin").Length
+> ```
+>
+> **Se o admin já foi criado com a senha suja**, corrigir o secret não basta: o
+> `bootstrapAdmin()` é no-op quando já existe um `global_admin`
+> (`apps/api/src/db/bootstrap.ts`), então ele não reescreve o hash. É preciso
+> remover o admin (`DELETE FROM users WHERE role='global_admin'`, dentro de uma
+> transação com `SELECT set_config('app.user_role','global_admin',true)` para
+> passar pela RLS) e reexecutar o Job.
+
 Depois de logar com essa conta na URL de produção, cadastre as pessoas reais
 pela tela **Pessoas** e, se este projeto já teve um `npm run seed` rodado
 antes desta mudança existir, exclua/desative pela mesma tela as eventuais

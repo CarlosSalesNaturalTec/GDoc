@@ -84,7 +84,14 @@
       (Versão 2 = senha real (v1 placeholder desabilitada); execução
       `gdoc-prod-bootstrap-hfpcd` concluída com sucesso.)
 - [ ] 6.2 Logar com o `global_admin` na URL nova; criar unidade/pessoa de
-      teste pela tela Pessoas.  **(navegador — pendente com o usuário)**
+      teste pela tela Pessoas.
+      Login **verificado** (`POST /auth/login` → 200, `role: global_admin`,
+      cookie de sessão emitido). Criar unidade/pessoa pela tela segue
+      **pendente com o usuário (navegador)**.
+      Incidente resolvido: o `echo -n` do README é bash; no PowerShell gravou a
+      senha com `\r\r\n` no secret → todo login dava 401. Secret regravado
+      byte-exato, admin removido e Job de bootstrap reexecutado. Armadilha
+      documentada no `infra/terraform/README.md`.
 - [ ] 6.3 Upload real pelas **duas** formas de URL do serviço (valida o CORS
       nas duas origens — spec: "Upload direto funcional pelas duas formas de
       URL").  **(navegador — pendente com o usuário)**
