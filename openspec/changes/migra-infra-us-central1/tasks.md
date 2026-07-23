@@ -48,50 +48,70 @@
 
 ## 4. Pipeline e imagem real (operacional)
 
-- [ ] 4.1 Atualizar a variável de repositório GitHub `GCP_REGION` para
+- [x] 4.1 Atualizar a variável de repositório GitHub `GCP_REGION` para
       `us-central1` (Settings → Secrets and variables → Actions → Variables);
       conferir as demais variáveis contra os outputs do Terraform.
-- [ ] 4.2 Rodar o `deploy.yml` (push em `main` ou dispatch) e confirmar deploy
+      (Demais variáveis já batiam com os outputs — nomes não mudaram.)
+- [x] 4.2 Rodar o `deploy.yml` (push em `main` ou dispatch) e confirmar deploy
       verde: imagem publicada no Artifact Registry novo e serviço Cloud Run
       servindo a API real (`/healthz` ou equivalente responde).
+      (Merge do PR #41 → CI verde → Deploy verde; `/health` = 200
+      `{"status":"ok","db":"ok","storage":"ok"}`.)
 
 ## 5. Segundo apply — reconciliação de URLs (operacional)
 
-- [ ] 5.1 Colher as **duas** formas de URL do serviço novo
-      (`https://<app>-<hash>-uc.a.run.app` e
-      `https://<app>-<nº-projeto>.us-central1.run.app`).
-- [ ] 5.2 No `terraform.tfvars`: preencher `cors_allowed_origins` com as duas
+- [x] 5.1 Colher as **duas** formas de URL do serviço novo
+      (`https://gdoc-prod-api-hmwigy67mq-uc.a.run.app` e
+      `https://gdoc-prod-api-434553790439.us-central1.run.app`).
+- [x] 5.2 No `terraform.tfvars`: preencher `cors_allowed_origins` com as duas
       formas (+ `http://localhost:5173`), `pubsub_push_audience` com
       `<api_url>/internal/storage-events` e `api_image` com a tag publicada
       pelo passo 4.2 (atualiza os Jobs de expurgo e bootstrap).
-- [ ] 5.3 `terraform apply` e conferir `terraform plan` limpo em seguida.
+      (Jobs têm `ignore_changes` na imagem → recriados via delete+state rm+apply
+      para pegarem a tag real; CORS/OIDC/imagens verificados.)
+- [x] 5.3 `terraform apply` e conferir `terraform plan` limpo em seguida.
+      Ressalva: resta 1 mudança cosmética perpétua (bloco `scaling` de nível de
+      serviço que a API do Cloud Run popula e o provider não reconcilia) —
+      não relacionada à região, pré-existente ao provider; documentada, não
+      bloqueante.
 
 ## 6. Bootstrap e verificação fim-a-fim (operacional)
 
-- [ ] 6.1 Recriar a versão do secret `bootstrap-admin-password`
+- [x] 6.1 Recriar a versão do secret `bootstrap-admin-password`
       (`gcloud secrets versions add ...`) e executar o Job
       `gdoc-prod-bootstrap` com `--wait` (migrações + `global_admin`) —
       README, seção "Bootstrap do administrador global".
+      (Versão 2 = senha real (v1 placeholder desabilitada); execução
+      `gdoc-prod-bootstrap-hfpcd` concluída com sucesso.)
 - [ ] 6.2 Logar com o `global_admin` na URL nova; criar unidade/pessoa de
-      teste pela tela Pessoas.
+      teste pela tela Pessoas.  **(navegador — pendente com o usuário)**
 - [ ] 6.3 Upload real pelas **duas** formas de URL do serviço (valida o CORS
       nas duas origens — spec: "Upload direto funcional pelas duas formas de
-      URL").
+      URL").  **(navegador — pendente com o usuário)**
 - [ ] 6.4 Confirmar reconciliação de cota: arquivo sai de `pending` e a cota
       reflete o tamanho (push OIDC aceito, sem 401 nos logs do serviço);
-      resíduos via `npm run backfill:pending` se necessário.
-- [ ] 6.5 Verificar invariantes de segurança no ambiente novo: acesso direto a
+      resíduos via `npm run backfill:pending` se necessário.  **(depende do
+      6.3 — validar após o upload)**
+- [x] 6.5 Verificar invariantes de segurança no ambiente novo: acesso direto a
       objeto do bucket sem URL assinada → negado sem bytes/preview;
       view-url/download-url emitidas só com permissão e auditadas.
-- [ ] 6.6 Confirmar agendamento do expurgo (Scheduler 03:00 apontando para o
+      (Acesso direto = HTTP 403; bucket `public_access_prevention=enforced` +
+      UBLA=true. Emissão de URL assinada só com permissão é exercida pelo
+      upload do 6.3.)
+- [x] 6.6 Confirmar agendamento do expurgo (Scheduler 03:00 apontando para o
       Job da região nova).
+      (Scheduler `0 3 * * *` America/Sao_Paulo ENABLED → Job us-central1.)
 
 ## 7. Documentação e encerramento (sandbox)
 
-- [ ] 7.1 Atualizar `docs/manual_do_usuario.md` com a URL de produção nova
+- [x] 7.1 Atualizar `docs/manual_do_usuario.md` com a URL de produção nova
       (colhida no passo 5.1).
-- [ ] 7.2 Conferir que nenhum outro arquivo versionado referencia
+- [x] 7.2 Conferir que nenhum outro arquivo versionado referencia
       `southamerica-east1` fora de changes arquivados (grep) — exceto a
       anotação intencional do bucket de state no README.
-- [ ] 7.3 Revisar proposal/design/specs contra o que foi de fato executado e
+      (Restam só: docs deste change, README (D5 + comparação de custo),
+      variables.tf (comparação de custo) e o change arquivado corrige-cors.)
+- [x] 7.3 Revisar proposal/design/specs contra o que foi de fato executado e
       ajustar divergências antes do archive.
+      (Divergências de execução registradas em design.md, seção "Notas de
+      execução". Verificações de navegador 6.2-6.4 ficam com o usuário.)
