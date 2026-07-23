@@ -9,10 +9,18 @@ region     = "southamerica-east1"
 # frontend_domain = "app.gdoc.exemplo.com.br"
 
 # Origem(ns) do browser autorizadas a fazer upload/download direto no bucket
-# de arquivos (CORS). Adicionar o domínio real do SPA em prod.
+# de arquivos (CORS). Em produção a SPA é servida pela PRÓPRIA API no Cloud Run
+# (mesma origem), então a origem de prod é a URL do serviço Cloud Run da API —
+# não um domínio à parte. Enquanto não houver domínio custom (frontend_domain),
+# o Cloud Run expõe DUAS formas de URL para o mesmo serviço e o usuário pode
+# abrir o SPA por qualquer uma; AMBAS precisam constar aqui, senão o upload
+# direto falha no preflight quando aberto pela forma ausente:
+#   - https://<app>-<hash>-<região>.a.run.app
+#   - https://<app>-<nº-projeto>.<região>.run.app
 cors_allowed_origins = [
   "http://localhost:5173",
-  # "https://app.gdoc.exemplo.com.br",
+  # "https://gdoc-prod-api-hmwigy67mq-rj.a.run.app",
+  # "https://gdoc-prod-api-434553790439.southamerica-east1.run.app",
 ]
 
 # E-mail do administrador global criado pelo Job de bootstrap (obrigatório —

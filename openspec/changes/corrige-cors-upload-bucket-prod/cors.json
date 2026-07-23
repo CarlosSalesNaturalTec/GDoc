@@ -1,0 +1,11 @@
+[
+  {
+    "origin": [
+      "https://gdoc-prod-api-hmwigy67mq-rj.a.run.app",
+      "https://gdoc-prod-api-434553790439.southamerica-east1.run.app"
+    ],
+    "method": ["GET", "PUT", "HEAD"],
+    "responseHeader": ["Content-Type", "Content-Disposition"],
+    "maxAgeSeconds": 3600
+  }
+]
