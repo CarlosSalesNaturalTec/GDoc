@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { UserRole } from '@gdoc/shared';
+import { UserRole, UnitStatus } from '@gdoc/shared';
 import type { CreatePersonRequest, UpdatePersonRequest, PersonResponse } from '@gdoc/shared';
 import type { Ports } from '../ports/index.js';
 import type { TenantContext } from '../ports/database-port.js';
@@ -82,9 +82,27 @@ export function usersRouter(ports: Ports): Router {
 
       const passwordHash = await ports.auth.hashPassword(body.password);
 
-      let row: PersonRow;
+      // Fail-closed (change `gestao-de-unidades`, D2/D7): não cadastra em
+      // unidade desativada. Checado no servidor (não só escondido no seletor
+      // do front) e na mesma transação do insert, para o global_admin não
+      // burlar via `unitId` forjado. `unit_admin` está preso à própria unidade
+      // (sempre ativa enquanto ele existe), então na prática só barra o
+      // global_admin escolhendo uma unidade desativada.
+      // `email_conflict` não é uma variante aqui: a violação de unicidade é
+      // lançada pelo insert e capturada no `catch` externo (409).
+      type CreateOutcome = { kind: 'ok'; row: PersonRow } | { kind: 'unit_disabled' };
+
+      let outcome: CreateOutcome;
       try {
-        row = await ports.database.withTenantTransaction(ctx, async (client) => {
+        outcome = await ports.database.withTenantTransaction<CreateOutcome>(ctx, async (client) => {
+          const { rows: unitRows } = await client.query<{ status: string }>(
+            'SELECT status FROM units WHERE id = $1',
+            [unitId],
+          );
+          if (unitRows[0]?.status === UnitStatus.DISABLED) {
+            return { kind: 'unit_disabled' };
+          }
+
           const { rows } = await client.query<PersonRow>(
             `INSERT INTO users (unit_id, email, password_hash, role, full_name, phone, job_title, work_area, notes)
              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
@@ -101,7 +119,7 @@ export function usersRouter(ports: Ports): Router {
               body.notes ?? null,
             ],
           );
-          return rows[0]!;
+          return { kind: 'ok', row: rows[0]! };
         });
       } catch (err) {
         if (isUniqueViolation(err)) {
@@ -111,7 +129,12 @@ export function usersRouter(ports: Ports): Router {
         throw err;
       }
 
-      res.status(201).json(toPersonResponse(row));
+      if (outcome.kind === 'unit_disabled') {
+        res.status(409).json({ error: 'unit is disabled' });
+        return;
+      }
+
+      res.status(201).json(toPersonResponse(outcome.row));
     } catch (err) {
       next(err);
     }

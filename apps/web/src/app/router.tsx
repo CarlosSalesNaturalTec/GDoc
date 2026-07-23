@@ -7,6 +7,7 @@ import { ExplorerPage } from '../navegacao/ExplorerPage';
 import { BuscaPage } from '../busca/BuscaPage';
 import { LixeiraPage } from '../lixeira/LixeiraPage';
 import { PessoasPage } from '../pessoas/PessoasPage';
+import { UnidadesPage } from '../unidades/UnidadesPage';
 import { PainelPage } from '../painel/PainelPage';
 import { HomePage } from './HomePage';
 
@@ -35,6 +36,11 @@ export const routes: RouteObject[] = [
               { path: '/admin/pessoas', element: <PessoasPage /> },
               { path: '/admin/painel', element: <PainelPage /> },
             ],
+          },
+          {
+            // Gestão de unidades é exclusiva do global_admin (design.md D1).
+            element: <RequireAuth roles={[UserRole.GLOBAL_ADMIN]} />,
+            children: [{ path: '/admin/unidades', element: <UnidadesPage /> }],
           },
         ],
       },

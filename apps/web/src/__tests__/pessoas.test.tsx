@@ -1,13 +1,16 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
-import { PersonStatus, UserRole } from '@gdoc/shared';
+import { PersonStatus, UnitStatus, UserRole } from '@gdoc/shared';
 import type { PersonResponse } from '@gdoc/shared';
 import { mockFetch } from './mock-fetch';
 import { renderApp } from './render-app';
 
 const UNIT_ADMIN = { id: 'admin-1', unitId: 'unit-1', role: UserRole.UNIT_ADMIN };
 const GLOBAL_ADMIN = { id: 'admin-g', unitId: 'unit-1', role: UserRole.GLOBAL_ADMIN };
+
+const UNIT_A = { id: 'unit-a', name: 'Unidade A', status: UnitStatus.ACTIVE, createdAt: '2026-01-01T00:00:00.000Z' };
+const UNIT_B = { id: 'unit-b', name: 'Unidade B', status: UnitStatus.ACTIVE, createdAt: '2026-01-02T00:00:00.000Z' };
 
 function person(overrides: Partial<PersonResponse> & { id: string }): PersonResponse {
   return {
@@ -52,15 +55,32 @@ function confirmButton(label: string): HTMLElement {
   return button;
 }
 
-/** Abre o `Select` de papel dentro do diálogo e clica na opção pelo rótulo (padrão de `permissoes.test.tsx`). */
-async function selectRole(dialog: HTMLElement, label: string): Promise<void> {
-  await userEvent.click(within(dialog).getByRole('combobox'));
+/**
+ * Abre o `Select` de um `Form.Item` (localizado pelo rótulo) dentro do diálogo
+ * e clica na opção pelo texto. Escopar pelo `.ant-form-item` do rótulo torna a
+ * seleção robusta quando há mais de um `combobox` no formulário (ex.: o
+ * `global_admin` vê Unidade + Papel — gestao-de-unidades D7).
+ */
+async function selectFromField(dialog: HTMLElement, fieldLabel: string, optionLabel: string): Promise<void> {
+  const item = within(dialog).getByText(fieldLabel).closest('.ant-form-item') as HTMLElement;
+  const combobox = within(item).getByRole('combobox');
+  await userEvent.click(combobox);
+  // Com mais de um `Select` no formulário há vários `.ant-select-dropdown` no
+  // DOM; localizar por `querySelector` global pegaria o primeiro (errado). O
+  // AntD liga o combobox ao seu próprio dropdown via `aria-controls`/`aria-owns`
+  // — seguimos essa associação para abrir exatamente o dropdown clicado.
   const dropdown = await waitFor(() => {
-    const el = document.querySelector('.ant-select-dropdown');
-    if (!el) throw new Error('dropdown do Select ainda não está no DOM');
-    return el as HTMLElement;
+    const listboxId = combobox.getAttribute('aria-controls') ?? combobox.getAttribute('aria-owns');
+    const container = listboxId ? document.getElementById(listboxId)?.closest('.ant-select-dropdown') : null;
+    if (!container) throw new Error('dropdown do Select ainda não está no DOM');
+    return container as HTMLElement;
   });
-  await userEvent.click(await within(dropdown).findByText(label));
+  await userEvent.click(await within(dropdown).findByText(optionLabel));
+}
+
+/** Atalho para o seletor de papel (rótulo "Papel"). */
+async function selectRole(dialog: HTMLElement, label: string): Promise<void> {
+  await selectFromField(dialog, 'Papel', label);
 }
 
 describe('Gestão de pessoas da SPA (web-pessoas)', () => {
@@ -282,6 +302,7 @@ describe('Gestão de pessoas da SPA (web-pessoas)', () => {
     mockFetch({
       'GET /auth/me': { status: 200, body: GLOBAL_ADMIN },
       'GET /users': { status: 200, body: [] },
+      'GET /units': { status: 200, body: [UNIT_A, UNIT_B] },
     });
 
     renderApp(['/admin/pessoas']);
@@ -289,8 +310,106 @@ describe('Gestão de pessoas da SPA (web-pessoas)', () => {
     await userEvent.click(screen.getByRole('button', { name: /nova pessoa/i }));
 
     const dialog = await findDialogByTitle('Nova pessoa');
-    await userEvent.click(within(dialog).getByRole('combobox'));
-    const dropdown = await waitFor(() => document.querySelector('.ant-select-dropdown') as HTMLElement);
+    // O global_admin vê 2 comboboxes (Unidade + Papel); escopar pelo rótulo.
+    const roleItem = within(dialog).getByText('Papel').closest('.ant-form-item') as HTMLElement;
+    await userEvent.click(within(roleItem).getByRole('combobox'));
+    const dropdown = await waitFor(
+      () => document.querySelector('.ant-select-dropdown:not(.ant-select-dropdown-hidden)') as HTMLElement,
+    );
     expect(within(dropdown).getByText('Administrador global')).toBeInTheDocument();
+  });
+
+  it('global_admin: seletor de unidade (só ativas) é exibido e POST /users envia o unitId escolhido (spec: cadastro por global_admin com seletor)', async () => {
+    const novaPessoa = person({ id: 'person-g', fullName: 'Novo GA', unitId: 'unit-b' });
+
+    mockFetch({
+      'GET /auth/me': { status: 200, body: GLOBAL_ADMIN },
+      'GET /users': [{ status: 200, body: [] }, { status: 200, body: [novaPessoa] }],
+      'GET /units': { status: 200, body: [UNIT_A, UNIT_B] },
+      'POST /users': { status: 201, body: novaPessoa },
+    });
+
+    renderApp(['/admin/pessoas']);
+    await screen.findByText('Nova pessoa');
+    await userEvent.click(screen.getByRole('button', { name: /nova pessoa/i }));
+
+    const dialog = await findDialogByTitle('Nova pessoa');
+    await userEvent.type(within(dialog).getByLabelText('Nome'), 'Novo GA');
+    await userEvent.type(within(dialog).getByLabelText('E-mail'), 'novo-ga@example.com');
+    await userEvent.type(within(dialog).getByLabelText('Senha inicial'), 'segredo123');
+    await selectFromField(dialog, 'Unidade', 'Unidade B');
+    await selectRole(dialog, 'Colaborador');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Cadastrar' }));
+
+    await waitFor(() => {
+      const bodies = requestBodies('POST', '/users') as Record<string, unknown>[];
+      expect(bodies).toHaveLength(1);
+      expect(bodies[0]).toMatchObject({ fullName: 'Novo GA', unitId: 'unit-b' });
+    });
+  });
+
+  it('global_admin: 409 "unit is disabled" sinaliza no seletor de unidade, não no e-mail (spec: cadastro em unidade desativada é recusado)', async () => {
+    mockFetch({
+      'GET /auth/me': { status: 200, body: GLOBAL_ADMIN },
+      'GET /users': { status: 200, body: [] },
+      'GET /units': { status: 200, body: [UNIT_A, UNIT_B] },
+      'POST /users': { status: 409, body: { error: 'unit is disabled' } },
+    });
+
+    renderApp(['/admin/pessoas']);
+    await screen.findByText('Nova pessoa');
+    await userEvent.click(screen.getByRole('button', { name: /nova pessoa/i }));
+
+    const dialog = await findDialogByTitle('Nova pessoa');
+    await userEvent.type(within(dialog).getByLabelText('Nome'), 'Fulano');
+    await userEvent.type(within(dialog).getByLabelText('E-mail'), 'fulano@example.com');
+    await userEvent.type(within(dialog).getByLabelText('Senha inicial'), 'segredo123');
+    await selectFromField(dialog, 'Unidade', 'Unidade A');
+    await selectRole(dialog, 'Colaborador');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Cadastrar' }));
+
+    await within(dialog).findByText('Unidade desativada; escolha outra');
+    expect(within(dialog).queryByText('E-mail já está em uso')).not.toBeInTheDocument();
+  });
+
+  it('global_admin: a listagem exibe o NOME da unidade (não o UUID), resolvido via GET /units (spec: unidade exibida pelo nome)', async () => {
+    const pessoaA = person({ id: 'p-a', fullName: 'Pessoa A', unitId: 'unit-a' });
+    const pessoaB = person({ id: 'p-b', fullName: 'Pessoa B', unitId: 'unit-b' });
+
+    mockFetch({
+      'GET /auth/me': { status: 200, body: GLOBAL_ADMIN },
+      'GET /users': { status: 200, body: [pessoaA, pessoaB] },
+      'GET /units': { status: 200, body: [UNIT_A, UNIT_B] },
+    });
+
+    renderApp(['/admin/pessoas']);
+    await screen.findByText('Pessoa A');
+
+    const rowA = screen.getByText('Pessoa A').closest('tr')!;
+    expect(within(rowA).getByText('Unidade A')).toBeInTheDocument();
+    expect(within(rowA).queryByText('unit-a')).not.toBeInTheDocument();
+
+    const rowB = screen.getByText('Pessoa B').closest('tr')!;
+    expect(within(rowB).getByText('Unidade B')).toBeInTheDocument();
+  });
+
+  it('unit_admin: sem seletor de unidade no cadastro e sem coluna de unidade na listagem (spec: cadastro por unit_admin não mostra seletor)', async () => {
+    const pessoa = person({ id: 'p-1', fullName: 'Alguém' });
+
+    mockFetch({
+      'GET /auth/me': { status: 200, body: UNIT_ADMIN },
+      'GET /users': { status: 200, body: [pessoa] },
+    });
+
+    renderApp(['/admin/pessoas']);
+    await screen.findByText('Alguém');
+
+    // sem coluna "Unidade" no cabeçalho da tabela
+    expect(screen.queryByRole('columnheader', { name: 'Unidade' })).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: /nova pessoa/i }));
+    const dialog = await findDialogByTitle('Nova pessoa');
+    // sem campo "Unidade" no formulário
+    expect(within(dialog).queryByText('Unidade')).not.toBeInTheDocument();
   });
 });

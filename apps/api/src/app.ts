@@ -7,6 +7,7 @@ import { healthRouter } from './routes/health.js';
 import { filesRouter } from './routes/files.js';
 import { foldersRouter } from './routes/folders.js';
 import { usersRouter } from './routes/users.js';
+import { unitsRouter } from './routes/units.js';
 import { grantsRouter } from './routes/grants.js';
 import { authRouter } from './routes/auth.js';
 import { storageEventsRouter, type StorageEventsOptions } from './routes/storage-events.js';
@@ -92,11 +93,12 @@ export function createApp(ports: Ports, options: CreateAppOptions = {}): Express
   // SPA configurada, no fallback de index.html acima). `auditRouter` e
   // `searchRouter` vivem sob `/files` (`/files/:id/audit`, `/files/search`),
   // por isso não têm prefixo próprio na lista.
-  const tenantScopedPrefixes = ['/files', '/folders', '/users', '/grants', '/trash', '/dashboard'];
+  const tenantScopedPrefixes = ['/files', '/folders', '/users', '/units', '/grants', '/trash', '/dashboard'];
   app.use(tenantScopedPrefixes, attachTenantContext(ports));
   app.use(filesRouter(ports));
   app.use(foldersRouter(ports));
   app.use(usersRouter(ports));
+  app.use(unitsRouter(ports));
   app.use(grantsRouter(ports));
   app.use(trashRouter(ports));
   app.use(auditRouter(ports));
