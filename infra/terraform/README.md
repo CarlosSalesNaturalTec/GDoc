@@ -35,6 +35,13 @@ O estado remoto precisa de um bucket que já exista antes do `terraform init`
 PROJECT_ID="gdoc-prod-123456"   # ajustar
 gcloud config set project "$PROJECT_ID"
 
+# A localização do bucket de state é INDEPENDENTE de var.region (o state são
+# KBs, custo irrelevante) e não é gerenciada por este Terraform. O bucket de
+# state do projeto de produção permanece em `southamerica-east1` por decisão
+# (design.md D5 do change migra-infra-us-central1): movê-lo exigiria recriar
+# bucket + copiar objetos + editar backend.hcl + `init -migrate-state` durante
+# a operação mais destrutiva do projeto, sem retorno. Só os recursos regionais
+# do app é que migraram para `us-central1`.
 gsutil mb -l southamerica-east1 "gs://${PROJECT_ID}-terraform-state"
 gsutil versioning set on "gs://${PROJECT_ID}-terraform-state"
 ```
@@ -120,6 +127,25 @@ recriadas, mas não remove o que já foi criado antes dela existir.
 
 ## Decisões que valem conhecer antes de mexer
 
+- **Região ativa `us-central1` na fase de testes, por custo (change
+  `migra-infra-us-central1`).** Todos os recursos regionais (Cloud Run, Cloud
+  SQL, buckets, Artifact Registry, Scheduler/Jobs, NEG) nascem de `var.region`
+  — fonte única, sem região literal em nenhum `.tf`. A região saiu de
+  `southamerica-east1` para `us-central1` (~20-35% mais barato) porque a app
+  está em fase de testes, sem dados reais. **Trade-off:** usuários no Brasil ↔
+  Iowa somam ~140-180 ms de RTT em toda requisição e no tráfego direto de bytes
+  com o bucket. **Gatilho de retorno:** reavaliar/voltar para uma região
+  próxima dos usuários ANTES de operar com carga real sensível a latência —
+  fazê-lo com dados reais é um change de migração de verdade (export/import do
+  Postgres + rsync do bucket + janela), pois recursos regionais do GCP têm
+  região imutável (destruir e recriar). A anotação canônica fica adjacente à
+  `var.region` em `variables.tf`, onde qualquer troca futura vai esbarrar nela;
+  mesmo padrão do PITR abaixo. **O bucket de state permanece em
+  `southamerica-east1`** por decisão (D5 do change; ver seção "Bootstrap").
+  Trocar a região reconcilia três pontas derivadas da URL do Cloud Run (CORS do
+  bucket de arquivos, audience OIDC do push do Pub/Sub e a variável `GCP_REGION`
+  do CI/CD) e reexecuta o bootstrap do administrador global — ver
+  `openspec/changes/archive/*-migra-infra-us-central1/`.
 - **Cloud SQL com IP público, sem `authorized_networks`.** A API se conecta
   via integração nativa do Cloud Run (Cloud SQL Auth Proxy gerenciado,
   autenticado por IAM) — nenhuma rota de rede é liberada para ninguém. Evita
