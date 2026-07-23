@@ -2,7 +2,7 @@
 # do projeto GCP. Nada aqui tem um valor real — são só exemplos.
 
 project_id = "gdoc-prod-123456"
-region     = "southamerica-east1"
+region     = "us-central1"
 
 # Domínio do SPA (opcional). Sem ele, o bucket+CDN do frontend existe mas
 # sem balanceador/certificado — ver variables.tf (frontend_domain).
@@ -19,15 +19,15 @@ region     = "southamerica-east1"
 #   - https://<app>-<nº-projeto>.<região>.run.app
 cors_allowed_origins = [
   "http://localhost:5173",
-  # "https://gdoc-prod-api-hmwigy67mq-rj.a.run.app",
-  # "https://gdoc-prod-api-434553790439.southamerica-east1.run.app",
+  # "https://gdoc-prod-api-hmwigy67mq-uc.a.run.app",
+  # "https://gdoc-prod-api-434553790439.us-central1.run.app",
 ]
 
 # Audience do token OIDC do push do Pub/Sub → POST /internal/storage-events.
 # Defina como "<api_url>/internal/storage-events" (api_url = output do serviço
 # Cloud Run, a forma -hash-<região>.a.run.app). Definir este valor LIGA a
 # validação OIDC na API; vazio mantém desligado (dev). Ver variables.tf.
-# pubsub_push_audience = "https://gdoc-prod-api-hmwigy67mq-rj.a.run.app/internal/storage-events"
+# pubsub_push_audience = "https://gdoc-prod-api-hmwigy67mq-uc.a.run.app/internal/storage-events"
 
 # E-mail do administrador global criado pelo Job de bootstrap (obrigatório —
 # ver infra/terraform/README.md, seção "Bootstrap do administrador global").

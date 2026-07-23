@@ -7,40 +7,43 @@
 
 ## 1. Repositório — região nova como default (sandbox)
 
-- [ ] 1.1 Em `infra/terraform/variables.tf`, mudar o default de `region` para
+- [x] 1.1 Em `infra/terraform/variables.tf`, mudar o default de `region` para
       `us-central1` e adicionar a anotação adjacente com o trade-off de
       latência (usuários no Brasil ↔ Iowa, ~140–180 ms de RTT em toda
       requisição e no tráfego direto de bytes) e o gatilho de reavaliação
       (carga/uso real sensível a latência) — padrão da anotação do PITR.
-- [ ] 1.2 Em `infra/terraform/terraform.tfvars.example`, atualizar `region`
+- [x] 1.2 Em `infra/terraform/terraform.tfvars.example`, atualizar `region`
       para `us-central1` e as URLs de exemplo comentadas de
       `cors_allowed_origins` para as formas `us-central1`.
-- [ ] 1.3 Em `infra/terraform/README.md`: atualizar o exemplo do `gsutil mb`
+- [x] 1.3 Em `infra/terraform/README.md`: atualizar o exemplo do `gsutil mb`
       e anotar que o bucket de state existente permanece em
       `southamerica-east1` por decisão (design.md, D5); registrar a região
       ativa e o gatilho de retorno na seção de decisões.
-- [ ] 1.4 `terraform fmt -check` e `terraform validate` passam (sem init de
+- [x] 1.4 `terraform fmt -check` e `terraform validate` passam (sem init de
       backend real: `terraform init -backend=false`).
 
 ## 2. Destruição do ambiente em southamerica-east1 (operacional)
 
-- [ ] 2.1 Conferir pré-condição: fase de testes confirmada, nenhum dado real a
+- [x] 2.1 Conferir pré-condição: fase de testes confirmada, nenhum dado real a
       preservar (banco e bucket serão perdidos).
-- [ ] 2.2 Apply pontual com `deletion_protection = false` no Cloud SQL
+- [x] 2.2 Apply pontual com `deletion_protection = false` no Cloud SQL
       (somente no tfvars/apply — o valor no repo permanece `true`).
-- [ ] 2.3 `terraform destroy` até o state esvaziar; conferir no console que
+- [x] 2.3 `terraform destroy` até o state esvaziar; conferir no console que
       não restou recurso órfão em `southamerica-east1` (buckets exigem estar
       vazios para sumir).
 
 ## 3. Recriação em us-central1 — primeiro apply (operacional)
 
-- [ ] 3.1 No `terraform.tfvars` real: `region = "us-central1"`,
+- [x] 3.1 No `terraform.tfvars` real: `region = "us-central1"`,
       `cors_allowed_origins` só com `http://localhost:5173` e
       `pubsub_push_audience` ausente/vazio (URLs novas ainda não existem —
       design.md, D3).
-- [ ] 3.2 `terraform apply` — infra completa nasce em `us-central1`, API com
+- [x] 3.2 `terraform apply` — infra completa nasce em `us-central1`, API com
       imagem placeholder, `deletion_protection = true` de volta.
-- [ ] 3.3 Anotar os outputs (`api_url`, connection name, repositório do
+      (Imprevistos resolvidos: WIF pool/provider soft-deletados → undelete +
+      import; secret bootstrap sem versão → placeholder; job bootstrap tainted
+      → delete+recreate.)
+- [x] 3.3 Anotar os outputs (`api_url`, connection name, repositório do
       Artifact Registry) para os passos seguintes.
 
 ## 4. Pipeline e imagem real (operacional)

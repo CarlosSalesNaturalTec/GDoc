@@ -6,7 +6,7 @@ manual explica, em linguagem simples, como usar o sistema no dia a dia. É um gu
 por dentro.
 
 > **Endereço da aplicação (produção):**
-> https://gdoc-prod-api-434553790439.southamerica-east1.run.app/
+> https://gdoc-prod-api-hmwigy67mq-uc.a.run.app/
 
 Use um navegador atualizado (Chrome, Edge, Firefox ou Safari). Não é preciso instalar
 nada.

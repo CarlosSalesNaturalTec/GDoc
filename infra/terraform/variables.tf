@@ -4,9 +4,26 @@ variable "project_id" {
 }
 
 variable "region" {
-  description = "Região GCP para os recursos regionais (Cloud Run, Cloud SQL, Artifact Registry)."
+  description = <<-EOT
+    Região GCP para TODOS os recursos regionais (Cloud Run, Cloud SQL, buckets
+    do Cloud Storage, Artifact Registry, Cloud Scheduler/Jobs e NEG serverless)
+    — fonte única da verdade da região, sem região literal em nenhum recurso.
+
+    Fase de testes: `us-central1` por custo (~20-35% mais barato que
+    `southamerica-east1` nos componentes principais). Trade-off ACEITO nesta
+    fase: usuários no Brasil ↔ Iowa somam ~140-180 ms de RTT em TODA requisição
+    e no tráfego direto de bytes (PUT/GET nas URLs assinadas do bucket).
+
+    Gatilho de reavaliação: voltar para uma região próxima dos usuários ANTES
+    de operar com carga/uso real sensível a latência. Fazê-lo COM dados reais
+    é um change de migração de verdade (export/import do Postgres + rsync do
+    bucket + janela de indisponibilidade), não a simples troca deste valor —
+    recursos regionais do GCP têm região imutável (destruir e recriar). Mesmo
+    padrão da anotação do PITR em `cloud_sql.tf`. Ver
+    `openspec/changes/archive/*-migra-infra-us-central1/`.
+  EOT
   type        = string
-  default     = "southamerica-east1"
+  default     = "us-central1"
 }
 
 variable "environment" {
