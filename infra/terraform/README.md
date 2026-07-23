@@ -181,6 +181,18 @@ recriadas, mas não remove o que já foi criado antes dela existir.
   401 até o código novo subir.
 - **`db-f1-micro`** é o tier mais barato disponível — adequado para MVP,
   revisar (`db_tier`) antes de qualquer carga de produção real.
+- **PITR do Cloud SQL desligado na fase MVP (change `desativa-pitr-cloud-sql-mvp`).**
+  `backup_configuration.enabled = true` (backups diários, `03:00`,
+  `retainedBackups = 7`) permanece sempre ligado — é a durabilidade mínima e
+  nunca deve ser desligado em produção. Já `point_in_time_recovery_enabled`
+  está `false` nesta fase para cortar o custo do arquivamento contínuo de WAL
+  no Cloud Storage; o RPO efetivo degrada para ~24h (último backup diário) em
+  vez de "qualquer instante". **Gatilho de reativação:** voltar a flag para
+  `true` em `cloud_sql.tf` quando o sistema estiver estável e com carga/uso
+  real de produção (exigindo RPO curto) — reativar é reversível, mas reinicia
+  o Postgres e a janela de PITR recomeça a acumular do zero a partir da
+  reativação. Ver `cloud_sql.tf` (comentário adjacente à flag) e
+  `openspec/changes/desativa-pitr-cloud-sql-mvp/design.md`.
 - **Expurgo da lixeira tem lógica real (Épico 6, `epico-6-lixeira-retencao`).**
   O Cloud Run Job (`scheduler.tf`) deixou de ser um placeholder de exemplo: roda
   a mesma imagem da API (`var.api_image`) com o entrypoint
