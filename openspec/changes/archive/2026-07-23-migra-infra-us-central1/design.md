@@ -158,6 +158,44 @@ recriação falhar no meio, o caminho é seguir adiante (corrigir e reaplicar) o
 no limite, repetir o processo de volta para `southamerica-east1` — igualmente
 sem dados a perder. O ambiente antigo não é preservado.
 
+## Notas de execução (o que a recriação real revelou)
+
+Executado contra `gdoc-502613` em 2026-07-23. O plano das cinco fases (D2) valeu,
+mas a recriação expôs três travas de `deletion_protection`/soft-delete que o D2
+só previa para o Cloud SQL. Registradas aqui para o próximo que recriar:
+
+1. **`deletion_protection` implícito no Cloud Run.** Além do Cloud SQL, o
+   `google_cloud_run_v2_service` e os dois `google_cloud_run_v2_job` têm
+   `deletion_protection` com **default `true` do provider** (não estava no
+   `.tf`). O primeiro `destroy` derrubou 60 recursos e falhou nesses três. Fix:
+   baixar a flag para `false` nos três (apply direcionado) e repetir o destroy;
+   depois **reverter** para o default antes da recriação. Vale anotar a flag
+   explicitamente no `.tf` num change futuro para o runbook não ter surpresa.
+
+2. **Pool de Workload Identity Federation é soft-deleted (~30 dias).** O
+   `destroy` remove o pool/provider, mas o GCP os retém e o `apply` de
+   recriação colide com `409 already exists`. Fix: `gcloud iam
+   workload-identity-pools undelete` (pool e provider) + `terraform import` de
+   ambos para o state antes de reaplicar. Nomes preservados → variáveis do
+   GitHub seguem válidas.
+
+3. **Job de bootstrap exige a versão do secret já no `apply`.** O
+   `google_cloud_run_v2_job.bootstrap` referencia
+   `bootstrap-admin-password:latest`; com o container recriado vazio, a criação
+   do Job falha (`Secret ... was not found`) e o Job fica `tainted`. Fix:
+   adicionar uma versão placeholder ao secret **antes** do apply que cria o Job
+   (a senha real entra na fase 6, versão que vira `latest` em runtime), e como
+   os Jobs têm `ignore_changes` na imagem, apontar `api_image` para a tag real
+   exige recriá-los (`gcloud run jobs delete` + `terraform state rm` + `apply`,
+   já que o `deletion_protection` do provider barra o destroy pelo Terraform).
+
+**Drift cosmético remanescente:** `terraform plan` acusa 1 mudança perpétua no
+`google_cloud_run_v2_service.api` — um bloco `scaling` de nível de serviço que a
+API do Cloud Run popula com defaults e o provider não reconcilia (aplicar não
+resolve; reaparece no refresh). Não é relacionado à região nem introduzido por
+esta migração. Fecha-se, se desejado, com `lifecycle { ignore_changes = [scaling] }`
+no serviço — deixado fora daqui por ser mudança de forma de recurso não relacionada.
+
 ## Open Questions
 
 - Nenhuma bloqueante. A execução das fases 1–5 exige um ambiente com
