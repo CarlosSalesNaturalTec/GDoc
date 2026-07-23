@@ -30,8 +30,15 @@ resource "google_sql_database_instance" "main" {
     }
 
     backup_configuration {
-      enabled                        = true
-      point_in_time_recovery_enabled = true
+      enabled = true
+      # PITR desligado na fase MVP (sem carga real / RPO curto) para cortar o
+      # custo do arquivamento contínuo de WAL no Cloud Storage — backups
+      # diários (acima) seguem ligados como durabilidade mínima, RPO efetivo
+      # ~24h. REATIVAR (voltar para `true`) quando o sistema estiver estável
+      # e com carga/uso real; alternar a flag reinicia o Postgres e reinicia
+      # do zero a janela de recuperação de ponto-no-tempo. Ver
+      # openspec/changes/desativa-pitr-cloud-sql-mvp/design.md.
+      point_in_time_recovery_enabled = false
     }
 
     availability_type = "ZONAL"
