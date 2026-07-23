@@ -28,4 +28,11 @@ export interface StoragePort {
 
   /** Remove o objeto do bucket. Idempotente: objeto ausente não é erro (design.md D8). */
   deleteObject(objectPath: string): Promise<void>;
+
+  /**
+   * Metadados do objeto (existência + tamanho real). Retorna `null` se o objeto
+   * não existe. Usado pelo backfill de reconciliação para conferir o upload
+   * concluído antes de promover o registro.
+   */
+  statObject(objectPath: string): Promise<{ sizeBytes: number } | null>;
 }

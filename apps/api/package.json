@@ -11,6 +11,7 @@
     "seed": "tsx src/db/seed.ts",
     "bootstrap": "tsx src/db/bootstrap.ts",
     "purge:trash": "tsx src/jobs/purge-trash.ts",
+    "backfill:pending": "tsx src/jobs/backfill-pending-finalize.ts",
     "test": "vitest run",
     "lint": "eslint ."
   },
@@ -22,6 +23,7 @@
     "cookie-parser": "^1.4.7",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
+    "google-auth-library": "^9.15.1",
     "pg": "^8.13.1",
     "uuid": "^11.0.3"
   },

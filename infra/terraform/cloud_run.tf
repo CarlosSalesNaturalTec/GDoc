@@ -126,6 +126,24 @@ resource "google_cloud_run_v2_service" "api" {
         name  = "SECRETS_DRIVER"
         value = "env"
       }
+      # Autenticação do push do Pub/Sub no endpoint de finalização
+      # (POST /internal/storage-events). Definir `pubsub_push_audience` em
+      # terraform.tfvars liga a validação OIDC; a `audience` bate com o `aud`
+      # do token (= push_endpoint, já que a subscription não fixa `audience`).
+      # Não referenciar `google_cloud_run_v2_service.api.uri` aqui: seria o
+      # próprio serviço lendo o próprio atributo → ciclo no Terraform.
+      env {
+        name  = "PUBSUB_OIDC_VALIDATION"
+        value = var.pubsub_push_audience != "" ? "true" : "false"
+      }
+      env {
+        name  = "PUBSUB_PUSH_AUDIENCE"
+        value = var.pubsub_push_audience
+      }
+      env {
+        name  = "PUBSUB_PUSH_SA_EMAIL"
+        value = google_service_account.pubsub_push.email
+      }
       # PUBSUB_STORAGE_EVENTS_TOPIC/SUBSCRIPTION não são passadas aqui: a API
       # não lê nenhuma delas (o endpoint de reconciliação só recebe o POST do
       # push, não precisa saber o nome do tópico/assinatura) — e referenciar

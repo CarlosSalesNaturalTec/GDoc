@@ -72,6 +72,19 @@ export class GcsStoragePort implements StoragePort {
     await this.storage.bucket(this.bucketName).file(objectPath).delete({ ignoreNotFound: true });
   }
 
+  async statObject(objectPath: string): Promise<{ sizeBytes: number } | null> {
+    const file = this.storage.bucket(this.bucketName).file(objectPath);
+    try {
+      const [metadata] = await file.getMetadata();
+      return { sizeBytes: Number(metadata.size ?? 0) };
+    } catch (err) {
+      // Objeto ausente (404) = upload nunca concluído → null. Outros erros
+      // (rede/permissão) sobem, para o backfill não promover por engano.
+      if ((err as { code?: number }).code === 404) return null;
+      throw err;
+    }
+  }
+
   async assertObjectNotPubliclyReadable(objectPath: string): Promise<boolean> {
     const file = this.storage.bucket(this.bucketName).file(objectPath);
     try {

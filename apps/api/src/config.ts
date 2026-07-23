@@ -60,6 +60,19 @@ export const config = {
 
   secretsDriver: optional('SECRETS_DRIVER', 'env') as 'env' | 'secret-manager',
 
+  // Autenticação da notificação de finalização (push do Pub/Sub → API).
+  // Em prod o push chega com um JWT OIDC assinado pelo Google para a SA
+  // `${name_prefix}-pubsub-push`, com `aud` = o próprio push_endpoint. A
+  // validação é ligada por env em prod e fica desligada em dev (o atalho
+  // direto não tem token) — mesma filosofia de paridade dos demais seams.
+  pubsubOidc: {
+    validationEnabled: optional('PUBSUB_OIDC_VALIDATION', 'false') === 'true',
+    // `aud` esperado — a URL do push_endpoint (…/internal/storage-events).
+    expectedAudience: process.env.PUBSUB_PUSH_AUDIENCE,
+    // (Opcional) e-mail da SA emissora; se definido, é conferido além do aud.
+    expectedServiceAccountEmail: process.env.PUBSUB_PUSH_SA_EMAIL,
+  },
+
   authArgon2: {
     memoryCost: Number(optional('AUTH_ARGON2_MEMORY_COST', '19456')),
     timeCost: Number(optional('AUTH_ARGON2_TIME_COST', '2')),

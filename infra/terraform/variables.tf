@@ -89,6 +89,21 @@ variable "cors_allowed_origins" {
   default     = ["http://localhost:5173"]
 }
 
+variable "pubsub_push_audience" {
+  description = <<-EOT
+    Audience esperada no token OIDC do push do Pub/Sub que chama
+    POST /internal/storage-events. Sem `audience` explícito na subscription
+    (pubsub.tf), o Pub/Sub emite o token com `aud` = o próprio push_endpoint,
+    ou seja a URL do serviço Cloud Run da API + "/internal/storage-events".
+    Defina em terraform.tfvars como "<api_url>/internal/storage-events" (o
+    `api_url` é o output do serviço). Definir este valor LIGA a validação OIDC
+    na API (PUBSUB_OIDC_VALIDATION=true); vazio (default) mantém a validação
+    desligada — usado só em dev, onde o endpoint é chamado direto, sem token.
+  EOT
+  type        = string
+  default     = ""
+}
+
 variable "frontend_domain" {
   description = <<-EOT
     Domínio customizado do SPA (ex.: app.gdoc.exemplo.com.br). Vazio (padrão)

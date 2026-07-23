@@ -164,18 +164,20 @@ recriadas, mas não remove o que já foi criado antes dela existir.
   `gcloud storage buckets update gs://<files_bucket_name> --cors-file=cors.json`
   (o `terraform apply` seguinte reconcilia e volta a ser a fonte da verdade — sem
   ele, o próximo apply reverteria o CORS para o default de dev).
-- **Gap de segurança conhecido, não fechado aqui:** o endpoint
-  `POST /internal/storage-events` (reconciliação de cota) recebe o push do
-  Pub/Sub autenticado por OIDC, e o Cloud Run exige `roles/run.invoker` para
-  invocar o serviço — **mas** o mesmo Cloud Run também concede
-  `allUsers:run.invoker` (a API precisa ser pública para o SPA). Isso
-  significa que a checagem de IAM do Cloud Run não restringe esse endpoint
-  especificamente: qualquer um pode chamá-lo. Fechar isso exige que a
-  **aplicação** valide o JWT OIDC do Pub/Sub no corpo da requisição (audience
-  + assinatura), não é algo resolvível só na infra sem tornar todo o Cloud
-  Run privado (o que quebraria o acesso público do SPA). Ver
-  `apps/api/src/routes/storage-events.ts` — precisa de tratamento numa
-  mudança futura antes de ir para produção com dados reais.
+- **Autenticação do endpoint de reconciliação (fechado pelo change
+  `corrige-finalize-pubsub-status-pending`).** O `POST /internal/storage-events`
+  recebe o push do Pub/Sub autenticado por OIDC, e o Cloud Run exige
+  `roles/run.invoker` — **mas** o mesmo Cloud Run também concede
+  `allUsers:run.invoker` (a API precisa ser pública para o SPA), então o IAM do
+  Cloud Run não restringe esse endpoint: qualquer um poderia chamá-lo. Por isso a
+  **aplicação** valida o JWT OIDC do Pub/Sub (assinatura pelas chaves do Google +
+  `aud` esperado + e-mail da SA emissora) em `apps/api/src/routes/storage-events.ts`.
+  A validação é ligada definindo `pubsub_push_audience` em `terraform.tfvars`
+  (= `<api_url>/internal/storage-events`), que injeta `PUBSUB_OIDC_VALIDATION=true`,
+  `PUBSUB_PUSH_AUDIENCE` e `PUBSUB_PUSH_SA_EMAIL` no serviço; vazio (dev) mantém a
+  validação desligada. **Ordem de deploy:** publicar a imagem da API com o fix
+  ANTES de aplicar o Terraform que liga a validação, senão pushes válidos viram
+  401 até o código novo subir.
 - **`db-f1-micro`** é o tier mais barato disponível — adequado para MVP,
   revisar (`db_tier`) antes de qualquer carga de produção real.
 - **Expurgo da lixeira tem lógica real (Épico 6, `epico-6-lixeira-retencao`).**
@@ -209,6 +211,5 @@ recriadas, mas não remove o que já foi criado antes dela existir.
 ## O que falta (fora de escopo desta mudança)
 
 - Ambiente de staging.
-- Fechar o gap de autenticação do endpoint de reconciliação de cota (acima).
 - Domínio real do frontend (hoje `frontend_domain` fica vazio por padrão).
 - Redeploy automático da imagem do Cloud Run Job de expurgo pelo CI/CD (acima).
