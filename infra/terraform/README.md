@@ -84,6 +84,7 @@ outputs deste Terraform:
 | `GCP_CLOUD_RUN_SERVICE` | nome do serviço (`google_cloud_run_v2_service.api.name`, também visível prefixado em `api_url`) |
 | `GCP_WORKLOAD_IDENTITY_PROVIDER` | `github_actions_workload_identity_provider` |
 | `GCP_DEPLOYER_SERVICE_ACCOUNT` | `github_actions_deployer_service_account` |
+| `GCP_MIGRATE_JOB` | `migrate_job_name` — nome do Cloud Run Job de migração (change `deploy-migrations-e-docs-only`), executado pelo pipeline antes do `gcloud run deploy` |
 
 Sem chave de service account em lugar nenhum — `cicd.tf` provisiona um
 Workload Identity Pool que só aceita tokens OIDC do repositório configurado
@@ -266,15 +267,30 @@ recriadas, mas não remove o que já foi criado antes dela existir.
   em reexecuções. Não é agendado — sempre `gcloud run jobs execute` manual
   (ver seção "Bootstrap do administrador global" acima). Mesmo racional de
   imagem "não avança sozinho" do Job de expurgo, abaixo.
-- **A imagem do Job não é redeployada automaticamente pelo CI/CD.**
-  `.github/workflows/deploy.yml` só faz `gcloud run deploy` do **serviço**
-  (API) a cada push em `main`; o **Job** de expurgo só pega uma imagem nova
-  quando o Terraform for reaplicado (o `lifecycle.ignore_changes` em
+- **A imagem dos demais Jobs não é redeployada automaticamente pelo CI/CD —
+  só a do Job de migração.** `.github/workflows/deploy.yml` faz
+  `gcloud run deploy` do **serviço** (API) a cada push em `main` e, antes
+  disso, `gcloud run jobs update --image` + `execute --wait` no Job de
+  migração (abaixo). Os demais Jobs (expurgo, bootstrap) só pegam uma imagem
+  nova quando o Terraform for reaplicado (o `lifecycle.ignore_changes` em
   `containers[0].image` evita que um `apply` de rotina reverta uma imagem já
-  publicada, mas também significa que ele não avança sozinho). Manter o job
-  atualizado hoje exige `terraform apply` manual apontando `var.api_image`
+  publicada, mas também significa que eles não avançam sozinhos). Mantê-los
+  atualizados hoje exige `terraform apply` manual apontando `var.api_image`
   para a tag desejada, ou estender o CI/CD para também rodar
-  `gcloud run jobs deploy` — fora de escopo desta mudança.
+  `gcloud run jobs deploy` neles — fora de escopo desta mudança.
+- **Job de migração de banco (change `deploy-migrations-e-docs-only`).**
+  `${local.name_prefix}-migrate` (`migrate_job.tf`) roda a mesma imagem/SA/
+  integração Cloud SQL da API, entrypoint `apps/api/dist/db/migrate.js`
+  (`apps/api/src/db/migrate.ts`): aplica **só** as migrações pendentes
+  (idempotente via `schema_migrations`, no-op se não houver nenhuma) —
+  **sem** as env `BOOTSTRAP_ADMIN_*` do Job de bootstrap. Diferente dos
+  demais Jobs, o pipeline (`.github/workflows/deploy.yml`) atualiza a imagem
+  dele a cada deploy (`gcloud run jobs update --image` seguido de
+  `execute --wait`), entre o `docker push` e o `gcloud run deploy` do
+  serviço, para que a revisão nova da API nunca suba contra um schema
+  desatualizado; falha no `execute --wait` aborta o workflow antes do
+  `deploy` (tráfego permanece na revisão anterior). O nome do job precisa
+  estar na variável de repositório `GCP_MIGRATE_JOB` (tabela acima).
 
 ## O que falta (fora de escopo desta mudança)
 
