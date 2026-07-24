@@ -32,6 +32,13 @@ Entrada malformada (data inválida, categoria de tipo desconhecida ou
 identificador de autor inválido) SHALL ser recusada com erro de validação, sem
 executar a busca.
 
+Uma requisição **sem nenhum filtro** SHALL continuar sendo válida e SHALL
+retornar todos os arquivos visíveis ao solicitante — a decisão de **quando**
+consultar é da interface, não do endpoint. A partir da change
+`busca-acionamento-explicito`, a SPA deixa de emitir essa requisição sem
+critérios (a tela de busca só consulta após acionamento explícito do usuário,
+ver spec `web-busca`), mas o contrato do endpoint permanece inalterado.
+
 #### Scenario: Busca com filtros combinados (US 9.1 cenário 1)
 - **WHEN** o solicitante busca por um nome e aplica filtros de data, tipo e/ou
   autor
@@ -50,7 +57,7 @@ executar a busca.
 - **THEN** o sistema retorna apenas os arquivos visíveis cujo `content_type`
   pertence àquela categoria
 
-#### Scenario: Limpar filtros volta ao estado inicial permitido (US 9.1 cenário 2)
+#### Scenario: Busca sem nenhum filtro retorna tudo o que é visível
 - **WHEN** o solicitante executa a busca sem informar nenhum filtro
 - **THEN** o sistema retorna todos os arquivos que ele tem permissão de ver, sem
   restrição adicional

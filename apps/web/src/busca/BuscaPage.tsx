@@ -1,7 +1,7 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { Button, DatePicker, Empty, Input, Result, Select, Space, Spin, Table } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import { ClearOutlined, CloudDownloadOutlined, EyeOutlined } from '@ant-design/icons';
+import { ClearOutlined, CloudDownloadOutlined, EyeOutlined, SearchOutlined } from '@ant-design/icons';
 import type { Dayjs } from 'dayjs';
 import type { FileCategory, FileSummaryResponse, SearchFilesQuery } from '@gdoc/shared';
 import { UserRole, fileCategory } from '@gdoc/shared';
@@ -50,19 +50,36 @@ function toSearchQuery(filters: FilterState): SearchFilesQuery {
   };
 }
 
+/** Critério ativo: nome não vazio (após trim) ou algum outro filtro definido (design.md D2). */
+function hasActiveCriteria(filters: FilterState): boolean {
+  return filters.q.trim() !== '' || filters.type !== undefined || filters.author !== undefined || filters.dateRange !== null;
+}
+
 /**
  * Página de busca transversal (US 9.1, `web-busca`): nome + filtros
- * combináveis sobre `GET /files/search`, com "estado inicial permitido" =
- * busca sem critérios (design.md D1/D3).
+ * combináveis sobre `GET /files/search`, acionada explicitamente pelo botão
+ * "Buscar" ou Enter — "estado inicial permitido" = nada consultado ainda
+ * (design.md D1/D2/D3).
  */
 export function BuscaPage() {
   const { identity } = useSession();
   const isAdmin = identity?.role === UserRole.UNIT_ADMIN || identity?.role === UserRole.GLOBAL_ADMIN;
 
   const [filters, setFilters] = useState<FilterState>(EMPTY_FILTERS);
-  const query = useMemo(() => toSearchQuery(filters), [filters]);
+  const [submitted, setSubmitted] = useState<SearchFilesQuery | undefined>(undefined);
+  const canSearch = hasActiveCriteria(filters);
 
-  const { data, isLoading, isError } = useSearchFiles(query);
+  const handleSearch = () => {
+    if (!canSearch) return;
+    setSubmitted(toSearchQuery(filters));
+  };
+
+  const handleClear = () => {
+    setFilters(EMPTY_FILTERS);
+    setSubmitted(undefined);
+  };
+
+  const { data, isLoading, isError } = useSearchFiles(submitted);
   const authorOptions = useAuthorOptions(identity?.role);
   const [previewingFile, setPreviewingFile] = useState<FileSummaryResponse | null>(null);
   const { download, isPending: downloading } = useDownloadFile();
@@ -115,6 +132,7 @@ export function BuscaPage() {
           style={{ width: 240 }}
           value={filters.q}
           onChange={(e) => setFilters((prev) => ({ ...prev, q: e.target.value }))}
+          onSearch={handleSearch}
         />
         <Select
           allowClear
@@ -141,14 +159,21 @@ export function BuscaPage() {
             onChange={(value) => setFilters((prev) => ({ ...prev, author: value }))}
           />
         )}
-        <Button icon={<ClearOutlined />} onClick={() => setFilters(EMPTY_FILTERS)}>
+        <Button type="primary" icon={<SearchOutlined />} disabled={!canSearch} onClick={handleSearch}>
+          Buscar
+        </Button>
+        <Button icon={<ClearOutlined />} onClick={handleClear}>
           Limpar filtros
         </Button>
       </Space>
 
-      {isLoading && <Spin size="large" style={{ display: 'block', margin: '48px auto' }} />}
+      {submitted === undefined && (
+        <Empty description="Informe ao menos um critério para buscar" />
+      )}
 
-      {isError && (
+      {submitted !== undefined && isLoading && <Spin size="large" style={{ display: 'block', margin: '48px auto' }} />}
+
+      {submitted !== undefined && isError && (
         <Result
           status="error"
           title="Não foi possível carregar os resultados"
@@ -156,7 +181,7 @@ export function BuscaPage() {
         />
       )}
 
-      {!isLoading && !isError && data && (
+      {submitted !== undefined && !isLoading && !isError && data && (
         <Table<FileSummaryResponse>
           rowKey="id"
           columns={columns}

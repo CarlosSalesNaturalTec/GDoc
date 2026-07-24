@@ -30,6 +30,56 @@ function fetchedUrls(): string[] {
 }
 
 describe('Busca de arquivos (web-busca)', () => {
+  it('abrir a página não consulta o servidor e exibe o estado inicial (spec: abrir a página não consulta o servidor)', async () => {
+    mockFetch({
+      'GET /auth/me': { status: 200, body: COLLABORATOR },
+      'GET /files/search': { status: 200, body: results([]) },
+    });
+
+    renderApp(['/busca']);
+    await screen.findByText('Informe ao menos um critério para buscar');
+
+    expect(fetchedUrls().some((url) => url.includes('/files/search'))).toBe(false);
+  });
+
+  it('sem nenhum critério, o botão "Buscar" fica desabilitado e Enter não dispara consulta (spec: botão desabilitado sem nenhum critério)', async () => {
+    mockFetch({
+      'GET /auth/me': { status: 200, body: COLLABORATOR },
+      'GET /files/search': { status: 200, body: results([]) },
+    });
+
+    renderApp(['/busca']);
+    await screen.findByText('Informe ao menos um critério para buscar');
+
+    expect(screen.getByRole('button', { name: /buscar/i })).toBeDisabled();
+
+    await userEvent.type(screen.getByPlaceholderText('Buscar por nome'), '   ');
+    await userEvent.keyboard('{Enter}');
+
+    expect(fetchedUrls().some((url) => url.includes('/files/search'))).toBe(false);
+  });
+
+  it('um único caractere no nome habilita o botão e o acionamento consulta o servidor (spec: um caractere no nome já habilita a busca)', async () => {
+    const pdf = file({ id: 'file-pdf', fileName: 'relatorio.pdf' });
+
+    mockFetch({
+      'GET /auth/me': { status: 200, body: COLLABORATOR },
+      'GET /files/search': { status: 200, body: results([pdf]) },
+    });
+
+    renderApp(['/busca']);
+    await screen.findByText('Informe ao menos um critério para buscar');
+
+    await userEvent.type(screen.getByPlaceholderText('Buscar por nome'), 'r');
+    expect(screen.getByRole('button', { name: /buscar/i })).toBeEnabled();
+
+    await userEvent.click(screen.getByRole('button', { name: /buscar/i }));
+    await screen.findByText('relatorio.pdf');
+
+    const searchCall = fetchedUrls().find((url) => url.includes('/files/search?q=r'));
+    expect(searchCall).toBeDefined();
+  });
+
   it('busca com filtros combinados monta a query string certa e lista só o retornado (US 9.1 cenário 1)', async () => {
     const pdf = file({ id: 'file-pdf', fileName: 'relatorio.pdf' });
 
@@ -39,16 +89,19 @@ describe('Busca de arquivos (web-busca)', () => {
     });
 
     renderApp(['/busca']);
-    await screen.findByText('relatorio.pdf');
+    await screen.findByText('Informe ao menos um critério para buscar');
 
     await userEvent.type(screen.getByPlaceholderText('Buscar por nome'), 'relatorio');
+    await userEvent.click(screen.getByRole('button', { name: /buscar/i }));
+    await screen.findByText('relatorio.pdf');
+
     await userEvent.click(screen.getByText('relatorio.pdf'));
 
     const searchCall = fetchedUrls().find((url) => url.includes('/files/search?q=relatorio'));
     expect(searchCall).toBeDefined();
   });
 
-  it('limpar filtros reseta os controles e refaz a busca sem critérios (US 9.1 cenário 2)', async () => {
+  it('alterar um filtro após buscar mantém a lista anterior e não dispara nova consulta (spec: alterar filtros após buscar mantém a lista anterior)', async () => {
     const pdf = file({ id: 'file-pdf', fileName: 'relatorio.pdf' });
 
     mockFetch({
@@ -57,17 +110,45 @@ describe('Busca de arquivos (web-busca)', () => {
     });
 
     renderApp(['/busca']);
+    await screen.findByText('Informe ao menos um critério para buscar');
+
+    await userEvent.type(screen.getByPlaceholderText('Buscar por nome'), 'relatorio');
+    await userEvent.click(screen.getByRole('button', { name: /buscar/i }));
     await screen.findByText('relatorio.pdf');
+
+    const callsBeforeEdit = fetchedUrls().filter((url) => url.includes('/files/search')).length;
+
+    await userEvent.type(screen.getByPlaceholderText('Buscar por nome'), '2');
+
+    expect(screen.getByText('relatorio.pdf')).toBeInTheDocument();
+    expect(fetchedUrls().filter((url) => url.includes('/files/search')).length).toBe(callsBeforeEdit);
+  });
+
+  it('limpar filtros volta ao estado inicial sem consultar o servidor (US 9.1 cenário 2)', async () => {
+    const pdf = file({ id: 'file-pdf', fileName: 'relatorio.pdf' });
+
+    mockFetch({
+      'GET /auth/me': { status: 200, body: COLLABORATOR },
+      'GET /files/search': { status: 200, body: results([pdf]) },
+    });
+
+    renderApp(['/busca']);
+    await screen.findByText('Informe ao menos um critério para buscar');
 
     const searchInput = screen.getByPlaceholderText('Buscar por nome') as HTMLInputElement;
     await userEvent.type(searchInput, 'relatorio');
-    expect(searchInput.value).toBe('relatorio');
+    await userEvent.click(screen.getByRole('button', { name: /buscar/i }));
+    await screen.findByText('relatorio.pdf');
+
+    const callsBeforeClear = fetchedUrls().filter((url) => url.includes('/files/search')).length;
 
     await userEvent.click(screen.getByRole('button', { name: /limpar filtros/i }));
 
     await waitFor(() => expect(searchInput.value).toBe(''));
-    const emptySearchCall = fetchedUrls().find((url) => url.endsWith('/files/search'));
-    expect(emptySearchCall).toBeDefined();
+    await screen.findByText('Informe ao menos um critério para buscar');
+    expect(screen.queryByText('relatorio.pdf')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /buscar/i })).toBeDisabled();
+    expect(fetchedUrls().filter((url) => url.includes('/files/search')).length).toBe(callsBeforeClear);
   });
 
   it('filtro de autor aparece para admin e envia author (spec: filtro de autor restrito a administrador)', async () => {
@@ -83,17 +164,18 @@ describe('Busca de arquivos (web-busca)', () => {
     });
 
     renderApp(['/busca']);
-    await screen.findByText('relatorio.pdf');
+    await screen.findByText('Informe ao menos um critério para buscar');
 
     const authorSelect = screen.getByText('Autor').closest('.ant-select')!;
     await userEvent.click(within(authorSelect as HTMLElement).getByRole('combobox'));
     await screen.findByText('Fulano');
     await userEvent.click(screen.getByText('Fulano'));
 
-    await waitFor(() => {
-      const authorCall = fetchedUrls().find((url) => url.includes('author=author-1'));
-      expect(authorCall).toBeDefined();
-    });
+    await userEvent.click(screen.getByRole('button', { name: /buscar/i }));
+    await screen.findByText('relatorio.pdf');
+
+    const authorCall = fetchedUrls().find((url) => url.includes('author=author-1'));
+    expect(authorCall).toBeDefined();
   });
 
   it('filtro de autor não aparece para colaborador, sem chamar GET /users (spec: filtro de autor restrito a administrador)', async () => {
@@ -103,7 +185,7 @@ describe('Busca de arquivos (web-busca)', () => {
     });
 
     renderApp(['/busca']);
-    await screen.findByText('Nenhum resultado');
+    await screen.findByText('Informe ao menos um critério para buscar');
 
     expect(screen.queryByText('Autor')).not.toBeInTheDocument();
     expect(fetchedUrls().some((url) => url.includes('/users'))).toBe(false);
@@ -127,6 +209,10 @@ describe('Busca de arquivos (web-busca)', () => {
     });
 
     renderApp(['/busca']);
+    await screen.findByText('Informe ao menos um critério para buscar');
+
+    await userEvent.type(screen.getByPlaceholderText('Buscar por nome'), 'foto');
+    await userEvent.click(screen.getByRole('button', { name: /buscar/i }));
     await screen.findByText('foto.png');
 
     const row = screen.getByText('foto.png').closest('tr')!;
@@ -144,6 +230,10 @@ describe('Busca de arquivos (web-busca)', () => {
     });
 
     renderApp(['/busca']);
+    await screen.findByText('Informe ao menos um critério para buscar');
+
+    await userEvent.type(screen.getByPlaceholderText('Buscar por nome'), 'inexistente');
+    await userEvent.click(screen.getByRole('button', { name: /buscar/i }));
     await screen.findByText('Nenhum resultado');
   });
 });

@@ -19,15 +19,16 @@ function toQueryString(params: SearchFilesQuery): string {
 }
 
 /**
- * `GET /files/search` (design.md D3): `queryKey` derivada dos parâmetros —
- * estado inicial (tudo vazio) é uma busca sem parâmetros, o "estado inicial
- * permitido" (US 9.1 cenário 2).
+ * `GET /files/search` (design.md D1/D3): só consulta quando há um critério
+ * **submetido** (`params !== undefined`) — o "estado inicial permitido" passou
+ * a ser "nada consultado ainda", não mais uma busca sem parâmetros.
  */
-export function useSearchFiles(params: SearchFilesQuery) {
+export function useSearchFiles(params: SearchFilesQuery | undefined) {
   return useQuery({
     queryKey: [SEARCH_FILES_KEY, params],
+    enabled: params !== undefined,
     queryFn: async () => {
-      const raw = await apiClient.get<SearchFilesResponse>(`/files/search${toQueryString(params)}`);
+      const raw = await apiClient.get<SearchFilesResponse>(`/files/search${toQueryString(params!)}`);
       return searchFilesResponseSchema.parse(raw);
     },
   });
