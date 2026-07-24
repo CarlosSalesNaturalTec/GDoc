@@ -24,11 +24,11 @@ da organização enxerga somente o seu próprio conteúdo.
 Principais recursos:
 
 - Navegador de arquivos com **pastas e subpastas** e trilha de navegação.
-- **Envio** de vários arquivos ou de uma pasta inteira; **download** de pastas
-  compactadas.
+- **Envio** de vários arquivos de uma vez ou de uma pasta inteira, preservando a
+  estrutura de subpastas.
 - **Visualização** de arquivos sem precisar baixá-los.
 - **Permissões granulares** por pasta ou por arquivo (visualizar, baixar, enviar,
-  renomear, excluir), com prazo de validade opcional.
+  renomear, excluir).
 - **Lixeira** com 30 dias para recuperar o que foi excluído.
 - **Auditoria** de quem acessou cada arquivo.
 - **Painel** gerencial de uso (para administradores).
@@ -43,9 +43,9 @@ quando sua conta é criada. Existem três:
 
 | Perfil | O que enxerga | O que pode fazer |
 | --- | --- | --- |
-| **Colaborador** | Apenas os arquivos e pastas que criou ou que lhe foram liberados. | Enviar, visualizar, baixar, renomear e excluir conforme sua permissão; ver a auditoria dos arquivos que enviou. |
-| **Administrador da unidade** | Tudo da **sua unidade** (pessoas, pastas, arquivos, permissões). Não enxerga outras unidades. | Tudo o que o colaborador faz, mais: cadastrar/editar pessoas da unidade, conceder e revogar permissões, ver o painel e a auditoria da unidade. |
-| **Administrador global** | **Todas as unidades**. | Tudo o que o administrador de unidade faz, em escala global; define administradores de unidade e acompanha o painel geral. |
+| **Colaborador** | Apenas os arquivos e pastas que criou ou que lhe foram liberados. | Enviar, visualizar, baixar, renomear e excluir conforme sua permissão; ver a auditoria dos arquivos que enviou; trocar a própria senha. |
+| **Administrador da unidade** | Tudo da **sua unidade** (pessoas, pastas, arquivos, permissões). Não enxerga outras unidades. | Tudo o que o colaborador faz, mais: cadastrar, editar, ativar/desativar pessoas da unidade e redefinir a senha delas; conceder e revogar permissões; ver o painel e a auditoria da unidade. |
+| **Administrador global** | **Todas as unidades**. | Tudo o que o administrador de unidade faz, em escala global; além disso, cria e administra as **unidades** e define administradores de unidade. |
 
 > **Importante:** os perfis definem o **alcance** (o que você enxerga). Mesmo sendo
 > administrador, você respeita o isolamento entre unidades — conteúdo de uma unidade
@@ -70,9 +70,16 @@ Ao entrar, você é levado ao seu ambiente com o conteúdo que lhe é permitido.
   senha (isso é proposital, por segurança). Confira os dados e tente de novo.
 - **Conta desativada:** se a administração desativou sua conta, o login é negado com
   aviso de conta indisponível. Fale com quem administra o sistema.
-- **Esqueci a senha:** procure a área administrativa da sua unidade para redefinição.
+- **Esqueci a senha:** peça à área administrativa da sua unidade que **redefina** sua
+  senha. O sistema **gera** uma nova senha e a mostra **uma única vez** a quem fez a
+  redefinição, que então lhe repassa. Ninguém consegue consultá-la depois — se ela se
+  perder, basta redefinir novamente. Assim que a senha é redefinida, seus acessos
+  abertos são encerrados e a senha anterior deixa de funcionar.
 
-Para **sair**, use o botão **Sair** no canto superior direito.
+Depois de entrar, você pode trocar sua senha quando quiser em **Minha conta**
+(seção 5.10).
+
+Para **sair**, clique no seu perfil no canto superior direito e escolha **Sair**.
 
 ---
 
@@ -87,10 +94,12 @@ dependem do seu perfil:
 | **Arquivos** | Todos | Navegar por pastas, enviar, baixar, visualizar e gerenciar arquivos. |
 | **Buscar** | Todos | Encontrar arquivos por nome e filtros. |
 | **Lixeira** | Todos | Recuperar ou acompanhar itens excluídos. |
-| **Pessoas** | Administradores | Cadastrar e editar contas de usuários. |
+| **Pessoas** | Administradores | Cadastrar, editar, ativar/desativar contas e redefinir senhas. |
 | **Painel** | Administradores | Ver estatísticas e gráficos de uso. |
+| **Unidades** | Administrador global | Criar, renomear e ativar/desativar unidades. |
 
-No topo da tela aparece seu **perfil** e o botão **Sair**.
+No canto superior direito fica o **menu do seu perfil** (avatar e nome do papel).
+Clicando nele, você acessa **Minha conta** e **Sair**.
 
 ---
 
@@ -113,14 +122,13 @@ criada no local onde você está.
 
 ### 5.3 Enviar arquivos
 
-Na página **Arquivos**, use a **área de envio** para adicionar arquivos à pasta atual.
-Você pode:
+Na página **Arquivos**, use os botões de envio para adicionar conteúdo à pasta atual:
 
-- Enviar **vários arquivos de uma vez** — cada um mostra seu **próprio progresso** e
-  indica sucesso ou falha de forma independente. Se um falhar, os outros continuam
-  salvos e você pode **tentar novamente apenas o que falhou**.
-- Enviar uma **pasta inteira** — a estrutura de subpastas é recriada igual dentro do
-  sistema.
+- **Enviar arquivos** — selecione **vários arquivos de uma vez**. Cada um mostra seu
+  **próprio progresso** e indica sucesso ou falha de forma independente. Se um falhar,
+  os outros continuam salvos e você pode clicar em **Repetir** apenas no que falhou.
+- **Enviar pasta** — selecione uma **pasta inteira**; a estrutura de subpastas é
+  recriada igual dentro do sistema.
 
 Ao enviar um arquivo, **você se torna o dono dele** e passa a poder consultar quem o
 acessou.
@@ -131,24 +139,31 @@ acessou.
 ### 5.4 Visualizar sem baixar
 
 Clique no **nome do arquivo** ou no botão **Visualizar**. O conteúdo abre direto na
-tela, sem baixar. Formatos com visualização: **PDF, imagens, vídeos, áudios, arquivos
-de texto e documentos do Office (Word, Excel, PowerPoint)**.
+tela, sem baixar. Formatos com visualização: **PDF, imagens, vídeos, áudios e
+arquivos de texto**.
 
-Se o formato não tiver visualização disponível, o sistema avisa e oferece o
-**download** (respeitando suas permissões).
+Outros formatos — inclusive **documentos do Office (Word, Excel, PowerPoint)** — não
+têm pré-visualização nesta versão. Nesse caso o sistema avisa que a visualização não
+está disponível e oferece o **download** (respeitando suas permissões), para você
+abrir o arquivo no aplicativo do seu computador.
 
 ### 5.5 Baixar
 
-- **Um arquivo:** botão **Baixar** na linha do arquivo.
-- **Uma pasta inteira:** você recebe um único **arquivo compactado** com o conteúdo.
-  Só entram no pacote os itens para os quais você tem permissão de baixar.
+Use o botão **Baixar** na linha do arquivo. O download respeita suas permissões: sem
+permissão de baixar, a ação é recusada.
 
-### 5.6 Renomear e substituir
+Pastas são baixadas **arquivo a arquivo** — nesta versão não há download de uma pasta
+inteira de uma só vez (veja a seção 10).
 
-Se você tem permissão, use **Renomear** para mudar o nome ou enviar uma **nova
-versão** no lugar do arquivo atual. A substituição troca o arquivo vigente no mesmo
-local; **versões anteriores não ficam guardadas** para consulta. Sem permissão, a
-ação é bloqueada com aviso.
+### 5.6 Renomear e substituir arquivos
+
+Se você tem permissão, use **Renomear** na linha do arquivo para mudar o nome ou
+enviar uma **nova versão** no lugar do arquivo atual. A substituição troca o arquivo
+vigente no mesmo local; **versões anteriores não ficam guardadas** para consulta. Sem
+permissão, a ação é bloqueada com aviso.
+
+Essa ação vale para **arquivos**. Pastas não são renomeadas nesta versão — se
+precisar mudar o nome de uma pasta, crie a nova e mova o conteúdo reenviando-o.
 
 ### 5.7 Excluir (e a lixeira)
 
@@ -157,14 +172,23 @@ onde fica por **até 30 dias**. Nesse período você pode **restaurar** o item, 
 ao local de origem com as permissões que tinha. Após 30 dias, uma rotina automática o
 apaga em definitivo (não é mais possível recuperar).
 
-Acesse pelo menu **Lixeira** para restaurar ou acompanhar seus itens excluídos.
+Acesse pelo menu **Lixeira** para restaurar ou acompanhar seus itens excluídos. A
+lista mostra a **data de exclusão** e quantos **dias restantes** faltam até o expurgo,
+com destaque colorido quando o prazo está perto do fim.
 
 ### 5.8 Buscar e filtrar
 
-No menu **Buscar**, procure por **nome** e combine filtros de **data**, **tipo de
-arquivo** (imagens, vídeos, áudios, PDFs etc.) e **autor**. Só aparecem itens que
-atendem a todos os critérios **e** que você tem permissão de ver. Um botão **limpar
-filtros** volta a lista ao estado inicial.
+No menu **Buscar**, procure por **nome** e combine filtros de **data** e **tipo de
+arquivo** (imagens, vídeos, áudios, PDFs etc.).
+
+A busca só é executada quando você **pede explicitamente** — clicando em **Buscar** ou
+teclando Enter no campo de nome — e exige **ao menos um critério** preenchido; sem
+isso, a tela apenas convida você a informar um filtro. Só aparecem itens que atendem a
+todos os critérios **e** que você tem permissão de ver. O botão **Limpar filtros**
+volta a tela ao estado inicial.
+
+> Administradores contam ainda com o filtro por **autor**, para localizar arquivos
+> enviados por uma pessoa específica da sua unidade.
 
 ### 5.9 Ver quem acessou seus arquivos (auditoria)
 
@@ -172,7 +196,22 @@ Como **dono** de um arquivo, você pode abrir a **Auditoria** dele para ver **qu
 visualizou ou baixou, com **data e hora**. Você vê apenas os registros dos arquivos
 que **você enviou** — não os de outras pessoas.
 
-### 5.10 Acesso por link direto
+### 5.10 Minha conta e troca de senha
+
+Clique no seu perfil no canto superior direito e escolha **Minha conta**. A página tem
+duas partes:
+
+- **Dados cadastrais** — seu nome, e-mail, unidade e papel, apenas para consulta.
+  Alterações nesses dados são feitas pela área administrativa.
+- **Alterar senha** — informe a **senha atual** e a **nova senha** e confirme. A nova
+  senha precisa ter **ao menos 8 caracteres**.
+
+Ao trocar a senha, você **continua conectado** onde está, mas suas **demais sessões**
+(outro navegador ou computador) são encerradas na hora e passam a exigir a nova senha.
+
+Se a senha atual informada estiver errada, a troca é recusada e nada é alterado.
+
+### 5.11 Acesso por link direto
 
 Se alguém lhe passar o endereço direto de um arquivo para o qual você **não tem
 permissão**, o acesso é **bloqueado** e nenhum conteúdo ou pré-visualização é
@@ -186,13 +225,13 @@ Além de tudo que o colaborador faz, o administrador de unidade gerencia **sua p
 unidade**. Seu alcance é **restrito à unidade** — você não enxerga nem gerencia
 conteúdo de outras.
 
-### 6.1 Cadastrar pessoas
+### 6.1 Cadastrar e editar pessoas
 
 Abra **Pessoas** no menu e clique em **Nova pessoa**. Informe:
 
 - **Nome**
 - **E-mail** (único; será o login)
-- **Senha inicial**
+- **Senha inicial** (mínimo de 8 caracteres)
 - **Telefone**
 - **Função/cargo**
 - **Área de trabalho**
@@ -203,10 +242,45 @@ Confirme em **Cadastrar**. A pessoa passa a poder entrar com essas credenciais.
 
 - Se o **e-mail já estiver em uso**, o cadastro é recusado e o campo é sinalizado —
   ajuste o e-mail sem perder o resto do preenchimento.
-- Para **editar** uma pessoa, clique nela na lista. O **e-mail** não pode ser alterado
-  na edição; os demais dados e o papel, sim.
+- Para **editar** uma pessoa, clique em **Editar** na linha dela. O **e-mail** não
+  pode ser alterado na edição; os demais dados e o papel, sim.
 
-### 6.2 Conceder e revogar permissões
+A lista mostra nome, e-mail, função, papel e **status** (ativa ou desativada).
+
+### 6.2 Ativar e desativar pessoas
+
+Na linha da pessoa, use **Desativar** para cortar o acesso dela ao sistema. Os
+**arquivos e a auditoria são preservados** — apenas o login deixa de funcionar. Use
+**Ativar** para devolver o acesso.
+
+> Você não encontra a ação de desativar na **sua própria linha** — isso evita que um
+> administrador corte o próprio acesso por engano.
+
+### 6.3 Redefinir a senha de uma pessoa
+
+Quando alguém esquece a senha, clique em **Redefinir senha** na linha da pessoa e
+confirme. O sistema:
+
+1. **Gera** uma nova senha (você não a escolhe);
+2. exibe essa senha **uma única vez**, num aviso com botão para **copiar**;
+3. **encerra imediatamente** todos os acessos abertos daquela pessoa, e a senha
+   anterior deixa de funcionar.
+
+Copie e repasse a senha com segurança antes de fechar o aviso — **ela não pode ser
+consultada depois**. Se a senha se perder, é só redefinir de novo.
+
+**Quem pode redefinir a senha de quem:**
+
+| Quem redefine | Pode redefinir de |
+| --- | --- |
+| Administrador da unidade | Colaboradores da própria unidade |
+| Administrador global | Colaboradores e administradores de unidade |
+| Ninguém | Administrador global — a senha dele só muda por ele mesmo, em **Minha conta** |
+
+Quando a ação não é permitida para determinada pessoa, o botão **Redefinir senha**
+simplesmente não aparece na linha dela.
+
+### 6.4 Conceder e revogar permissões
 
 As permissões são geridas **por recurso** (pasta ou arquivo), na própria página
 **Arquivos**. Na linha do item, clique em **Permissões**:
@@ -223,21 +297,15 @@ cada uma individualmente.
 > própria. Isso é intencional, para evitar liberar mais do que o pretendido. A tela
 > exibe um aviso lembrando disso ao conceder sobre pasta.
 
-### 6.3 Prazo de expiração de permissões
-
-Uma permissão pode ter **data de validade** opcional. Quando o vencimento se aproxima,
-a **pessoa é avisada** de que o acesso vai terminar. No vencimento, o acesso é
-**cortado automaticamente** e a **área administrativa é avisada** do corte. Assim,
-acessos temporários se encerram sozinhos, sem depender de alguém lembrar de remover.
-
-### 6.4 Auditoria da unidade
+### 6.5 Auditoria da unidade
 
 Você pode consultar a **auditoria** de qualquer arquivo da sua unidade: quem
 visualizou ou baixou, qual ação e quando. É a comprovação de acesso à informação.
 
-### 6.5 Painel gerencial
+### 6.6 Painel gerencial
 
-Abra **Painel** para ver **cartões** com as estatísticas principais e **gráficos** de:
+Abra **Painel** para ver **cartões** com os números principais — total de arquivos,
+total de pessoas, espaço utilizado e percentual da cota — e **gráficos** de:
 
 - quantidade de **arquivos por tipo**;
 - **envios por mês**;
@@ -250,11 +318,29 @@ Os números refletem o **alcance da sua unidade**.
 ## 7. Guia do Administrador Global
 
 O administrador global faz tudo que o administrador de unidade faz, porém com alcance
-sobre **todas as unidades**. Suas atribuições típicas:
+sobre **todas as unidades**.
 
-- Cadastrar e desativar pessoas em qualquer unidade.
-- Definir quem é **administrador de unidade**.
-- Acompanhar o **painel** e a **auditoria** no âmbito global.
+### 7.1 Administrar unidades
+
+O menu **Unidades** é exclusivo do administrador global. Nele você:
+
+- **Nova unidade** — informe o nome e confirme.
+- **Renomear** — altera o nome de uma unidade existente.
+- **Desativar** — só é possível desativar uma unidade **sem pessoas vinculadas**; a
+  ação é **reversível** pelo botão **Ativar**.
+
+Uma unidade desativada **não aceita novos cadastros de pessoas** — ao tentar, o
+seletor de unidade sinaliza que ela está desativada e pede outra escolha.
+
+### 7.2 Pessoas em qualquer unidade
+
+Ao cadastrar uma pessoa, você escolhe a **unidade** de lotação (apenas unidades
+ativas aparecem na lista). Esse campo só existe no **cadastro** — a unidade não é
+alterada pela edição. A lista de **Pessoas** ganha uma coluna **Unidade**, para você
+distinguir contas de unidades diferentes.
+
+Você também define quem é **administrador de unidade** e acompanha o **painel** e a
+**auditoria** no âmbito global.
 
 > Mesmo com alcance global, o **isolamento entre unidades é preservado**: o conteúdo
 > (arquivos, listagens, auditoria de bytes) de uma unidade continua pertencendo a ela.
@@ -268,19 +354,23 @@ sobre **todas as unidades**. Suas atribuições típicas:
 | Quero... | Onde | Como |
 | --- | --- | --- |
 | Entrar no sistema | Tela de login | E-mail + senha fornecidos pela administração |
+| Trocar minha senha | Minha conta | Menu do perfil (canto superior direito) → **Minha conta** |
 | Criar uma pasta | Arquivos | Botão **Nova pasta** |
-| Enviar arquivos | Arquivos | Área de envio da pasta atual |
-| Enviar uma pasta inteira | Arquivos | Selecionar a pasta na área de envio |
+| Enviar arquivos | Arquivos | Botão **Enviar arquivos** |
+| Enviar uma pasta inteira | Arquivos | Botão **Enviar pasta** |
 | Visualizar sem baixar | Arquivos | Clicar no nome ou em **Visualizar** |
-| Baixar uma pasta compactada | Arquivos | Ação de download da pasta |
-| Renomear/substituir | Arquivos | Botão **Renomear** (precisa de permissão) |
+| Baixar um arquivo | Arquivos | Botão **Baixar** na linha do arquivo |
+| Renomear/substituir um arquivo | Arquivos | Botão **Renomear** (precisa de permissão) |
 | Excluir | Arquivos | Botão **Excluir** (vai para a Lixeira) |
 | Recuperar algo excluído | Lixeira | **Restaurar** (dentro de 30 dias) |
-| Encontrar um arquivo | Buscar | Nome + filtros de data/tipo/autor |
+| Encontrar um arquivo | Buscar | Nome e/ou filtros + botão **Buscar** |
 | Ver quem acessou meu arquivo | Arquivos | Botão **Auditoria** (dono/admin) |
 | Conceder permissão | Arquivos | Botão **Permissões** (admin) |
 | Cadastrar pessoa | Pessoas | **Nova pessoa** (admin) |
+| Ativar/desativar pessoa | Pessoas | Botão **Ativar**/**Desativar** (admin) |
+| Redefinir a senha de alguém | Pessoas | Botão **Redefinir senha** (admin) |
 | Ver uso e gráficos | Painel | Menu **Painel** (admin) |
+| Criar ou desativar unidade | Unidades | Menu **Unidades** (admin global) |
 
 ---
 
@@ -301,13 +391,38 @@ Você pode ter atingido sua **cota de 10 GB**. Exclua arquivos para liberar espa
 O GDoc não guarda versões anteriores: a substituição troca o arquivo vigente. Guarde
 uma cópia por fora antes de substituir, se precisar do histórico.
 
-**Recebi um aviso de que uma permissão vai expirar.**
-É esperado: permissões podem ter prazo. Se ainda precisar do acesso após o
-vencimento, peça a um administrador que renove.
+**Cliquei em visualizar um Word (ou Excel) e não abriu na tela.**
+Documentos do Office não têm pré-visualização nesta versão. O sistema avisa e oferece
+o **download** — baixe e abra no aplicativo do seu computador.
 
-**Por que não vejo os menus "Pessoas" e "Painel"?**
-Esses itens são exclusivos de administradores. Se você precisa deles, converse com a
-área administrativa sobre o seu perfil.
+**Quero baixar uma pasta inteira de uma vez.**
+Nesta versão o download é feito arquivo a arquivo. O download de pasta compactada está
+previsto (seção 10).
+
+**Esqueci minha senha.**
+Peça à área administrativa que a **redefina**. Você recebe uma senha nova, gerada pelo
+sistema, e pode trocá-la depois em **Minha conta**.
+
+**Troquei minha senha e fui desconectado em outro computador.**
+É esperado: trocar a senha encerra as demais sessões, mantendo apenas aquela em que
+você fez a troca.
+
+**Por que não vejo os menus "Pessoas", "Painel" ou "Unidades"?**
+"Pessoas" e "Painel" são exclusivos de administradores, e "Unidades" é exclusivo do
+administrador global. Se você precisa deles, converse com a área administrativa sobre
+o seu perfil.
+
+---
+
+## 10. Recursos previstos (ainda não disponíveis)
+
+Estes recursos constam do planejamento do produto e **ainda não estão nesta versão**:
+
+- **Download de uma pasta completa em arquivo compactado** — hoje o download é feito
+  arquivo a arquivo.
+- **Prazo de expiração para permissões**, com aviso prévio à pessoa e à administração
+  no momento do corte — hoje as permissões valem até serem **revogadas manualmente**
+  em **Permissões → Revogar**.
 
 ---
 
