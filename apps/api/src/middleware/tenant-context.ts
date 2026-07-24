@@ -50,12 +50,23 @@ export function attachTenantContext(ports: Ports) {
             unit_id: string;
             role: string;
             status: string;
-          }>('SELECT id, unit_id, role, status FROM users WHERE id = $1', [claims.sub]);
+            password_changed_at: string;
+          }>('SELECT id, unit_id, role, status, password_changed_at FROM users WHERE id = $1', [claims.sub]);
           return rows[0];
         },
       );
 
       if (!identity || identity.status !== 'active') {
+        res.status(401).json({ error: 'not authenticated' });
+        return;
+      }
+
+      // Sessão emitida antes da última troca de senha é recusada (change
+      // `troca-de-senha`, design.md D1) — mesmo ponto em que se recusa a
+      // sessão de conta desativada, sem depender de expirar o token nem
+      // consultar tabela de sessões.
+      const passwordChangedAtSeconds = Math.floor(new Date(identity.password_changed_at).getTime() / 1000);
+      if (claims.iat < passwordChangedAtSeconds) {
         res.status(401).json({ error: 'not authenticated' });
         return;
       }

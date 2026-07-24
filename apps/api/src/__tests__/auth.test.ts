@@ -2,6 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import request from 'supertest';
 import type { Pool } from 'pg';
 import * as argon2 from 'argon2';
+import { createHmac } from 'node:crypto';
 import { createApp } from '../app.js';
 import { PgDatabasePort } from '../adapters/pg-database-port.js';
 import { EnvSecretsPort } from '../adapters/env-secrets-port.js';
@@ -137,5 +138,191 @@ describe('Autenticação: /auth/login, /auth/logout, /auth/me', () => {
     expect(logout.status).toBe(204);
     const clearedCookie = logout.headers['set-cookie'];
     expect(clearedCookie).toBeDefined();
+  });
+
+  describe('Sessão x troca de senha (design.md D1/D3)', () => {
+    it('sessão emitida antes da última troca de senha é recusada', async () => {
+      const app = createApp(ports);
+      const { id: userId } = await withSystemBypass(pool, async (client) => {
+        const { rows } = await client.query<{ id: string }>(
+          `INSERT INTO users (unit_id, email, password_hash, role, status) VALUES
+             ($1, 'antes-da-troca@test.dev', 'hash', 'collaborator', 'active') RETURNING id`,
+          [unitId],
+        );
+        return rows[0]!;
+      });
+
+      const staleCookie = await sessionCookieFor(ports, userId, new Date(Date.now() - 60 * 60 * 1000));
+
+      await withSystemBypass(pool, (client) =>
+        client.query('UPDATE users SET password_changed_at = now() WHERE id = $1', [userId]),
+      );
+
+      const res = await request(app).get('/auth/me').set('Cookie', staleCookie);
+      expect(res.status).toBe(401);
+    });
+
+    it('sessão emitida depois da última troca de senha é aceita', async () => {
+      const app = createApp(ports);
+      const { id: userId } = await withSystemBypass(pool, async (client) => {
+        const { rows } = await client.query<{ id: string }>(
+          `INSERT INTO users (unit_id, email, password_hash, role, status) VALUES
+             ($1, 'depois-da-troca@test.dev', 'hash', 'collaborator', 'active') RETURNING id`,
+          [unitId],
+        );
+        return rows[0]!;
+      });
+
+      await withSystemBypass(pool, (client) =>
+        client.query('UPDATE users SET password_changed_at = now() WHERE id = $1', [userId]),
+      );
+
+      const freshCookie = await sessionCookieFor(ports, userId);
+      const res = await request(app).get('/auth/me').set('Cookie', freshCookie);
+      expect(res.status).toBe(200);
+    });
+
+    it('sessão sem instante de emissão é recusada', async () => {
+      const app = createApp(ports);
+      const secrets = new EnvSecretsPort();
+      const secret = await secrets.getSecret('AUTH_SESSION_SECRET');
+      const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' }), 'utf-8').toString('base64url');
+      const payload = Buffer.from(
+        JSON.stringify({ sub: activeUserId, exp: Math.floor(Date.now() / 1000) + 3600 }),
+        'utf-8',
+      ).toString('base64url');
+      const signature = createHmac('sha256', secret).update(`${header}.${payload}`).digest('base64url');
+      const tokenWithoutIat = `${header}.${payload}.${signature}`;
+
+      const res = await request(app).get('/auth/me').set('Cookie', `${SESSION_COOKIE_NAME}=${tokenWithoutIat}`);
+      expect(res.status).toBe(401);
+    });
+  });
+
+  describe('POST /auth/password (US 1.3)', () => {
+    async function createUser(email: string): Promise<{ id: string; passwordHash: string }> {
+      const passwordHash = await argon2.hash('senha-original', { type: argon2.argon2id });
+      const { id } = await withSystemBypass(pool, async (client) => {
+        const { rows } = await client.query<{ id: string }>(
+          `INSERT INTO users (unit_id, email, password_hash, role, status) VALUES
+             ($1, $2, $3, 'collaborator', 'active') RETURNING id`,
+          [unitId, email, passwordHash],
+        );
+        return rows[0]!;
+      });
+      return { id, passwordHash };
+    }
+
+    it('troca válida altera a senha e a sessão corrente sobrevive; sessão antiga passa a ser recusada', async () => {
+      const app = createApp(ports);
+      const { id: userId } = await createUser('troca-valida@test.dev');
+      const oldCookie = await sessionCookieFor(ports, userId);
+
+      const res = await request(app)
+        .post('/auth/password')
+        .set('Cookie', oldCookie)
+        .send({ currentPassword: 'senha-original', newPassword: 'senha-nova-valida' });
+
+      expect(res.status).toBe(204);
+      const setCookie = res.headers['set-cookie'];
+      expect(setCookie).toBeDefined();
+      const newCookie = (Array.isArray(setCookie) ? setCookie : [setCookie]).find((c: string) =>
+        c.startsWith(`${SESSION_COOKIE_NAME}=`),
+      )!;
+
+      // A sessão em que a troca ocorreu (reemitida) segue válida.
+      const meWithNewCookie = await request(app).get('/auth/me').set('Cookie', newCookie);
+      expect(meWithNewCookie.status).toBe(200);
+
+      // Login com a senha nova passa a funcionar; a antiga deixa de autenticar.
+      const loginNew = await request(app)
+        .post('/auth/login')
+        .send({ email: 'troca-valida@test.dev', password: 'senha-nova-valida' });
+      expect(loginNew.status).toBe(200);
+
+      const loginOld = await request(app)
+        .post('/auth/login')
+        .send({ email: 'troca-valida@test.dev', password: 'senha-original' });
+      expect(loginOld.status).toBe(401);
+    });
+
+    it('senha atual incorreta é recusada sem alterar dado algum', async () => {
+      const app = createApp(ports);
+      const { id: userId } = await createUser('senha-atual-errada@test.dev');
+      const cookie = await sessionCookieFor(ports, userId);
+
+      const res = await request(app)
+        .post('/auth/password')
+        .set('Cookie', cookie)
+        .send({ currentPassword: 'senha-errada', newPassword: 'senha-nova-valida' });
+
+      expect(res.status).toBe(400);
+      expect(res.body.error).toBe('current password is incorrect');
+
+      const login = await request(app)
+        .post('/auth/login')
+        .send({ email: 'senha-atual-errada@test.dev', password: 'senha-original' });
+      expect(login.status).toBe(200);
+    });
+
+    it('senha nova curta é recusada', async () => {
+      const app = createApp(ports);
+      const { id: userId } = await createUser('senha-nova-curta@test.dev');
+      const cookie = await sessionCookieFor(ports, userId);
+
+      const res = await request(app)
+        .post('/auth/password')
+        .set('Cookie', cookie)
+        .send({ currentPassword: 'senha-original', newPassword: 'curta' });
+
+      expect(res.status).toBe(400);
+    });
+
+    it('sem sessão retorna 401', async () => {
+      const app = createApp(ports);
+      const res = await request(app)
+        .post('/auth/password')
+        .send({ currentPassword: 'senha-original', newPassword: 'senha-nova-valida' });
+      expect(res.status).toBe(401);
+    });
+
+    it('sessão emitida antes da troca é recusada após a troca', async () => {
+      const app = createApp(ports);
+      const { id: userId } = await createUser('sessao-antiga@test.dev');
+      const staleCookie = await sessionCookieFor(ports, userId, new Date(Date.now() - 60 * 60 * 1000));
+      const otherCookie = await sessionCookieFor(ports, userId);
+
+      const res = await request(app)
+        .post('/auth/password')
+        .set('Cookie', otherCookie)
+        .send({ currentPassword: 'senha-original', newPassword: 'senha-nova-valida' });
+      expect(res.status).toBe(204);
+
+      const meWithStale = await request(app).get('/auth/me').set('Cookie', staleCookie);
+      expect(meWithStale.status).toBe(401);
+    });
+  });
+
+  describe('GET /auth/profile (US 1.3, cenário 5)', () => {
+    it('devolve nome, e-mail, unidade e papel da pessoa autenticada, sem material de senha', async () => {
+      const app = createApp(ports);
+      const res = await request(app).get('/auth/profile').set('Cookie', await sessionCookieFor(ports, activeUserId));
+
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({
+        fullName: 'Pessoa Ativa',
+        email: 'ativo@test.dev',
+        unitName: 'Unidade Auth',
+        role: 'collaborator',
+      });
+      expect(res.body.password).toBeUndefined();
+      expect(res.body.passwordHash).toBeUndefined();
+    });
+
+    it('sem sessão retorna 401', async () => {
+      const app = createApp(ports);
+      const res = await request(app).get('/auth/profile');
+      expect(res.status).toBe(401);
+    });
   });
 });

@@ -16,6 +16,7 @@ O **objetivo principal** do GDoc é entregar um repositório de arquivos corpora
 
 * **Dentro do Escopo:**
   * Login por usuário e senha, com contas criadas exclusivamente pela área administrativa.
+  * Área "Minha conta", com consulta aos próprios dados cadastrais e alteração da própria senha; redefinição administrativa de senha para quem esquecer a sua.
   * Cadastro de pessoas com os dados: nome, unidade, telefone, e-mail, função/cargo, área de trabalho e observação.
   * Isolamento por unidade: cada unidade só enxerga os próprios arquivos; existe o papel de administrador de unidade.
   * Navegador de arquivos com pastas aninhadas, trilha de navegação (breadcrumb), envio, download e visualização.
@@ -33,6 +34,7 @@ O **objetivo principal** do GDoc é entregar um repositório de arquivos corpora
 * **Fora de Escopo (nesta versão):**
   * Login por conta Google ou integração com o login corporativo existente (o MVP usa usuário e senha próprios).
   * Autocadastro de pessoas ou convite por e-mail (contas são criadas apenas pela administração).
+  * Recuperação de senha por e-mail ("esqueci minha senha" com link enviado à pessoa) — o MVP não envia e-mails, e por isso o esquecimento é resolvido por redefinição administrativa.
   * Edição do conteúdo dos documentos por dentro do sistema (a permissão de "editar" cobre apenas renomear e substituir o arquivo por uma nova versão).
   * Histórico de versões navegável de um arquivo (substituir troca o arquivo vigente; versões anteriores não ficam disponíveis para consulta).
   * Compartilhamento de arquivos entre unidades diferentes.
@@ -67,6 +69,44 @@ O **objetivo principal** do GDoc é entregar um repositório de arquivos corpora
       * **Dado** que minha conta foi desativada pela administração
       * **Quando** tento fazer login com credenciais corretas
       * **Então** o acesso é negado com aviso de conta indisponível.
+
+* **US 1.3:** Como Colaborador, eu quero alterar minha própria senha em "Minha conta" para que apenas eu conheça a credencial de acesso à minha área.
+  * **Critérios de Aceitação:**
+    * *Cenário 1 — Troca válida:*
+      * **Dado** que estou autenticado e acesso "Minha conta"
+      * **Quando** informo minha senha atual e uma nova senha válida
+      * **Então** a senha é alterada, continuo autenticado nesta sessão e passo a entrar com a nova senha nos próximos acessos.
+    * *Cenário 2 — Senha atual incorreta:*
+      * **Dado** que estou na tela de alteração de senha
+      * **Quando** informo uma senha atual que não confere
+      * **Então** a alteração é recusada com aviso de que a senha atual está incorreta e a senha vigente permanece inalterada.
+    * *Cenário 3 — Nova senha fora da política:*
+      * **Dado** que estou na tela de alteração de senha
+      * **Quando** informo uma nova senha que não atende ao tamanho mínimo exigido
+      * **Então** a alteração é recusada com aviso do requisito não atendido, antes de qualquer mudança.
+    * *Cenário 4 — Acessos anteriores encerrados:*
+      * **Dado** que eu havia entrado no sistema em outro dispositivo ou navegador
+      * **Quando** altero minha senha
+      * **Então** aqueles acessos são encerrados e passam a exigir novo login, sem depender de eu sair manualmente em cada um deles.
+    * *Cenário 5 — Meus dados são apenas consultados:*
+      * **Dado** que acesso "Minha conta"
+      * **Quando** visualizo meus dados cadastrais (nome, e-mail, unidade e papel)
+      * **Então** eles são exibidos apenas para consulta, pois sua alteração continua sendo atribuição da área administrativa.
+
+* **US 1.4:** Como Administrador de Unidade, eu quero redefinir a senha de um Colaborador para que ele recupere o acesso quando esquecer a própria senha.
+  * **Critérios de Aceitação:**
+    * *Cenário 1 — Redefinição pelo Administrador de Unidade:*
+      * **Dado** que sou Administrador de Unidade e o Colaborador pertence à minha unidade
+      * **Quando** solicito a redefinição da senha dessa pessoa
+      * **Então** o sistema gera uma nova senha, exibe-a uma única vez para que eu a repasse à pessoa e não volta a exibi-la depois.
+    * *Cenário 2 — Alcance da redefinição:*
+      * **Dado** que sou Administrador de Unidade
+      * **Quando** tento redefinir a senha de outro Administrador de Unidade ou de um Administrador Global
+      * **Então** a ação é recusada com aviso de permissão insuficiente; ao Administrador Global cabe redefinir a senha de Colaboradores e de Administradores de Unidade, e a senha de um Administrador Global só é alterada por ele mesmo em "Minha conta".
+    * *Cenário 3 — Acesso anterior encerrado imediatamente:*
+      * **Dado** que a pessoa estava com acesso aberto no momento da redefinição
+      * **Quando** a senha é redefinida pela administração
+      * **Então** todos os acessos abertos dessa pessoa são encerrados e a senha anterior deixa de funcionar de imediato.
 
 ### Épico 2: Navegação e Gestão de Arquivos e Pastas
 
@@ -240,24 +280,26 @@ O **objetivo principal** do GDoc é entregar um repositório de arquivos corpora
 
 1. Autenticação por usuário e senha; contas criadas exclusivamente pela área administrativa, sem autocadastro.
 2. Cadastro de pessoas com os campos: nome, unidade, telefone, e-mail, função/cargo, área de trabalho e observação; e-mail único por conta.
-3. Três níveis de papel: Administrador Global, Administrador de Unidade e Colaborador, com alcance de visibilidade correspondente.
-4. Isolamento total de conteúdo entre unidades: nenhuma pessoa acessa arquivos de unidade diferente da sua, por navegação, busca ou link direto.
-5. Estrutura de pastas aninhadas com trilha de navegação; envio, download e visualização de itens conforme permissão.
-6. Envio de múltiplos arquivos com progresso individual e tratamento independente de falhas; envio de pasta preservando a hierarquia; download de pasta completa em arquivo compactado, restrito aos itens permitidos.
-7. Permissões concedidas por pasta ou por arquivos selecionados, cobrindo visualizar, baixar, enviar, renomear/substituir e excluir, sem herança automática para o conteúdo interno de pastas.
-8. Prazo de expiração opcional por permissão: aviso prévio à pessoa, encerramento automático do acesso no vencimento e aviso à área administrativa no momento do corte.
-9. Ao enviar um arquivo, o remetente torna-se seu dono e recebe direito de consultar a auditoria daquele arquivo.
-10. Controle de acesso ativo em toda a aplicação, incluindo bloqueio de acesso a arquivo por link direto sem permissão, sem expor pré-visualização.
-11. Registro de auditoria de visualização e download, contendo pessoa, ação, data e hora; consultável por administradores (dentro do seu alcance) e pelo dono do arquivo sobre seus próprios arquivos.
-12. Lixeira com retenção de 30 dias, restauração ao local de origem com permissões preservadas e expurgo permanente automático por rotina diária às 3h.
-13. Cota de 10 GB por pessoa, com bloqueio de novos envios ao atingir o limite e aviso correspondente.
-14. Painel gerencial com cartões de estatísticas e gráficos de arquivos por tipo, envios por mês e espaço utilizado versus disponível, respeitando o alcance do administrador.
-15. Busca por nome e filtros combináveis por data, tipo de arquivo e autor, com botão para limpar filtros, sempre limitados aos itens permitidos.
-16. Visualização sem download de PDFs, imagens, vídeos, áudios, arquivos de texto e documentos de escritório (Word, Excel, PowerPoint); mensagem clara quando não houver pré-visualização.
+3. Alteração da própria senha em "Minha conta", mediante confirmação da senha atual e respeitando o tamanho mínimo exigido; a alteração encerra os demais acessos abertos da pessoa. Os dados cadastrais aparecem em "Minha conta" apenas para consulta.
+4. Redefinição administrativa de senha, com senha gerada pelo sistema e exibida uma única vez, encerrando de imediato os acessos abertos da pessoa: o Administrador de Unidade redefine a senha de Colaboradores da própria unidade; o Administrador Global, a de Colaboradores e Administradores de Unidade. A senha de um Administrador Global só é alterada por ele mesmo.
+5. Três níveis de papel: Administrador Global, Administrador de Unidade e Colaborador, com alcance de visibilidade correspondente.
+6. Isolamento total de conteúdo entre unidades: nenhuma pessoa acessa arquivos de unidade diferente da sua, por navegação, busca ou link direto.
+7. Estrutura de pastas aninhadas com trilha de navegação; envio, download e visualização de itens conforme permissão.
+8. Envio de múltiplos arquivos com progresso individual e tratamento independente de falhas; envio de pasta preservando a hierarquia; download de pasta completa em arquivo compactado, restrito aos itens permitidos.
+9. Permissões concedidas por pasta ou por arquivos selecionados, cobrindo visualizar, baixar, enviar, renomear/substituir e excluir, sem herança automática para o conteúdo interno de pastas.
+10. Prazo de expiração opcional por permissão: aviso prévio à pessoa, encerramento automático do acesso no vencimento e aviso à área administrativa no momento do corte.
+11. Ao enviar um arquivo, o remetente torna-se seu dono e recebe direito de consultar a auditoria daquele arquivo.
+12. Controle de acesso ativo em toda a aplicação, incluindo bloqueio de acesso a arquivo por link direto sem permissão, sem expor pré-visualização.
+13. Registro de auditoria de visualização e download, contendo pessoa, ação, data e hora; consultável por administradores (dentro do seu alcance) e pelo dono do arquivo sobre seus próprios arquivos.
+14. Lixeira com retenção de 30 dias, restauração ao local de origem com permissões preservadas e expurgo permanente automático por rotina diária às 3h.
+15. Cota de 10 GB por pessoa, com bloqueio de novos envios ao atingir o limite e aviso correspondente.
+16. Painel gerencial com cartões de estatísticas e gráficos de arquivos por tipo, envios por mês e espaço utilizado versus disponível, respeitando o alcance do administrador.
+17. Busca por nome e filtros combináveis por data, tipo de arquivo e autor, com botão para limpar filtros, sempre limitados aos itens permitidos.
+18. Visualização sem download de PDFs, imagens, vídeos, áudios, arquivos de texto e documentos de escritório (Word, Excel, PowerPoint); mensagem clara quando não houver pré-visualização.
 
 ## 6. Requisitos Não Funcionais
 
-* **Segurança e Confidencialidade:** o acesso à informação é sempre validado no servidor a cada ação (visualizar, baixar, enviar, alterar, excluir), independentemente da interface; links diretos nunca contornam a verificação de permissão. Senhas são armazenadas de forma protegida e nunca exibidas.
+* **Segurança e Confidencialidade:** o acesso à informação é sempre validado no servidor a cada ação (visualizar, baixar, enviar, alterar, excluir), independentemente da interface; links diretos nunca contornam a verificação de permissão. Senhas são armazenadas de forma protegida e nunca exibidas — a única exceção é a senha gerada em uma redefinição administrativa, apresentada uma única vez a quem a solicitou e não recuperável depois. Alterar ou redefinir uma senha encerra os acessos já abertos daquela pessoa.
 * **Privacidade entre unidades:** o isolamento por unidade é um requisito de confidencialidade — em nenhuma hipótese o conteúdo de uma unidade fica visível a outra.
 * **Desempenho e escala:** o sistema deve suportar arquivos grandes (sem limite de tamanho por arquivo definido), incluindo vídeos, com envio e download estáveis; a navegação em pastas com muitos itens deve permanecer fluida.
 * **Confiabilidade da retenção e da auditoria:** os registros de auditoria e o controle da lixeira devem ser confiáveis e resistentes a perda; a rotina diária de expurgo às 3h deve executar de forma consistente.

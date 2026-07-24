@@ -1,10 +1,12 @@
-import { screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
+import { App as AntdApp, ConfigProvider } from 'antd';
 import { PersonStatus, UnitStatus, UserRole } from '@gdoc/shared';
 import type { PersonResponse } from '@gdoc/shared';
 import { mockFetch } from './mock-fetch';
 import { renderApp } from './render-app';
+import { SenhaGeradaModal } from '../pessoas/SenhaGeradaModal';
 
 const UNIT_ADMIN = { id: 'admin-1', unitId: 'unit-1', role: UserRole.UNIT_ADMIN };
 const GLOBAL_ADMIN = { id: 'admin-g', unitId: 'unit-1', role: UserRole.GLOBAL_ADMIN };
@@ -411,5 +413,112 @@ describe('Gestão de pessoas da SPA (web-pessoas)', () => {
     const dialog = await findDialogByTitle('Nova pessoa');
     // sem campo "Unidade" no formulário
     expect(within(dialog).queryByText('Unidade')).not.toBeInTheDocument();
+  });
+
+  describe('Redefinição de senha (US 1.4, design.md (troca-de-senha) D5) — visibilidade é UX, não defesa', () => {
+    it('unit_admin vê a ação só em colaboradores', async () => {
+      const collaborator = person({ id: 'p-collab', fullName: 'Um Colaborador', role: UserRole.COLLABORATOR });
+      const unitAdmin = person({ id: 'p-unit-admin', fullName: 'Outro Unit Admin', role: UserRole.UNIT_ADMIN });
+      const globalAdmin = person({ id: 'p-global-admin', fullName: 'Um Global Admin', role: UserRole.GLOBAL_ADMIN });
+
+      mockFetch({
+        'GET /auth/me': { status: 200, body: UNIT_ADMIN },
+        'GET /users': { status: 200, body: [collaborator, unitAdmin, globalAdmin] },
+      });
+
+      renderApp(['/admin/pessoas']);
+      await screen.findByText('Um Colaborador');
+
+      const collabRow = screen.getByText('Um Colaborador').closest('tr')!;
+      expect(within(collabRow).getByRole('button', { name: 'Redefinir senha' })).toBeInTheDocument();
+
+      const unitAdminRow = screen.getByText('Outro Unit Admin').closest('tr')!;
+      expect(within(unitAdminRow).queryByRole('button', { name: 'Redefinir senha' })).not.toBeInTheDocument();
+
+      const globalAdminRow = screen.getByText('Um Global Admin').closest('tr')!;
+      expect(within(globalAdminRow).queryByRole('button', { name: 'Redefinir senha' })).not.toBeInTheDocument();
+    });
+
+    it('global_admin vê a ação em colaboradores e administradores de unidade; nenhuma linha de global_admin oferece a ação', async () => {
+      const collaborator = person({ id: 'p-collab', fullName: 'Um Colaborador', role: UserRole.COLLABORATOR });
+      const unitAdmin = person({ id: 'p-unit-admin', fullName: 'Um Unit Admin', role: UserRole.UNIT_ADMIN });
+      const globalAdmin = person({ id: 'p-global-admin', fullName: 'Outro Global Admin', role: UserRole.GLOBAL_ADMIN });
+
+      mockFetch({
+        'GET /auth/me': { status: 200, body: GLOBAL_ADMIN },
+        'GET /users': { status: 200, body: [collaborator, unitAdmin, globalAdmin] },
+      });
+
+      renderApp(['/admin/pessoas']);
+      await screen.findByText('Um Colaborador');
+
+      const collabRow = screen.getByText('Um Colaborador').closest('tr')!;
+      expect(within(collabRow).getByRole('button', { name: 'Redefinir senha' })).toBeInTheDocument();
+
+      const unitAdminRow = screen.getByText('Um Unit Admin').closest('tr')!;
+      expect(within(unitAdminRow).getByRole('button', { name: 'Redefinir senha' })).toBeInTheDocument();
+
+      const globalAdminRow = screen.getByText('Outro Global Admin').closest('tr')!;
+      expect(within(globalAdminRow).queryByRole('button', { name: 'Redefinir senha' })).not.toBeInTheDocument();
+    });
+
+    it('confirma e exibe a senha gerada uma única vez, com aviso de que não será mostrada de novo', async () => {
+      const collaborator = person({ id: 'p-collab', fullName: 'Um Colaborador', role: UserRole.COLLABORATOR });
+
+      mockFetch({
+        'GET /auth/me': { status: 200, body: UNIT_ADMIN },
+        'GET /users': { status: 200, body: [collaborator] },
+        'POST /users/p-collab/password': { status: 200, body: { generatedPassword: 'Senha-Gerada-123' } },
+      });
+
+      renderApp(['/admin/pessoas']);
+      await screen.findByText('Um Colaborador');
+
+      const row = screen.getByText('Um Colaborador').closest('tr')!;
+      await userEvent.click(within(row).getByRole('button', { name: 'Redefinir senha' }));
+      await userEvent.click(confirmButton('Sim, redefinir'));
+
+      await screen.findByText('Senha-Gerada-123');
+      expect(screen.getByText(/não será exibida novamente/i)).toBeInTheDocument();
+    });
+
+    it('senha some ao fechar o modal: "Concluir" descarta o valor do estado do pai (design.md D7)', () => {
+      // Testa o `SenhaGeradaModal` isolado do restante da página: a animação de
+      // fechamento do AntD `Modal` não completa sob jsdom (sem `animationend`
+      // real), então a asserção relevante é o contrato de descarte — "Concluir"
+      // chama `onClose`, e é *esse* callback que zera o estado no componente pai
+      // (`PessoasPage`), tornando a senha irrecuperável.
+      const onClose = vi.fn();
+      render(
+        <ConfigProvider>
+          <AntdApp>
+            <SenhaGeradaModal generatedPassword="Senha-Gerada-123" onClose={onClose} />
+          </AntdApp>
+        </ConfigProvider>,
+      );
+
+      expect(screen.getByText('Senha-Gerada-123')).toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: 'Concluir' }));
+      expect(onClose).toHaveBeenCalledTimes(1);
+    });
+
+    it('403 ao redefinir exibe o mesmo aviso neutro das demais operações', async () => {
+      const collaborator = person({ id: 'p-collab', fullName: 'Um Colaborador', role: UserRole.COLLABORATOR });
+
+      mockFetch({
+        'GET /auth/me': { status: 200, body: UNIT_ADMIN },
+        'GET /users': { status: 200, body: [collaborator] },
+        'POST /users/p-collab/password': { status: 403, body: { error: 'forbidden' } },
+      });
+
+      renderApp(['/admin/pessoas']);
+      await screen.findByText('Um Colaborador');
+
+      const row = screen.getByText('Um Colaborador').closest('tr')!;
+      await userEvent.click(within(row).getByRole('button', { name: 'Redefinir senha' }));
+      await userEvent.click(confirmButton('Sim, redefinir'));
+
+      await screen.findByText('Permissão insuficiente para executar esta ação.');
+    });
   });
 });

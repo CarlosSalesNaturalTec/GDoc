@@ -11,7 +11,9 @@ import type {
   FolderResponse,
   GrantListResponse,
   GrantResponse,
+  MyProfileResponse,
   PersonResponse,
+  ResetPasswordResponse,
   SearchFilesResponse,
   SignedUrlResponse,
   TrashListResponse,
@@ -233,6 +235,19 @@ export const dashboardResponseSchema: z.ZodType<DashboardResponse> = z.object({
     capacityBytes: z.number(),
     availableBytes: z.number(),
   }),
+});
+
+/** Espelha `MyProfileResponse` (change `troca-de-senha`, `web-minha-conta`) — fronteira de `GET /auth/profile`. */
+export const myProfileResponseSchema: z.ZodType<MyProfileResponse> = z.object({
+  fullName: z.string().nullable(),
+  email: z.string(),
+  unitName: z.string(),
+  role: z.enum([UserRole.COLLABORATOR, UserRole.UNIT_ADMIN, UserRole.GLOBAL_ADMIN]),
+});
+
+/** Espelha `ResetPasswordResponse` (change `troca-de-senha`, `web-pessoas`) — fronteira de `POST /users/:id/password`. */
+export const resetPasswordResponseSchema: z.ZodType<ResetPasswordResponse> = z.object({
+  generatedPassword: z.string(),
 });
 
 /** Espelha `AuditQueryResponse` (design.md D6, `web-auditoria`): acessos (`view`/`download`) de um arquivo. */

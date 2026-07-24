@@ -9,6 +9,7 @@ import { LixeiraPage } from '../lixeira/LixeiraPage';
 import { PessoasPage } from '../pessoas/PessoasPage';
 import { UnidadesPage } from '../unidades/UnidadesPage';
 import { PainelPage } from '../painel/PainelPage';
+import { MinhaContaPage } from '../conta/MinhaContaPage';
 import { HomePage } from './HomePage';
 
 /**
@@ -30,6 +31,10 @@ export const routes: RouteObject[] = [
           { path: '/pastas/:folderId', element: <ExplorerPage /> },
           { path: '/busca', element: <BuscaPage /> },
           { path: '/lixeira', element: <LixeiraPage /> },
+          // "Minha conta" (US 1.3, `web-minha-conta`): acessível a qualquer
+          // papel autenticado — não é item de administração, então não entra
+          // na guarda `roles={[...]}` abaixo.
+          { path: '/minha-conta', element: <MinhaContaPage /> },
           {
             element: <RequireAuth roles={[UserRole.UNIT_ADMIN, UserRole.GLOBAL_ADMIN]} />,
             children: [
