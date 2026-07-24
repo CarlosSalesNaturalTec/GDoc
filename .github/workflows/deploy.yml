@@ -14,9 +14,66 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  changes:
+    name: Detect docs-only merge
+    if: github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    outputs:
+      docs_only: ${{ steps.classify.outputs.docs_only }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          fetch-depth: 0
+
+      # Gate docs-only (design.md D3): workflow_run não aceita filtro de
+      # `paths`, então classificamos aqui o diff trazido pelo merge (o repo
+      # usa merge commit, nunca squash, então SHA^1 é a main anterior). Docs-only
+      # só quando TODO arquivo casa com o allowlist de documentação — qualquer
+      # arquivo fora, ou ausência de pai único (histórico raso/commit inicial),
+      # é fail-safe: não docs-only, o pipeline implanta.
+      - name: Classify merge as docs-only or not
+        id: classify
+        run: |
+          SHA="${{ github.event.workflow_run.head_sha }}"
+
+          if ! git rev-parse "${SHA}^1" >/dev/null 2>&1; then
+            echo "Sem pai único para $SHA (commit inicial ou histórico insuficiente) — tratando como NÃO docs-only (fail-safe)."
+            echo "docs_only=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          CHANGED_FILES=$(git diff --name-only "${SHA}^1" "${SHA}")
+          echo "Arquivos alterados pelo merge:"
+          echo "$CHANGED_FILES"
+
+          if [ -z "$CHANGED_FILES" ]; then
+            echo "Diff vazio — tratando como NÃO docs-only (fail-safe)."
+            echo "docs_only=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          DOCS_ONLY=true
+          while IFS= read -r FILE; do
+            case "$FILE" in
+              *.md|docs/*|openspec/*|LICENSE) ;;
+              *) DOCS_ONLY=false ;;
+            esac
+          done <<< "$CHANGED_FILES"
+
+          if [ "$DOCS_ONLY" = true ]; then
+            echo "Merge docs-only detectado — pulando build/push/migração/deploy."
+            echo "docs_only=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Merge inclui arquivo fora do allowlist de documentação — build/push/migração/deploy prosseguem."
+            echo "docs_only=false" >> "$GITHUB_OUTPUT"
+          fi
+
   build-push-deploy:
     name: Build, push and deploy
-    if: github.event.workflow_run.conclusion == 'success'
+    needs: changes
+    if: github.event.workflow_run.conclusion == 'success' && needs.changes.outputs.docs_only == 'false'
     runs-on: ubuntu-latest
 
     # Sem chave de service account: autenticação por Workload Identity
@@ -57,6 +114,26 @@ jobs:
         run: |
           docker push "${IMAGE}:${{ github.event.workflow_run.head_sha }}"
           docker push "${IMAGE}:latest"
+
+      # Migra o schema ANTES de trocar o tráfego (design.md D2): a revisão
+      # nova nunca sobe contra um banco desatualizado. `runMigrations()` é
+      # idempotente (schema_migrations) — sem migração pendente é no-op.
+      # Falha aqui aborta o workflow antes do `deploy` (tráfego permanece na
+      # revisão anterior).
+      - name: Update migration job image
+        run: |
+          gcloud run jobs update "${{ vars.GCP_MIGRATE_JOB }}" \
+            --project "${{ vars.GCP_PROJECT_ID }}" \
+            --region "${{ vars.GCP_REGION }}" \
+            --image "${IMAGE}:${{ github.event.workflow_run.head_sha }}" \
+            --quiet
+
+      - name: Run database migrations
+        run: |
+          gcloud run jobs execute "${{ vars.GCP_MIGRATE_JOB }}" \
+            --project "${{ vars.GCP_PROJECT_ID }}" \
+            --region "${{ vars.GCP_REGION }}" \
+            --wait
 
       - name: Deploy to Cloud Run
         run: |

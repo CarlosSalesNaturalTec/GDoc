@@ -43,6 +43,11 @@ output "trash_purge_job_name" {
   value       = google_cloud_run_v2_job.trash_purge.name
 }
 
+output "migrate_job_name" {
+  description = "Nome do Cloud Run Job de migração de banco — valor para a variável de repositório GCP_MIGRATE_JOB do GitHub Actions (ver .github/workflows/deploy.yml)."
+  value       = google_cloud_run_v2_job.migrate.name
+}
+
 output "github_actions_workload_identity_provider" {
   description = "Valor para o secret/var GCP_WORKLOAD_IDENTITY_PROVIDER do GitHub Actions (ver .github/workflows/deploy.yml)."
   value       = google_iam_workload_identity_pool_provider.github.name
