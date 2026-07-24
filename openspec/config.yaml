@@ -84,9 +84,9 @@ rules:
   tasks:
     - Separar claramente tarefas de infraestrutura (Terraform/GCP) das
       tarefas de paridade dev (SessionStart hook/sandbox).
-  spec:
-    - Cada "### Requirement" deve abrir o corpo com sujeito + verbo normativo
+  specs:
+    - 'Cada "### Requirement" deve abrir o corpo com sujeito + verbo normativo
       (SHALL/MUST) na PRIMEIRA linha de prosa após o header — ex.: "A SPA SHALL
       exibir...". O validador --strict só inspeciona essa primeira linha ao
       procurar SHALL/MUST; abrir com cláusula de contexto ("Quando...", "Ao...")
-      e deixar o SHALL numa linha seguinte reprova a spec.
+      e deixar o SHALL numa linha seguinte reprova a spec.'
