@@ -90,6 +90,18 @@ Sem chave de service account em lugar nenhum — `cicd.tf` provisiona um
 Workload Identity Pool que só aceita tokens OIDC do repositório configurado
 em `github_repository` (`CarlosSalesNaturalTec/GDoc` por padrão).
 
+Os bindings de IAM do deployer (`cicd.tf`) são **por recurso** (privilégio
+mínimo): `roles/artifactregistry.writer` no repositório de imagens,
+`roles/run.developer` **no serviço da API** e `roles/iam.serviceAccountUser` na
+service account de runtime da API. Como o pipeline também atualiza e executa o
+**Job de migração** (`${local.name_prefix}-migrate`) e um Job é um recurso
+distinto do serviço, o deployer recebe `roles/run.developer` **também no Job de
+migração** (`deployer_run_developer_migrate_job`) — sem isso o passo "Update
+migration job image" do deploy falha com `PERMISSION_DENIED` em `run.jobs.get` e
+tanto a migração quanto o `deploy` são pulados. O act-as não precisa de binding
+novo: o Job reusa a mesma service account de runtime da API, já coberta pelo
+`serviceAccountUser` acima.
+
 ## Bootstrap do administrador global
 
 Depois do `apply` (que cria o Job `${local.name_prefix}-bootstrap` e o secret
@@ -291,6 +303,16 @@ recriadas, mas não remove o que já foi criado antes dela existir.
   desatualizado; falha no `execute --wait` aborta o workflow antes do
   `deploy` (tráfego permanece na revisão anterior). O nome do job precisa
   estar na variável de repositório `GCP_MIGRATE_JOB` (tabela acima).
+  **Desbloqueio manual de migração pendente:** use **este** Job, atualizando a
+  imagem para uma tag que contenha a migração antes de executar
+  (`gcloud run jobs update ${local.name_prefix}-migrate --image <IMAGE>:<SHA>` +
+  `execute --wait`). **Não** use o Job de bootstrap para "aplicar migrações": a
+  imagem dele é pinada (`lifecycle.ignore_changes = [image]`) e o pipeline não a
+  atualiza, então ele pode rodar uma imagem anterior à migração — cujo
+  `dist/db/migrations` não contém o `.sql` novo — e `runMigrations()` conclui com
+  **sucesso sem aplicar nada** (o registro em `schema_migrations` nunca é criado).
+  Foi exatamente esse "sucesso falso" que mascarou um HTTP 500 em produção antes
+  do change `cicd-iam-job-migracao`.
 
 ## O que falta (fora de escopo desta mudança)
 

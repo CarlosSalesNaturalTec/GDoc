@@ -62,9 +62,30 @@ resource "google_cloud_run_v2_service_iam_member" "deployer_run_developer" {
 }
 
 # Deploy de uma revisão precisa poder "agir como" a service account de
-# runtime da API que a revisão vai usar (ver cloud_run.tf).
+# runtime da API que a revisão vai usar (ver cloud_run.tf). O Job de migração
+# (migrate_job.tf) reusa esta MESMA service account de runtime, então o
+# "act-as" necessário para atualizar/executar o Job também já está coberto aqui
+# — nenhum serviceAccountUser adicional é preciso (change cicd-iam-job-migracao,
+# design.md D2).
 resource "google_service_account_iam_member" "deployer_act_as_api" {
   service_account_id = google_service_account.api.name
   role               = "roles/iam.serviceAccountUser"
   member             = "serviceAccount:${google_service_account.deployer.email}"
+}
+
+# Atualizar a imagem e executar o Job de migração no pipeline (change
+# cicd-iam-job-migracao). O passo "Update migration job image" do deploy
+# (.github/workflows/deploy.yml) faz `gcloud run jobs update`/`execute` no Job
+# `${name_prefix}-migrate` (migrate_job.tf) — um recurso DISTINTO do serviço da
+# API, que o binding `deployer_run_developer` acima (escopado ao recurso do
+# serviço) não alcança. Sem este binding o deploy falha em `run.jobs.get` com
+# PERMISSION_DENIED, o passo de migração e o `deploy` são pulados e a revisão
+# nova nunca sobe. `roles/run.developer` cobre get/update/run do Job e das
+# execuções — mesmo papel mínimo já concedido ao serviço (design.md D1).
+resource "google_cloud_run_v2_job_iam_member" "deployer_run_developer_migrate_job" {
+  project  = var.project_id
+  location = var.region
+  name     = google_cloud_run_v2_job.migrate.name
+  role     = "roles/run.developer"
+  member   = "serviceAccount:${google_service_account.deployer.email}"
 }
