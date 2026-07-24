@@ -20,7 +20,10 @@ função/cargo, área de trabalho e observação, e uma senha inicial; a conta c
 SHALL ficar vinculada à unidade e apta a fazer login. NÃO SHALL existir autocadastro
 nem convite por e-mail. A unidade de destino SHALL estar **ativa**: o sistema SHALL
 recusar (fail-closed) o cadastro em uma unidade com status desativado, sem criar a
-conta. Referência: PRD US 1.1; design.md (gestao-de-unidades) D5/D7.
+conta. A senha inicial SHALL atender ao tamanho mínimo da política de senha (ver
+capability `troca-de-senha`): senha mais curta SHALL recusar o cadastro sem criar a
+conta. Referência: PRD US 1.1; design.md (gestao-de-unidades) D5/D7; design.md
+(troca-de-senha) D8.
 
 #### Scenario: Cadastro válido cria conta apta a login
 
@@ -45,6 +48,13 @@ conta. Referência: PRD US 1.1; design.md (gestao-de-unidades) D5/D7.
 - **WHEN** um `global_admin` tenta cadastrar uma pessoa informando uma unidade com
   status desativado
 - **THEN** o cadastro é recusado (fail-closed) e nenhuma conta é criada
+
+#### Scenario: Senha inicial curta é recusada
+
+- **WHEN** um administrador tenta cadastrar uma pessoa com senha inicial menor que o
+  tamanho mínimo exigido
+- **THEN** o cadastro é recusado indicando o requisito não atendido, e nenhuma conta
+  é criada
 
 ### Requirement: Alcance da gestão por papel
 
@@ -77,6 +87,14 @@ seu status para ativo/desativado em `PATCH /users/:id`, dentro do seu alcance. U
 pessoa desativada NÃO SHALL conseguir autenticar-se (ver capability `autenticacao`),
 mas seus arquivos e registros de auditoria SHALL ser preservados.
 
+O alcance SHALL considerar o papel da **pessoa alvo**, lido do banco, e não apenas o
+papel informado na requisição: um `unit_admin` NÃO SHALL editar nem alterar o status
+de um `unit_admin` ou de um `global_admin`, ainda que a RLS lhe exponha a linha por
+estar na sua própria unidade; um `global_admin` NÃO SHALL ser editado por quem não
+seja `global_admin`. Alvo fora do alcance SHALL ser recusado com permissão
+insuficiente, sem distinguir o subcaso de alvo inexistente ou escondido pela RLS.
+Referência: PRD US 5.1; design.md (troca-de-senha) D5.
+
 #### Scenario: Desativação impede novo login preservando dados
 
 - **WHEN** um administrador desativa uma pessoa
@@ -87,6 +105,12 @@ mas seus arquivos e registros de auditoria SHALL ser preservados.
 
 - **WHEN** um `unit_admin` tenta editar uma pessoa de outra unidade
 - **THEN** a operação é negada (a RLS não expõe a linha), sem alterar dado algum
+
+#### Scenario: unit_admin não edita nem desativa administrador da própria unidade
+
+- **WHEN** um `unit_admin` tenta editar ou desativar um `unit_admin` ou um
+  `global_admin` lotado na sua própria unidade
+- **THEN** a operação é recusada com permissão insuficiente, sem alterar dado algum
 
 ### Requirement: Bootstrap do primeiro administrador global
 
@@ -104,3 +128,17 @@ houver `global_admin`.
 
 - **WHEN** o seed roda novamente com um `global_admin` já existente
 - **THEN** nenhuma conta adicional é criada
+
+### Requirement: Rota de redefinição administrativa de senha
+
+O sistema SHALL expor `POST /users/:id/password` sob as mesmas garantias das demais
+rotas de gestão de pessoas — sessão obrigatória, contexto de tenant por transação e
+RLS de `users` como fronteira de isolamento entre unidades. O comportamento da
+redefinição (geração da senha, exibição única e alcance por papel do alvo) é
+definido na capability `troca-de-senha`. Referência: PRD US 1.4.
+
+#### Scenario: Redefinição roda sob o contexto de tenant da requisição
+
+- **WHEN** um administrador chama `POST /users/:id/password`
+- **THEN** a operação executa dentro de uma transação com `SET LOCAL` do contexto
+  resolvido, com a RLS restringindo as linhas alcançáveis

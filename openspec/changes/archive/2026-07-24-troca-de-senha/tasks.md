@@ -62,8 +62,8 @@
 
 ## 9. Fechamento
 
-- [ ] 9.1 Rodar `npm run lint`, `npm run build` e `npm run test` na raiz e corrigir o que aparecer
-- [ ] 9.2 Conferir que `apps/api/src/__tests__/rls-isolation.test.ts`, `isolamento-unidade.test.ts` e `permission.test.ts` seguem passando — são contrato, não testes descartáveis
-- [ ] 9.3 Revisar os comentários de código citando US 1.3 / US 1.4 e as decisões de design correspondentes, mantendo o rastro já usado no repositório
+- [x] 9.1 Rodar `npm run lint`, `npm run build` e `npm run test` na raiz e corrigir o que aparecer
+- [x] 9.2 Conferir que `apps/api/src/__tests__/rls-isolation.test.ts`, `isolamento-unidade.test.ts` e `permission.test.ts` seguem passando — são contrato, não testes descartáveis
+- [x] 9.3 Revisar os comentários de código citando US 1.3 / US 1.4 e as decisões de design correspondentes, mantendo o rastro já usado no repositório
 - [x] 9.4 Registrar no runbook de operação o procedimento de recuperação manual da conta `global_admin` que perder a senha, e a recomendação de manter mais de um `global_admin` ativo (design.md — Riscos)
 - [x] 9.5 Registrar na nota de deploy que a subida encerra todas as sessões vigentes, uma única vez (design.md D3)
