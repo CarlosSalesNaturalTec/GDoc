@@ -12,7 +12,7 @@
 ## 3. Validação
 
 - [x] 3.1 `terraform fmt -check` limpo no arquivo alterado; revisão cruzada de que `google_cloud_run_v2_job.migrate` e `google_service_account.deployer` existem e são referenciados corretamente. Executado neste ambiente: `terraform fmt -check cicd.tf` (exit 0) e **`terraform validate` real** (`init -backend=false` + `validate` → "Success! The configuration is valid.") — superou o previsto (validação real, não só revisão).
-- [ ] 3.2 Após o `apply`: disparar um deploy de código (ou re-executar o workflow de Deploy do último merge de código) e confirmar que o passo "Update migration job image" passa, "Run database migrations" aplica as pendentes e "Deploy to Cloud Run" implanta — os 500 cessam. **Pendente:** requer `terraform apply` e um deploy real após o merge desta branch.
+- [x] 3.2 Após o `apply`: disparar um deploy de código (ou re-executar o workflow de Deploy do último merge de código) e confirmar que o passo "Update migration job image" passa, "Run database migrations" aplica as pendentes e "Deploy to Cloud Run" implanta — os 500 cessam. **Confirmado:** `terraform apply` criou o binding (`1 added, 2 changed`); merge do PR #46 (`558cb2d`) disparou o Deploy run 30116941645 com TODOS os steps `success` (Update migration job image / Run database migrations / Deploy to Cloud Run); API migrada da imagem fóssil `4bc2793` para `558cb2d`; `GET /health` → 200.
 
 ## 4. Desbloqueio imediato da produção (operacional, independente do apply)
 

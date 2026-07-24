@@ -202,13 +202,18 @@ revisão nova, de modo que a revisão implantada nunca suba contra um schema
 desatualizado. A aplicação das migrações SHALL ser idempotente — aplicar somente
 as pendentes e ser no-op quando não houver nenhuma — e SHALL rodar como um job em
 container reusando a mesma imagem, service account e integração de banco da
-aplicação. O pipeline SHALL **pular o build, a publicação da imagem e a implantação
-quando o conjunto de arquivos alterados na branch alvo for exclusivamente de
-documentação** (arquivos `*.md`, `docs/`, artefatos OpenSpec e `LICENSE`); se
-qualquer arquivo alterado estiver fora desse conjunto, o pipeline SHALL implantar
-normalmente (padrão fail-safe). O gate de documentação SHALL residir no pipeline
-de entrega, nunca desabilitando as verificações de CI (lint/build/test) que
-servem de required check.
+aplicação. A **identidade do pipeline SHALL ter permissão para atualizar e
+executar o job de migração** (obter/atualizar a imagem do job e disparar sua
+execução) e para agir como a service account de runtime que o job reusa; sem essa
+permissão o passo de migração falha e a implantação é bloqueada — a concessão
+SHALL alcançar o próprio recurso do job, não apenas o serviço da aplicação. O
+pipeline SHALL **pular o build, a publicação da imagem e a implantação quando o
+conjunto de arquivos alterados na branch alvo for exclusivamente de documentação**
+(arquivos `*.md`, `docs/`, artefatos OpenSpec e `LICENSE`); se qualquer arquivo
+alterado estiver fora desse conjunto, o pipeline SHALL implantar normalmente
+(padrão fail-safe). O gate de documentação SHALL residir no pipeline de entrega,
+nunca desabilitando as verificações de CI (lint/build/test) que servem de required
+check.
 
 #### Scenario: Pipeline ponta a ponta com migrações
 
@@ -216,6 +221,14 @@ servem de required check.
 - **THEN** ele executa lint, build e testes, publica a imagem no registro de
   artefatos, aplica as migrações de banco pendentes e só então implanta o serviço
   no runtime gerenciado.
+
+#### Scenario: Identidade do pipeline pode atualizar e executar o job de migração
+
+- **WHEN** o pipeline chega ao passo de migração e usa sua identidade para
+  atualizar a imagem do job de migração e executá-lo
+- **THEN** a identidade tem a permissão necessária sobre o recurso do job (obter,
+  atualizar e executar) e sobre a service account de runtime que o job reusa, e o
+  passo conclui sem erro de permissão.
 
 #### Scenario: Sem migração pendente
 
