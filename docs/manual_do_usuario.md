@@ -41,11 +41,11 @@ Principais recursos:
 O que você pode fazer no GDoc depende do seu **perfil**, definido pela administração
 quando sua conta é criada. Existem três:
 
-| Perfil | O que enxerga | O que pode fazer |
-| --- | --- | --- |
-| **Colaborador** | Apenas os arquivos e pastas que criou ou que lhe foram liberados. | Enviar, visualizar, baixar, renomear e excluir conforme sua permissão; ver a auditoria dos arquivos que enviou; trocar a própria senha. |
+| Perfil                       | O que enxerga                                                                                 | O que pode fazer                                                                                                                                                                            |
+| ---------------------------- | --------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Colaborador**              | Apenas os arquivos e pastas que criou ou que lhe foram liberados.                             | Enviar, visualizar, baixar, renomear e excluir conforme sua permissão; ver a auditoria dos arquivos que enviou; trocar a própria senha.                                                     |
 | **Administrador da unidade** | Tudo da **sua unidade** (pessoas, pastas, arquivos, permissões). Não enxerga outras unidades. | Tudo o que o colaborador faz, mais: cadastrar, editar, ativar/desativar pessoas da unidade e redefinir a senha delas; conceder e revogar permissões; ver o painel e a auditoria da unidade. |
-| **Administrador global** | **Todas as unidades**. | Tudo o que o administrador de unidade faz, em escala global; além disso, cria e administra as **unidades** e define administradores de unidade. |
+| **Administrador global**     | **Todas as unidades**.                                                                        | Tudo o que o administrador de unidade faz, em escala global; além disso, cria e administra as **unidades** e define administradores de unidade.                                             |
 
 > **Importante:** os perfis definem o **alcance** (o que você enxerga). Mesmo sendo
 > administrador, você respeita o isolamento entre unidades — conteúdo de uma unidade
@@ -88,15 +88,15 @@ Para **sair**, clique no seu perfil no canto superior direito e escolha **Sair**
 Depois de entrar, você vê um **menu lateral** à esquerda. Os itens disponíveis
 dependem do seu perfil:
 
-| Item do menu | Para quem | Serve para |
-| --- | --- | --- |
-| **Início** | Todos | Página inicial de boas-vindas. |
-| **Arquivos** | Todos | Navegar por pastas, enviar, baixar, visualizar e gerenciar arquivos. |
-| **Buscar** | Todos | Encontrar arquivos por nome e filtros. |
-| **Lixeira** | Todos | Recuperar ou acompanhar itens excluídos. |
-| **Pessoas** | Administradores | Cadastrar, editar, ativar/desativar contas e redefinir senhas. |
-| **Painel** | Administradores | Ver estatísticas e gráficos de uso. |
-| **Unidades** | Administrador global | Criar, renomear e ativar/desativar unidades. |
+| Item do menu | Para quem            | Serve para                                                           |
+| ------------ | -------------------- | -------------------------------------------------------------------- |
+| **Início**   | Todos                | Página inicial de boas-vindas.                                       |
+| **Arquivos** | Todos                | Navegar por pastas, enviar, baixar, visualizar e gerenciar arquivos. |
+| **Buscar**   | Todos                | Encontrar arquivos por nome e filtros.                               |
+| **Lixeira**  | Todos                | Recuperar ou acompanhar itens excluídos.                             |
+| **Pessoas**  | Administradores      | Cadastrar, editar, ativar/desativar contas e redefinir senhas.       |
+| **Painel**   | Administradores      | Ver estatísticas e gráficos de uso.                                  |
+| **Unidades** | Administrador global | Criar, renomear e ativar/desativar unidades.                         |
 
 No canto superior direito fica o **menu do seu perfil** (avatar e nome do papel).
 Clicando nele, você acessa **Minha conta** e **Sair**.
@@ -271,11 +271,11 @@ consultada depois**. Se a senha se perder, é só redefinir de novo.
 
 **Quem pode redefinir a senha de quem:**
 
-| Quem redefine | Pode redefinir de |
-| --- | --- |
-| Administrador da unidade | Colaboradores da própria unidade |
-| Administrador global | Colaboradores e administradores de unidade |
-| Ninguém | Administrador global — a senha dele só muda por ele mesmo, em **Minha conta** |
+| Quem redefine            | Pode redefinir de                                                             |
+| ------------------------ | ----------------------------------------------------------------------------- |
+| Administrador da unidade | Colaboradores da própria unidade                                              |
+| Administrador global     | Colaboradores e administradores de unidade                                    |
+| Ninguém                  | Administrador global — a senha dele só muda por ele mesmo, em **Minha conta** |
 
 Quando a ação não é permitida para determinada pessoa, o botão **Redefinir senha**
 simplesmente não aparece na linha dela.
@@ -351,26 +351,26 @@ Você também define quem é **administrador de unidade** e acompanha o **painel
 
 ## 8. Tarefas rápidas (resumo)
 
-| Quero... | Onde | Como |
-| --- | --- | --- |
-| Entrar no sistema | Tela de login | E-mail + senha fornecidos pela administração |
-| Trocar minha senha | Minha conta | Menu do perfil (canto superior direito) → **Minha conta** |
-| Criar uma pasta | Arquivos | Botão **Nova pasta** |
-| Enviar arquivos | Arquivos | Botão **Enviar arquivos** |
-| Enviar uma pasta inteira | Arquivos | Botão **Enviar pasta** |
-| Visualizar sem baixar | Arquivos | Clicar no nome ou em **Visualizar** |
-| Baixar um arquivo | Arquivos | Botão **Baixar** na linha do arquivo |
-| Renomear/substituir um arquivo | Arquivos | Botão **Renomear** (precisa de permissão) |
-| Excluir | Arquivos | Botão **Excluir** (vai para a Lixeira) |
-| Recuperar algo excluído | Lixeira | **Restaurar** (dentro de 30 dias) |
-| Encontrar um arquivo | Buscar | Nome e/ou filtros + botão **Buscar** |
-| Ver quem acessou meu arquivo | Arquivos | Botão **Auditoria** (dono/admin) |
-| Conceder permissão | Arquivos | Botão **Permissões** (admin) |
-| Cadastrar pessoa | Pessoas | **Nova pessoa** (admin) |
-| Ativar/desativar pessoa | Pessoas | Botão **Ativar**/**Desativar** (admin) |
-| Redefinir a senha de alguém | Pessoas | Botão **Redefinir senha** (admin) |
-| Ver uso e gráficos | Painel | Menu **Painel** (admin) |
-| Criar ou desativar unidade | Unidades | Menu **Unidades** (admin global) |
+| Quero...                       | Onde          | Como                                                      |
+| ------------------------------ | ------------- | --------------------------------------------------------- |
+| Entrar no sistema              | Tela de login | E-mail + senha fornecidos pela administração              |
+| Trocar minha senha             | Minha conta   | Menu do perfil (canto superior direito) → **Minha conta** |
+| Criar uma pasta                | Arquivos      | Botão **Nova pasta**                                      |
+| Enviar arquivos                | Arquivos      | Botão **Enviar arquivos**                                 |
+| Enviar uma pasta inteira       | Arquivos      | Botão **Enviar pasta**                                    |
+| Visualizar sem baixar          | Arquivos      | Clicar no nome ou em **Visualizar**                       |
+| Baixar um arquivo              | Arquivos      | Botão **Baixar** na linha do arquivo                      |
+| Renomear/substituir um arquivo | Arquivos      | Botão **Renomear** (precisa de permissão)                 |
+| Excluir                        | Arquivos      | Botão **Excluir** (vai para a Lixeira)                    |
+| Recuperar algo excluído        | Lixeira       | **Restaurar** (dentro de 30 dias)                         |
+| Encontrar um arquivo           | Buscar        | Nome e/ou filtros + botão **Buscar**                      |
+| Ver quem acessou meu arquivo   | Arquivos      | Botão **Auditoria** (dono/admin)                          |
+| Conceder permissão             | Arquivos      | Botão **Permissões** (admin)                              |
+| Cadastrar pessoa               | Pessoas       | **Nova pessoa** (admin)                                   |
+| Ativar/desativar pessoa        | Pessoas       | Botão **Ativar**/**Desativar** (admin)                    |
+| Redefinir a senha de alguém    | Pessoas       | Botão **Redefinir senha** (admin)                         |
+| Ver uso e gráficos             | Painel        | Menu **Painel** (admin)                                   |
+| Criar ou desativar unidade     | Unidades      | Menu **Unidades** (admin global)                          |
 
 ---
 
@@ -426,5 +426,5 @@ Estes recursos constam do planejamento do produto e **ainda não estão nesta ve
 
 ---
 
-*Este manual cobre o uso funcional do GDoc. Para dúvidas sobre políticas de acesso da
-sua organização, procure a área administrativa da sua unidade.*
+_Este manual cobre o uso funcional do GDoc. Para dúvidas sobre políticas de acesso da
+sua organização, procure a área administrativa da sua unidade._
