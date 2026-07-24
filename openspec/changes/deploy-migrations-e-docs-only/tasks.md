@@ -15,7 +15,7 @@
 
 ## 3. Pipeline: aplicar migrations antes de trocar tráfego
 
-- [ ] 3.1 Adicionar variável de repositório com o nome do Job de migração (ex.: `GCP_MIGRATE_JOB`). **Operacional — fora do escopo de código:** configurar em GitHub → Settings → Secrets and variables → Actions → Variables, com o valor de `terraform output migrate_job_name` após o `apply` do Terraform (documentado em `infra/terraform/README.md`).
+- [x] 3.1 Adicionar variável de repositório com o nome do Job de migração (ex.: `GCP_MIGRATE_JOB`). **Operacional — fora do escopo de código:** configurar em GitHub → Settings → Secrets and variables → Actions → Variables, com o valor de `terraform output migrate_job_name` após o `apply` do Terraform (documentado em `infra/terraform/README.md`). Executado: `terraform apply` criou `gdoc-prod-migrate` (projeto `gdoc-502613`) e a variável `GCP_MIGRATE_JOB=gdoc-prod-migrate` foi registrada no repositório via `gh variable set`.
 - [x] 3.2 Em `build-push-deploy`, após o `Push image` e **antes** do `Deploy to Cloud Run`, inserir o passo de migração: `gcloud run jobs update "$MIGRATE_JOB" --image "${IMAGE}:${SHA}" ...` seguido de `gcloud run jobs execute "$MIGRATE_JOB" --wait ...` (região/projeto por `vars`).
 - [x] 3.3 Garantir que a falha do `execute --wait` aborta o workflow antes do `gcloud run deploy` (tráfego permanece na revisão anterior).
 
@@ -28,4 +28,4 @@
 
 ## 5. Desbloqueio imediato da produção (operacional, fora do pipeline)
 
-- [ ] 5.1 Executar o Job de bootstrap existente para aplicar as migrations pendentes agora: `gcloud run jobs execute ${name_prefix}-bootstrap --wait --region <region> --project <project>` e confirmar que os 500 cessaram. **Operacional — requer `gcloud` autenticado contra o projeto de produção real; não executável nesta sessão (sem acesso ao GCP).**
+- [x] 5.1 Executar o Job de bootstrap existente para aplicar as migrations pendentes agora: `gcloud run jobs execute ${name_prefix}-bootstrap --wait --region <region> --project <project>` e confirmar que os 500 cessaram. **Operacional — requer `gcloud` autenticado contra o projeto de produção real; não executável nesta sessão (sem acesso ao GCP).** Executado: `gcloud run jobs execute gdoc-prod-bootstrap --project gdoc-502613 --region us-central1 --wait` → execução `gdoc-prod-bootstrap-8cmrw` concluída com sucesso.
