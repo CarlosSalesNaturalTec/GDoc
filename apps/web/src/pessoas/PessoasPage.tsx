@@ -9,12 +9,25 @@ import { ApiError } from '../lib/api-client';
 import { useSession } from '../auth/session-context';
 import { useUnits } from '../unidades/queries';
 import { ROLE_LABEL, PessoaFormModal } from './PessoaFormModal';
-import { useUpdatePerson, useUsers } from './queries';
+import { SenhaGeradaModal } from './SenhaGeradaModal';
+import { useResetPersonPassword, useUpdatePerson, useUsers } from './queries';
 
 const STATUS_LABEL: Record<PersonStatus, string> = {
   [PersonStatus.ACTIVE]: 'Ativa',
   [PersonStatus.DISABLED]: 'Inativa',
 };
+
+/**
+ * Visibilidade da ação "Redefinir senha" (US 1.4, cenários 1/2; design.md
+ * (troca-de-senha) D5) — espelha o alcance imposto no servidor, mas é UX, não
+ * defesa: o servidor permanece o único guardião, a SPA não infere permissão a
+ * partir da presença da ação.
+ */
+function canOfferResetAction(actorRole: UserRole, targetRole: UserRole): boolean {
+  if (targetRole === UserRole.GLOBAL_ADMIN) return false;
+  if (actorRole === UserRole.GLOBAL_ADMIN) return true;
+  return actorRole === UserRole.UNIT_ADMIN && targetRole === UserRole.COLLABORATOR;
+}
 
 /**
  * Gestão de pessoas pela administração (US 1.1, `web-pessoas`, design.md
@@ -26,6 +39,8 @@ export function PessoasPage() {
   const { identity } = useSession();
   const { data, isLoading, isError } = useUsers();
   const updatePerson = useUpdatePerson();
+  const resetPersonPassword = useResetPersonPassword();
+  const [generatedPassword, setGeneratedPassword] = useState<string | null>(null);
 
   // gestao-de-unidades (web-pessoas): a coluna de unidade (nome, não UUID) é
   // resolvida via `GET /units`, que é exclusivo do global_admin (403 para
@@ -54,6 +69,22 @@ export function PessoasPage() {
     const status = person.status === PersonStatus.ACTIVE ? PersonStatus.DISABLED : PersonStatus.ACTIVE;
     try {
       await updatePerson.mutateAsync({ id: person.id, body: { status } });
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 403) {
+        message.error('Permissão insuficiente para executar esta ação.');
+        return;
+      }
+      message.error('Não foi possível concluir a ação. Tente novamente.');
+    }
+  }
+
+  // design.md D6: 403 (papel do alvo fora do alcance, ou RLS escondendo
+  // pessoa de outra unidade) exibe o mesmo aviso neutro das demais operações
+  // de pessoas, sem distinguir subcasos.
+  async function handleResetPassword(person: PersonResponse) {
+    try {
+      const result = await resetPersonPassword.mutateAsync(person.id);
+      setGeneratedPassword(result.generatedPassword);
     } catch (err) {
       if (err instanceof ApiError && err.status === 403) {
         message.error('Permissão insuficiente para executar esta ação.');
@@ -98,6 +129,7 @@ export function PessoasPage() {
         // administrador cortar o próprio acesso.
         const isSelf = person.id === identity?.id;
         const isActive = person.status === PersonStatus.ACTIVE;
+        const canReset = identity !== null && canOfferResetAction(identity.role, person.role);
         return (
           <Space>
             <Button size="small" onClick={() => openEdit(person)}>
@@ -118,6 +150,17 @@ export function PessoasPage() {
                 <Button size="small" danger={isActive}>
                   {isActive ? 'Desativar' : 'Ativar'}
                 </Button>
+              </Popconfirm>
+            )}
+            {canReset && (
+              <Popconfirm
+                title="Redefinir senha"
+                description="Uma nova senha é gerada e exibida uma única vez; a senha atual da pessoa deixa de funcionar."
+                okText="Sim, redefinir"
+                cancelText="Cancelar"
+                onConfirm={() => handleResetPassword(person)}
+              >
+                <Button size="small">Redefinir senha</Button>
               </Popconfirm>
             )}
           </Space>
@@ -149,6 +192,7 @@ export function PessoasPage() {
       </div>
       <Table<PersonResponse> rowKey="id" columns={columns} dataSource={data ?? []} />
       <PessoaFormModal target={editingPerson ?? undefined} open={modalOpen} onClose={() => setModalOpen(false)} />
+      <SenhaGeradaModal generatedPassword={generatedPassword} onClose={() => setGeneratedPassword(null)} />
     </div>
   );
 }

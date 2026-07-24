@@ -208,4 +208,163 @@ describe('Gestão de pessoas: POST/GET/PATCH /users', () => {
 
     expect(res.status).toBe(403);
   });
+
+  it('cadastro com senha inicial curta é recusado sem criar conta', async () => {
+    const app = createApp(ports);
+    const res = await request(app)
+      .post('/users')
+      .set('Cookie', await sessionCookieFor(ports, unitAdminAId))
+      .send({ fullName: 'Senha Curta', email: 'senha-curta@test.dev', password: 'ab' });
+
+    expect(res.status).toBe(400);
+
+    const login = await request(app).post('/auth/login').send({ email: 'senha-curta@test.dev', password: 'ab' });
+    expect(login.status).toBe(401);
+  });
+
+  describe('PATCH /users/:id — trava de alvo por papel (regressão, design.md (troca-de-senha) D5)', () => {
+    it('unit_admin não desativa nem edita administrador da própria unidade', async () => {
+      const app = createApp(ports);
+      const res = await request(app)
+        .patch(`/users/${globalAdminId}`)
+        .set('Cookie', await sessionCookieFor(ports, unitAdminAId))
+        .send({ status: 'disabled' });
+
+      expect(res.status).toBe(403);
+
+      const unchanged = await withSystemBypass(pool, (client) =>
+        client.query('SELECT status FROM users WHERE id = $1', [globalAdminId]),
+      );
+      expect(unchanged.rows[0]?.status).toBe('active');
+    });
+  });
+
+  describe('POST /users/:id/password — alcance por papel do alvo (US 1.4, design.md D5)', () => {
+    async function createPerson(unitId: string, role: string, email: string): Promise<string> {
+      const passwordHash = await argon2.hash('senha-original', { type: argon2.argon2id });
+      const { rows } = await withSystemBypass(pool, (client) =>
+        client.query<{ id: string }>(
+          `INSERT INTO users (unit_id, email, password_hash, role, status) VALUES ($1, $2, $3, $4, 'active') RETURNING id`,
+          [unitId, email, passwordHash, role],
+        ),
+      );
+      return rows[0]!.id;
+    }
+
+    it('unit_admin redefine senha de colaborador da própria unidade', async () => {
+      const app = createApp(ports);
+      const targetId = await createPerson(unitA, 'collaborator', 'reset-collab-a@test.dev');
+      const res = await request(app)
+        .post(`/users/${targetId}/password`)
+        .set('Cookie', await sessionCookieFor(ports, unitAdminAId))
+        .send({});
+
+      expect(res.status).toBe(200);
+      expect(typeof res.body.generatedPassword).toBe('string');
+    });
+
+    it('unit_admin não redefine senha de outro unit_admin', async () => {
+      const app = createApp(ports);
+      const targetId = await createPerson(unitA, 'unit_admin', 'reset-unit-admin-a2@test.dev');
+      const res = await request(app)
+        .post(`/users/${targetId}/password`)
+        .set('Cookie', await sessionCookieFor(ports, unitAdminAId))
+        .send({});
+
+      expect(res.status).toBe(403);
+    });
+
+    it('unit_admin não redefine senha de global_admin da própria unidade', async () => {
+      const app = createApp(ports);
+      const res = await request(app)
+        .post(`/users/${globalAdminId}/password`)
+        .set('Cookie', await sessionCookieFor(ports, unitAdminAId))
+        .send({});
+
+      expect(res.status).toBe(403);
+    });
+
+    it('unit_admin não alcança pessoa de outra unidade (indistinguível do alvo inexistente)', async () => {
+      const app = createApp(ports);
+      const targetId = await createPerson(unitB, 'collaborator', 'reset-outra-unidade@test.dev');
+      const res = await request(app)
+        .post(`/users/${targetId}/password`)
+        .set('Cookie', await sessionCookieFor(ports, unitAdminAId))
+        .send({});
+
+      expect(res.status).toBe(403);
+    });
+
+    it('global_admin redefine senha de unit_admin', async () => {
+      const app = createApp(ports);
+      const targetId = await createPerson(unitB, 'unit_admin', 'reset-unit-admin-b2@test.dev');
+      const res = await request(app)
+        .post(`/users/${targetId}/password`)
+        .set('Cookie', await sessionCookieFor(ports, globalAdminId))
+        .send({});
+
+      expect(res.status).toBe(200);
+      expect(typeof res.body.generatedPassword).toBe('string');
+    });
+
+    it('nenhum global_admin tem a senha redefinida por outrem, nem por outro global_admin', async () => {
+      const app = createApp(ports);
+      const otherGlobalAdminId = await createPerson(unitA, 'global_admin', 'outro-global-admin@test.dev');
+      const res = await request(app)
+        .post(`/users/${otherGlobalAdminId}/password`)
+        .set('Cookie', await sessionCookieFor(ports, globalAdminId))
+        .send({});
+
+      expect(res.status).toBe(403);
+    });
+
+    it('collaborator não redefine senha de ninguém', async () => {
+      const app = createApp(ports);
+      const targetId = await createPerson(unitA, 'collaborator', 'reset-alvo-de-collaborator@test.dev');
+      const res = await request(app)
+        .post(`/users/${targetId}/password`)
+        .set('Cookie', await sessionCookieFor(ports, collaboratorA2Id))
+        .send({});
+
+      expect(res.status).toBe(403);
+    });
+
+    it('senha informada pelo solicitante é ignorada — o sistema sempre gera a própria', async () => {
+      const app = createApp(ports);
+      const targetId = await createPerson(unitA, 'collaborator', 'reset-ignora-senha@test.dev');
+      const res = await request(app)
+        .post(`/users/${targetId}/password`)
+        .set('Cookie', await sessionCookieFor(ports, unitAdminAId))
+        .send({ password: 'senha-escolhida-pelo-atacante' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.generatedPassword).not.toBe('senha-escolhida-pelo-atacante');
+    });
+
+    it('efeito do reset: todas as sessões do alvo são recusadas, a senha anterior deixa de autenticar e a senha devolvida autentica', async () => {
+      const app = createApp(ports);
+      const targetId = await createPerson(unitA, 'collaborator', 'reset-efeito@test.dev');
+      const oldCookie = await sessionCookieFor(ports, targetId, new Date(Date.now() - 60 * 60 * 1000));
+
+      const res = await request(app)
+        .post(`/users/${targetId}/password`)
+        .set('Cookie', await sessionCookieFor(ports, unitAdminAId))
+        .send({});
+      expect(res.status).toBe(200);
+      const generatedPassword = res.body.generatedPassword as string;
+
+      const meWithOldCookie = await request(app).get('/auth/me').set('Cookie', oldCookie);
+      expect(meWithOldCookie.status).toBe(401);
+
+      const loginOld = await request(app)
+        .post('/auth/login')
+        .send({ email: 'reset-efeito@test.dev', password: 'senha-original' });
+      expect(loginOld.status).toBe(401);
+
+      const loginNew = await request(app)
+        .post('/auth/login')
+        .send({ email: 'reset-efeito@test.dev', password: generatedPassword });
+      expect(loginNew.status).toBe(200);
+    });
+  });
 });

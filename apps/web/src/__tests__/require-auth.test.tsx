@@ -36,7 +36,10 @@ describe('Guarda de rota por autenticação', () => {
     renderApp(['/']);
 
     await screen.findByText('Bem-vindo ao GDoc');
-    await userEvent.click(screen.getByRole('button', { name: /sair/i }));
+    // "Sair" mora no menu de identidade do cabeçalho (change `troca-de-senha`,
+    // design.md D5/D6) — precisa abrir o dropdown antes de clicar no item.
+    await userEvent.click(screen.getByText('Colaborador'));
+    await userEvent.click(await screen.findByText('Sair'));
 
     await screen.findByRole('heading', { name: 'GDoc' });
   });

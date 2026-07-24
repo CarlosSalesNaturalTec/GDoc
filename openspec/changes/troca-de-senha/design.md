@@ -110,3 +110,48 @@ O login responde genericamente de propósito (US 1.2, cenário 2): ali o solicit
 3. Deploy da SPA (mesma imagem/origem da API na fase atual).
 
 **Rollback:** reverter a imagem da API. A coluna pode permanecer — a versão anterior a ignora, e nenhum código antigo depende da sua ausência. Os tokens emitidos pela versão nova continuam válidos na antiga (que ignora `iat`), então o rollback **não** provoca um segundo logout em massa. Reverter a migration é desnecessário e só seria feito se a coluna precisasse sair por outro motivo.
+
+## Runbook operacional — recuperação manual de `global_admin`
+
+Nenhum caminho da aplicação redefine a senha de um `global_admin` (D5, teto do
+alcance) — decisão do PRD US 1.4, cenário 2, não uma lacuna de implementação.
+Se **todos** os `global_admin` ativos esquecerem a senha, a única saída é
+intervenção manual no Cloud SQL de produção:
+
+1. Gerar um hash argon2id novo, **fora** do ambiente de produção, com os
+   mesmos parâmetros de `config.authArgon2` (`AUTH_ARGON2_MEMORY_COST` /
+   `_TIME_COST` / `_PARALLELISM`, hoje 19456/2/1) — por exemplo, rodando
+   `Argon2AuthPort.hashPassword` num script local apontando para o mesmo
+   `.env` de produção, ou `npx argon2-cli hash` com os parâmetros equivalentes.
+   Nunca gerar o hash com parâmetros diferentes dos configurados: o hash é
+   válido para verificação independente dos parâmetros usados para criá-lo,
+   mas a inconsistência dificulta auditoria futura.
+2. Conectar ao Cloud SQL (proxy do Cloud SQL Auth Proxy, credencial de
+   operação — nunca a conexão da própria API) e aplicar:
+   ```sql
+   UPDATE users
+   SET password_hash = '<hash gerado no passo 1>',
+       password_changed_at = now()
+   WHERE email = '<e-mail do global_admin a recuperar>'
+     AND role = 'global_admin';
+   ```
+   O `password_changed_at = now()` é o que encerra qualquer sessão antiga
+   daquela conta (D1), mesma consequência de um reset feito pela aplicação.
+3. Confirmar com um `login` de teste e, em seguida, **usar "Minha conta" para
+   trocar a senha recebida por uma definitiva** — a senha usada no `UPDATE`
+   trafegou por um canal manual (terminal, chat de operação) e deve ser
+   tratada como comprometida assim que o acesso for recuperado.
+
+**Mitigação preventiva:** manter **mais de um** `global_admin` ativo a
+qualquer momento. Com dois ou mais, o procedimento acima só é necessário se
+todos esquecerem simultaneamente — risco residual aceito, não eliminado
+(Risks/Trade-offs, acima).
+
+## Nota de deploy
+
+A subida desta fatia **encerra todas as sessões vigentes, uma única vez**
+(D3): o formato do token passa a exigir `iat`, e nenhuma sessão emitida antes
+do deploy o possui. Comunicar a janela antes de subir em produção — toda
+pessoa autenticada precisa entrar de novo, sem perda de dado. Depois dessa
+subida inicial, o efeito não se repete em deploys futuros (as sessões emitidas
+pela própria versão nova já carregam `iat`).

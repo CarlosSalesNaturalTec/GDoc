@@ -1,8 +1,10 @@
 import { Router } from 'express';
+import type { PoolClient } from 'pg';
 import { UserRole, UnitStatus } from '@gdoc/shared';
-import type { CreatePersonRequest, UpdatePersonRequest, PersonResponse } from '@gdoc/shared';
+import type { CreatePersonRequest, UpdatePersonRequest, PersonResponse, ResetPasswordResponse } from '@gdoc/shared';
 import type { Ports } from '../ports/index.js';
 import type { TenantContext } from '../ports/database-port.js';
+import { isPasswordValid, generatePassword } from '../lib/password-policy.js';
 
 interface PersonRow {
   id: string;
@@ -45,6 +47,25 @@ function isUniqueViolation(err: unknown): boolean {
 }
 
 /**
+ * Alcance por papel do alvo (change `troca-de-senha`, design.md D5) — função
+ * única usada tanto por `POST /users/:id/password` quanto por `PATCH
+ * /users/:id`, lendo o papel do alvo do banco **na mesma transação** da
+ * operação, nunca do corpo da requisição. `unit_admin` alcança só
+ * `collaborator` (a RLS já restringe a busca à própria unidade);
+ * `global_admin` alcança `collaborator` e `unit_admin`; ninguém alcança
+ * `global_admin`, nem outro `global_admin`. Fail-closed: alvo inexistente ou
+ * escondido pela RLS (outra unidade) cai no mesmo `false` de alvo fora do
+ * alcance por papel — sem distinguir os dois casos.
+ */
+async function canActOnTarget(client: PoolClient, ctx: TenantContext, targetId: string): Promise<boolean> {
+  const { rows } = await client.query<{ role: string }>('SELECT role FROM users WHERE id = $1', [targetId]);
+  const targetRole = rows[0]?.role;
+  if (!targetRole || targetRole === UserRole.GLOBAL_ADMIN) return false;
+  if (ctx.role === UserRole.GLOBAL_ADMIN) return true;
+  return ctx.role === UserRole.UNIT_ADMIN && targetRole === UserRole.COLLABORATOR;
+}
+
+/**
  * `routes/users.ts` — CRUD de pessoas pela administração (US 1.1). Alcance
  * por papel imposto em duas camadas (design.md Decisão D4): a checagem de
  * papel aqui bloqueia `collaborator` de plano, e a RLS (mesma
@@ -66,6 +87,13 @@ export function usersRouter(ports: Ports): Router {
       const body = req.body as CreatePersonRequest;
       if (!body.fullName || !body.email || !body.password) {
         res.status(400).json({ error: 'invalid request body' });
+        return;
+      }
+
+      // design.md (troca-de-senha) D8 — mesma política aplicada na troca e
+      // na geração do reset.
+      if (!isPasswordValid(body.password)) {
+        res.status(400).json({ error: 'password too short' });
         return;
       }
 
@@ -201,9 +229,17 @@ export function usersRouter(ports: Ports): Router {
       // RLS filtra as linhas visíveis para UPDATE antes do WHERE por id
       // rodar: se a pessoa pertence a outra unidade, 0 linhas voltam — sem
       // erro, sem dado alterado (US 5.1, cenário "edição respeita o
-      // alcance"). Mesmo tratamento 403 usado por routes/files.ts para
-      // "linha escondida pela RLS".
+      // alcance"). A checagem de `canActOnTarget` (design.md (troca-de-senha)
+      // D5) fecha a brecha adjacente: sem ela, a RLS ainda deixaria um
+      // `unit_admin` enxergar (e editar/desativar) um `unit_admin` ou
+      // `global_admin` lotado na própria unidade. Os dois casos — RLS
+      // escondendo a linha, ou a linha visível mas fora do alcance por papel
+      // — caem no mesmo 403, sem distinção (mesmo tratamento usado por
+      // routes/files.ts para "linha escondida pela RLS").
       const row = await ports.database.withTenantTransaction(ctx, async (client) => {
+        const allowed = await canActOnTarget(client, ctx, req.params.id!);
+        if (!allowed) return null;
+
         const { rows } = await client.query<PersonRow>(
           `UPDATE users SET ${setClauses.join(', ')} WHERE id = $${values.length} RETURNING ${PERSON_COLUMNS}`,
           values,
@@ -217,6 +253,45 @@ export function usersRouter(ports: Ports): Router {
       }
 
       res.json(toPersonResponse(row));
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  // Redefinição administrativa de senha (US 1.4). Sem senha atual — o
+  // sistema gera a senha e a devolve em texto claro **exclusivamente** nesta
+  // resposta (design.md D7); qualquer senha vinda do corpo é ignorada, já
+  // que o corpo nunca é lido para esse fim.
+  router.post('/users/:id/password', async (req, res, next) => {
+    try {
+      const ctx = req.tenantContext!;
+      if (!isAdmin(ctx)) {
+        res.status(403).json({ error: 'forbidden' });
+        return;
+      }
+
+      type ResetOutcome = { kind: 'ok'; generatedPassword: string } | { kind: 'forbidden' };
+
+      const outcome = await ports.database.withTenantTransaction<ResetOutcome>(ctx, async (client) => {
+        const allowed = await canActOnTarget(client, ctx, req.params.id!);
+        if (!allowed) return { kind: 'forbidden' };
+
+        const generatedPassword = generatePassword();
+        const passwordHash = await ports.auth.hashPassword(generatedPassword);
+        await client.query('UPDATE users SET password_hash = $1, password_changed_at = now() WHERE id = $2', [
+          passwordHash,
+          req.params.id,
+        ]);
+        return { kind: 'ok', generatedPassword };
+      });
+
+      if (outcome.kind === 'forbidden') {
+        res.status(403).json({ error: 'forbidden' });
+        return;
+      }
+
+      const response: ResetPasswordResponse = { generatedPassword: outcome.generatedPassword };
+      res.json(response);
     } catch (err) {
       next(err);
     }

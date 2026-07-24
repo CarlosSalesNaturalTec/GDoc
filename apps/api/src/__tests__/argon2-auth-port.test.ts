@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { createHmac } from 'node:crypto';
 import { Argon2AuthPort } from '../adapters/argon2-auth-port.js';
 import type { SecretsPort } from '../ports/secrets-port.js';
 
@@ -12,18 +13,37 @@ class FixedSecretsPort implements SecretsPort {
 describe('Argon2AuthPort — sessão (JWT HMAC-SHA256)', () => {
   it('emite e verifica um token válido', async () => {
     const auth = new Argon2AuthPort(new FixedSecretsPort('test-secret'), 60);
+    const issuedAt = new Date();
+    const token = await auth.issueSession({ sub: 'user-1' }, issuedAt);
+    const claims = await auth.verifySession(token);
+    expect(claims).toEqual({ sub: 'user-1', iat: Math.floor(issuedAt.getTime() / 1000) });
+  });
+
+  it('usa o relógio do Node quando nenhum instante de emissão é informado', async () => {
+    const auth = new Argon2AuthPort(new FixedSecretsPort('test-secret'), 60);
+    const before = Math.floor(Date.now() / 1000);
     const token = await auth.issueSession({ sub: 'user-1' });
     const claims = await auth.verifySession(token);
-    expect(claims).toEqual({ sub: 'user-1' });
+    expect(claims!.iat).toBeGreaterThanOrEqual(before);
+  });
+
+  it('rejeita token sem instante de emissão (fail-closed)', async () => {
+    const auth = new Argon2AuthPort(new FixedSecretsPort('test-secret'), 60);
+    const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' }), 'utf-8').toString('base64url');
+    const payload = Buffer.from(JSON.stringify({ sub: 'user-1', exp: 9999999999 }), 'utf-8').toString('base64url');
+    const signature = createHmac('sha256', 'test-secret').update(`${header}.${payload}`).digest('base64url');
+    const tokenWithoutIat = `${header}.${payload}.${signature}`;
+    expect(await auth.verifySession(tokenWithoutIat)).toBeNull();
   });
 
   it('rejeita token adulterado', async () => {
     const auth = new Argon2AuthPort(new FixedSecretsPort('test-secret'), 60);
     const token = await auth.issueSession({ sub: 'user-1' });
     const [header, payload] = token.split('.');
-    const tamperedPayload = Buffer.from(JSON.stringify({ sub: 'attacker', exp: 9999999999 }), 'utf-8').toString(
-      'base64url',
-    );
+    const tamperedPayload = Buffer.from(
+      JSON.stringify({ sub: 'attacker', iat: 0, exp: 9999999999 }),
+      'utf-8',
+    ).toString('base64url');
     const tampered = `${header}.${tamperedPayload}.forged-signature`;
     expect(await auth.verifySession(tampered)).toBeNull();
     void payload;

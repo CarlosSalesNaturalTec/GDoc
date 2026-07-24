@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { CreatePersonRequest, PersonResponse, UpdatePersonRequest } from '@gdoc/shared';
+import type { CreatePersonRequest, PersonResponse, ResetPasswordResponse, UpdatePersonRequest } from '@gdoc/shared';
 import { apiClient } from '../lib/api-client';
-import { personListSchema } from '../lib/schemas';
+import { personListSchema, resetPasswordResponseSchema } from '../lib/schemas';
 
 const USERS_KEY = 'users';
 
@@ -32,5 +32,19 @@ export function useUpdatePerson() {
     mutationFn: ({ id, body }: { id: string; body: UpdatePersonRequest }) =>
       apiClient.patch<PersonResponse>(`/users/${id}`, body),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: [USERS_KEY] }),
+  });
+}
+
+/**
+ * `POST /users/:id/password` (US 1.4; design.md (troca-de-senha) D7): a senha
+ * gerada vai direto ao modal chamador, via valor de retorno da mutação — sem
+ * `queryKey`, para nunca sobreviver no cache do TanStack Query.
+ */
+export function useResetPersonPassword() {
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const raw = await apiClient.post<ResetPasswordResponse>(`/users/${id}/password`);
+      return resetPasswordResponseSchema.parse(raw);
+    },
   });
 }

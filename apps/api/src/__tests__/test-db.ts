@@ -38,10 +38,13 @@ export async function withSystemBypass<T>(pool: Pool, fn: (client: PoolClient) =
  * Emite uma sessão válida para `userId` e devolve o par pronto para
  * `.set('Cookie', ...)` no supertest — substitui o antigo header
  * `x-gdoc-user-id` nos testes, agora que a identidade vem da sessão
- * autenticada (ver middleware/tenant-context.ts).
+ * autenticada (ver middleware/tenant-context.ts). `issuedAt` (opcional)
+ * permite forjar uma sessão emitida antes/depois da última troca de senha,
+ * para testar a invalidação por `password_changed_at` (change
+ * `troca-de-senha`, design.md D1).
  */
-export async function sessionCookieFor(ports: Ports, userId: string): Promise<string> {
-  const token = await ports.auth.issueSession({ sub: userId });
+export async function sessionCookieFor(ports: Ports, userId: string, issuedAt?: Date): Promise<string> {
+  const token = await ports.auth.issueSession({ sub: userId }, issuedAt);
   return `${SESSION_COOKIE_NAME}=${token}`;
 }
 

@@ -44,11 +44,12 @@ export class Argon2AuthPort implements AuthPort {
     return argon2.verify(hash, plainTextPassword);
   }
 
-  async issueSession(claims: SessionClaims): Promise<string> {
+  async issueSession(claims: Pick<SessionClaims, 'sub'>, issuedAt: Date = new Date()): Promise<string> {
     const secret = await this.getSecret();
     const header = base64UrlEncode(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
-    const exp = Math.floor(Date.now() / 1000) + this.sessionTtlSeconds;
-    const payload = base64UrlEncode(JSON.stringify({ sub: claims.sub, exp }));
+    const iat = Math.floor(issuedAt.getTime() / 1000);
+    const exp = iat + this.sessionTtlSeconds;
+    const payload = base64UrlEncode(JSON.stringify({ sub: claims.sub, iat, exp }));
     const signature = sign(`${header}.${payload}`, secret);
     return `${header}.${payload}.${signature}`;
   }
@@ -66,17 +67,23 @@ export class Argon2AuthPort implements AuthPort {
       return null;
     }
 
-    let parsed: { sub?: unknown; exp?: unknown };
+    let parsed: { sub?: unknown; iat?: unknown; exp?: unknown };
     try {
       parsed = JSON.parse(base64UrlDecode(payload).toString('utf-8'));
     } catch {
       return null;
     }
 
-    if (typeof parsed.sub !== 'string' || typeof parsed.exp !== 'number') return null;
+    // Token sem `iat` é inválido (design.md D3, fail-closed): formato antigo,
+    // emitido antes deste deploy, não deve ser aceito por reencontrar o mesmo
+    // efeito prático do backfill de `password_changed_at` por um caminho não
+    // testado.
+    if (typeof parsed.sub !== 'string' || typeof parsed.iat !== 'number' || typeof parsed.exp !== 'number') {
+      return null;
+    }
     if (parsed.exp < Math.floor(Date.now() / 1000)) return null;
 
-    return { sub: parsed.sub };
+    return { sub: parsed.sub, iat: parsed.iat };
   }
 
   private getSecret(): Promise<string> {

@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
-import { Avatar, Button, Layout, Menu, Space, Typography } from 'antd';
+import { Avatar, Dropdown, Layout, Menu, Space, Typography } from 'antd';
+import type { MenuProps } from 'antd';
 import {
   ApartmentOutlined,
   DashboardOutlined,
@@ -9,6 +10,7 @@ import {
   LogoutOutlined,
   SearchOutlined,
   TeamOutlined,
+  UserOutlined,
 } from '@ant-design/icons';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { UserRole } from '@gdoc/shared';
@@ -75,6 +77,15 @@ export function AppShell() {
     navigate('/login', { replace: true });
   }
 
+  // Menu de identidade (change `troca-de-senha`, design.md D5/D6): "Minha
+  // conta" é oferecida a qualquer papel, inclusive `collaborator` — não é
+  // item de administração.
+  const identityMenuItems: MenuProps['items'] = [
+    { key: 'minha-conta', icon: <UserOutlined />, label: <Link to="/minha-conta">Minha conta</Link> },
+    { type: 'divider' },
+    { key: 'sair', icon: <LogoutOutlined />, label: 'Sair', onClick: handleLogout },
+  ];
+
   if (!identity) return null;
 
   return (
@@ -96,13 +107,12 @@ export function AppShell() {
             padding: '0 24px',
           }}
         >
-          <Space>
-            <Avatar>{identity.id.slice(0, 2).toUpperCase()}</Avatar>
-            <Typography.Text>{ROLE_LABEL[identity.role]}</Typography.Text>
-          </Space>
-          <Button icon={<LogoutOutlined />} onClick={handleLogout}>
-            Sair
-          </Button>
+          <Dropdown menu={{ items: identityMenuItems }} trigger={['click']}>
+            <Space style={{ cursor: 'pointer' }}>
+              <Avatar>{identity.id.slice(0, 2).toUpperCase()}</Avatar>
+              <Typography.Text>{ROLE_LABEL[identity.role]}</Typography.Text>
+            </Space>
+          </Dropdown>
         </Header>
         <Content style={{ margin: 24 }}>
           <Outlet />
