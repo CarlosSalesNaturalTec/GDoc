@@ -1,0 +1,139 @@
+# Spec — identidade-visual (delta)
+
+Capability nova. Não decorre de uma US do PRD (`docs/prd_final.md`) — é um pedido
+direto do cliente sobre nome comercial e identificação da organização. Onde toca
+comportamento já normatizado, preserva-o: o nome acessível do heading de login
+continua sendo o nome da aplicação puro, conforme a US 1.2 e o cuidado já
+registrado em `apps/web/src/auth/LoginPage.tsx`. Ver design.md D1–D8.
+
+## ADDED Requirements
+
+### Requirement: Nome da aplicação exibido é Doc7
+
+A aplicação SHALL exibir **Doc7** como nome do produto em toda a camada de
+apresentação: título do documento no navegador, cabeçalho da tela de login, marca
+do shell autenticado e tela de Início. O nome NÃO SHALL variar por papel, por
+unidade ou por estado de autenticação. Referência: design.md D5 (identificadores
+internos de código e infraestrutura permanecem inalterados e não são objeto deste
+requisito).
+
+#### Scenario: Título do documento apresenta o nome da aplicação
+- **WHEN** uma pessoa abre a aplicação no navegador
+- **THEN** o título do documento apresenta o nome **Doc7**
+
+#### Scenario: Tela de login apresenta o nome da aplicação
+- **WHEN** uma pessoa não autenticada abre a tela de login
+- **THEN** o cabeçalho da tela apresenta o nome **Doc7**
+
+#### Scenario: Shell autenticado apresenta a marca em ambos os estados
+- **WHEN** uma pessoa autenticada visualiza o shell com a navegação expandida e
+  depois colapsada
+- **THEN** a marca apresenta o nome **Doc7** no estado expandido e uma forma
+  abreviada equivalente no estado colapsado
+
+### Requirement: Identificação do cliente é configurada por implantação
+
+O sistema SHALL obter a identificação do cliente de uma configuração de ambiente
+da implantação (`APP_CLIENT_NAME`), e NÃO SHALL embuti-la como literal no código
+da interface. Quando a configuração estiver ausente ou vazia, a aplicação SHALL
+operar normalmente e simplesmente NÃO exibir identificação de cliente, sem erro,
+sem espaço reservado e sem degradação de nenhuma outra funcionalidade. A
+identificação SHALL ser única por implantação, NÃO variando por unidade nem por
+pessoa autenticada. Referência: design.md D3, D8.
+
+#### Scenario: Identificação configurada é exibida
+- **WHEN** a implantação define a identificação do cliente como `SETES`
+- **THEN** a aplicação exibe `SETES` como identificação do cliente
+
+#### Scenario: Ausência de configuração não exibe identificação nem quebra a tela
+- **WHEN** a implantação não define identificação de cliente
+- **THEN** nenhuma identificação de cliente é exibida e a tela de login permanece
+  plenamente funcional
+
+#### Scenario: Identificação não varia por unidade
+- **WHEN** pessoas de unidades diferentes acessam a mesma implantação
+- **THEN** todas veem a mesma identificação de cliente
+
+### Requirement: Configuração de identidade visual disponível sem autenticação
+
+O sistema SHALL expor a identidade visual (nome da aplicação e identificação do
+cliente) por um endpoint que responde **sem sessão autenticada**, porque a tela
+onde ela precisa aparecer é anterior ao login. Esse endpoint SHALL devolver
+**exclusivamente** o nome da aplicação e a identificação do cliente, e NÃO SHALL
+expor nenhum outro valor de configuração, ambiente, versão, limite ou recurso de
+infraestrutura. O endpoint NÃO SHALL abrir contexto de unidade nem consultar dado
+tenant-scoped. Referência: design.md D2, D4.
+
+#### Scenario: Requisição sem sessão obtém a identidade visual
+- **WHEN** um cliente sem sessão autenticada requisita a configuração de
+  identidade visual
+- **THEN** recebe o nome da aplicação e a identificação do cliente, sem erro de
+  autenticação
+
+#### Scenario: A resposta não carrega configuração além de identidade visual
+- **WHEN** um cliente requisita a configuração de identidade visual
+- **THEN** a resposta contém apenas o nome da aplicação e a identificação do
+  cliente, e nenhum outro dado de configuração do sistema
+
+### Requirement: Rota de identidade visual não introduz prefixo de topo novo
+
+A rota que serve a identidade visual SHALL residir sob um prefixo de API já
+declarado nas listas de prefixo existentes, de modo que o fallback de
+`index.html` da SPA continue sem sombreá-la e as três listas
+(`apps/api/src/lib/api-prefixes.ts`, `apps/web/vite.config.ts` e
+`infra/terraform/locals.tf`) permaneçam inalteradas. Referência: design.md D2;
+capability `publicacao-frontend`, requisito "Rotas de API nunca sombreadas pelo
+estático".
+
+#### Scenario: A rota é servida pela API e não pelo estático
+- **WHEN** a rota de identidade visual é requisitada na implantação de produção
+- **THEN** a resposta vem da API, e não do `index.html` da SPA
+
+#### Scenario: As listas de prefixo permanecem em sincronia
+- **WHEN** a rota de identidade visual é adicionada
+- **THEN** nenhuma das três listas de prefixo de API precisa ser alterada, e a
+  cobertura de sombreamento de rotas continua passando
+
+### Requirement: Identificação do cliente não contamina o nome acessível do título
+
+A identificação do cliente SHALL ser apresentada **abaixo** do nome da aplicação,
+em elemento distinto do heading. O **nome acessível** do heading da tela de login
+SHALL permanecer sendo o nome da aplicação puro, sem a identificação do cliente e
+sem qualquer conteúdo decorativo. No estado colapsado da navegação do shell, a
+identificação do cliente NÃO SHALL ser renderizada. Referência: PRD US 1.2;
+design.md D6.
+
+#### Scenario: Heading de login mantém nome acessível puro
+- **WHEN** uma tecnologia assistiva consulta o heading da tela de login com a
+  identificação do cliente configurada
+- **THEN** o nome acessível do heading é exatamente o nome da aplicação, sem a
+  identificação do cliente
+
+#### Scenario: Identificação aparece abaixo do nome na tela de login
+- **WHEN** uma pessoa não autenticada abre a tela de login com a identificação do
+  cliente configurada
+- **THEN** vê a identificação do cliente apresentada abaixo do nome da aplicação
+
+#### Scenario: Navegação colapsada omite a identificação
+- **WHEN** uma pessoa autenticada colapsa a navegação do shell
+- **THEN** apenas a forma abreviada da marca é exibida, sem a identificação do
+  cliente
+
+### Requirement: Falha ao obter a identidade visual não impede o login
+
+Quando a obtenção da configuração de identidade visual falhar por indisponibilidade
+ou erro, a aplicação SHALL prosseguir tratando o caso como "sem identificação de
+cliente" e SHALL permitir que a pessoa faça login normalmente. A falha NÃO SHALL
+bloquear a renderização da tela de login, NÃO SHALL produzir tela de erro e NÃO
+SHALL introduzir estado de carregamento perceptível além do bootstrap de sessão já
+existente. Referência: design.md D7.
+
+#### Scenario: Indisponibilidade da configuração ainda permite autenticar
+- **WHEN** a obtenção da identidade visual falha e uma pessoa abre a aplicação
+- **THEN** a tela de login é exibida sem identificação de cliente e a pessoa
+  consegue autenticar normalmente
+
+#### Scenario: Carregamento não produz alternância visível de conteúdo
+- **WHEN** uma pessoa abre a aplicação com a identificação do cliente configurada
+- **THEN** a tela de login é apresentada já com a identificação, sem exibir antes
+  um estado sem ela
