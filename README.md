@@ -6,12 +6,12 @@ granulares, isolamento por unidade, auditoria e lixeira com retenção. Ver
 
 O nome exibido (`Doc7`) e a identificação do cliente na tela de login/shell
 (`APP_CLIENT_NAME`, ver `.env.example`) são configuráveis por implantação —
-ver `openspec/changes/rebranding-doc7-setes/` (capability `identidade-visual`,
-sincronizada em `openspec/specs/` quando a change for arquivada). Identificadores
-internos de código e infraestrutura (`@gdoc/*`, `gdoc_dev`/`gdoc_ci`,
-`name_prefix = "gdoc"` no Terraform) permanecem inalterados por decisão — trocar
-`name_prefix` faria o Terraform destruir e recriar bucket, Cloud SQL e tópico
-Pub/Sub (design.md D5 dessa change).
+ver `openspec/specs/identidade-visual/` (capability entregue pela change
+arquivada em `openspec/changes/archive/2026-08-05-rebranding-doc7-setes/`).
+Identificadores internos de código e infraestrutura (`@gdoc/*`,
+`gdoc_dev`/`gdoc_ci`, `name_prefix = "gdoc"` no Terraform) permanecem
+inalterados por decisão — trocar `name_prefix` faria o Terraform destruir e
+recriar bucket, Cloud SQL e tópico Pub/Sub (design.md D5 dessa change).
 
 Este README cobre a **fundação de infraestrutura** (mudança
 `bootstrap-infrastructure`, arquivada em `openspec/changes/archive/`) —
