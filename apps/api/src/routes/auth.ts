@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import type { ChangePasswordRequest, MyProfileResponse } from '@gdoc/shared';
+import type { ChangePasswordRequest, MyProfileResponse, PublicConfigResponse } from '@gdoc/shared';
 import type { LoginRequest } from '@gdoc/shared';
 import type { Ports } from '../ports/index.js';
 import { config } from '../config.js';
@@ -29,6 +29,16 @@ interface UserAuthRow {
  */
 export function authRouter(ports: Ports): Router {
   const router = Router();
+
+  // Identidade visual da implantação (change rebranding-doc7-setes,
+  // design.md D1/D2/D4): sem attachTenantContext — a tela de login é
+  // pré-autenticação e precisa desta configuração antes de haver sessão.
+  // Contrato travado a exatamente `{ appName, clientName }`; nenhum outro
+  // valor de configuração entra aqui. Não abre transação tenant.
+  router.get('/auth/public-config', (_req, res) => {
+    const response: PublicConfigResponse = { appName: 'Doc7', clientName: config.appClientName };
+    res.json(response);
+  });
 
   router.post('/auth/login', async (req, res, next) => {
     try {

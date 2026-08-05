@@ -4,6 +4,7 @@ import type { Pool } from 'pg';
 import * as argon2 from 'argon2';
 import { createHmac } from 'node:crypto';
 import { createApp } from '../app.js';
+import { config } from '../config.js';
 import { PgDatabasePort } from '../adapters/pg-database-port.js';
 import { EnvSecretsPort } from '../adapters/env-secrets-port.js';
 import { Argon2AuthPort } from '../adapters/argon2-auth-port.js';
@@ -300,6 +301,20 @@ describe('Autenticação: /auth/login, /auth/logout, /auth/me', () => {
 
       const meWithStale = await request(app).get('/auth/me').set('Cookie', staleCookie);
       expect(meWithStale.status).toBe(401);
+    });
+  });
+
+  describe('GET /auth/public-config (change rebranding-doc7-setes)', () => {
+    it('responde 200 sem cookie de sessão, com apenas appName e clientName (design.md D4)', async () => {
+      const app = createApp(ports);
+      const res = await request(app).get('/auth/public-config');
+
+      expect(res.status).toBe(200);
+      // `clientName` reflete `APP_CLIENT_NAME` do ambiente (design.md D8), não
+      // um valor fixo — a trava desta rota é o contrato: exatamente estas duas
+      // chaves, nenhum outro dado de configuração.
+      expect(res.body).toEqual({ appName: 'Doc7', clientName: config.appClientName });
+      expect(Object.keys(res.body)).toEqual(['appName', 'clientName']);
     });
   });
 

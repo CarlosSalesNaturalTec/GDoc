@@ -41,3 +41,14 @@ export interface MyProfileResponse {
   unitName: string;
   role: UserRole;
 }
+
+/**
+ * Resposta de `GET /auth/public-config` (change `rebranding-doc7-setes`,
+ * design.md D4) — identidade visual da implantação, anônima por natureza
+ * (a tela de login é pré-autenticação). Contrato estreito e travado: só
+ * estes dois campos, nenhum outro valor de configuração.
+ */
+export interface PublicConfigResponse {
+  appName: string;
+  clientName: string;
+}

@@ -112,6 +112,10 @@ resource "google_cloud_run_v2_service" "api" {
         name  = "STORAGE_QUOTA_BYTES_PER_USER"
         value = tostring(var.storage_quota_bytes_per_user)
       }
+      env {
+        name  = "APP_CLIENT_NAME"
+        value = var.app_client_name
+      }
       # O Cloud Run já injeta os segredos (AUTH_SESSION_SECRET, DATABASE_URL)
       # como variáveis de ambiente resolvidas a partir do Secret Manager, via
       # `value_source.secret_key_ref` abaixo (design.md: "valores sensíveis no

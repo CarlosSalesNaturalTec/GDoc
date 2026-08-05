@@ -26,7 +26,7 @@ const ROLE_LABEL: Record<UserRole, string> = {
 
 /** Shell de layout (design.md D6): itens de administração só aparecem para `unit_admin`/`global_admin`. */
 export function AppShell() {
-  const { identity, logout } = useSession();
+  const { identity, logout, publicConfig } = useSession();
   const location = useLocation();
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
@@ -91,8 +91,17 @@ export function AppShell() {
   return (
     <Layout style={{ minHeight: '100vh' }}>
       <Sider collapsible collapsed={collapsed} onCollapse={setCollapsed}>
-        <div style={{ height: 48, margin: 16, color: '#fff', fontWeight: 600, fontSize: 18 }}>
-          {collapsed ? 'GD' : 'GDoc'}
+        <div style={{ minHeight: 48, margin: 16 }}>
+          <div style={{ color: '#fff', fontWeight: 600, fontSize: 18, lineHeight: '24px' }}>
+            {collapsed ? 'D7' : 'Doc7'}
+          </div>
+          {/* Identificação do cliente só no estado expandido (design.md D6) —
+              o colapsado não tem largura para o subtítulo sem truncar. */}
+          {!collapsed && publicConfig.clientName && (
+            <div style={{ color: 'rgba(255, 255, 255, 0.65)', fontSize: 12, lineHeight: '16px' }}>
+              {publicConfig.clientName}
+            </div>
+          )}
         </div>
         <Menu theme="dark" mode="inline" selectedKeys={[selectedKey]} items={items} />
       </Sider>
