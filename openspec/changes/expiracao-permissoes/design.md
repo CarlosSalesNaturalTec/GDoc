@@ -166,10 +166,11 @@ próprio de "até onde já processei".
 | Vencimento se aproxima | a **pessoa** que recebeu a concessão | janela configurável antes do vencimento, default **7 dias** |
 | Prazo atingido, acesso cortado | os **administradores da unidade do grant** | na primeira execução após o vencimento |
 
-Sobre a janela de 7 dias: é o menor prazo que ainda permite uma reação
-administrativa útil (pedir renovação, concluir o trabalho) sem gerar aviso tão
-antecipado que se perca. Fica em `config.ts`, não fixa no código, para ajuste sem
-deploy.
+Sobre a janela de **7 dias**: valor **confirmado pelo cliente**. É o menor prazo
+que ainda permite uma reação administrativa útil (pedir renovação, concluir o
+trabalho) sem gerar aviso tão antecipado que se perca. Permanece em `config.ts` e
+não fixa no código — a spec exige configurabilidade, então 7 dias é o *default*
+da implantação, não uma constante.
 
 Sobre "a área administrativa" do cenário 2: são os `unit_admin` **da unidade do
 grant**. Deliberadamente **não** inclui `global_admin` — a trava de bypass do
@@ -243,8 +244,6 @@ haveria uma janela em que um acesso "temporário" seria de fato permanente.
 
 ## Open Questions
 
-- **Janela de aviso.** 7 dias é a recomendação; convém confirmar com o cliente se
-  o ciclo administrativo da SETES comporta esse prazo ou se pede mais.
 - **Aviso ao conceder.** A pessoa deveria ser notificada no momento em que recebe
   uma concessão com prazo, além do aviso prévio? A US não pede; seria coerente,
   mas é escopo adicional.

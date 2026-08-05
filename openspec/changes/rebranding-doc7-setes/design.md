@@ -180,6 +180,41 @@ segredo. Vai como variável de ambiente do serviço Cloud Run, **não** pelo
 `SecretsPort`/Secret Manager. Usar o caminho de segredo para dado público
 adicionaria uma rotação e um custo de leitura sem nenhum ganho.
 
+### D9 — Título do documento é composto em runtime, com o estático como fallback
+
+O cliente definiu o título como **`Doc7 - SETES`**. Isso colide com D1 de um jeito
+que não é óbvio: `apps/web/index.html` é um **arquivo estático**, então seu
+`<title>` é fixado em build — mas `APP_CLIENT_NAME` só chega depois, pelo
+`GET /auth/public-config`. Um `<title>Doc7 - SETES</title>` literal no HTML
+reintroduziria pela porta dos fundos exatamente o hardcode que D1/D3 removeram, e
+uma implantação para outro cliente exibiria "SETES" na aba até alguém reconstruir
+o bundle.
+
+Solução em duas camadas:
+
+```
+   index.html (build)              bootstrap resolve            resultado
+   ──────────────────              ─────────────────            ─────────
+   <title>Doc7</title>    ──►    clientName = "SETES"   ──►    Doc7 - SETES
+                                  clientName = ""       ──►    Doc7
+```
+
+O `<title>` estático carrega **apenas o nome da aplicação** — valor correto por si
+só, exibido enquanto a configuração não resolveu e permanente quando não há
+identificação de cliente. Assim que o bootstrap (D7) resolve, a SPA compõe
+`document.title` como `{appName} - {clientName}`. Sem `clientName`, nada é
+composto e o título estático permanece.
+
+Separador: hífen simples com espaços (`Doc7 - SETES`), conforme escrito pelo
+cliente — não travessão. A composição vive num único ponto, não espalhada por
+página, para que o padrão não divirja quando outras telas ajustarem o título.
+
+Nota de escopo: a composição vale para o **título do documento**. O heading da
+tela de login **não** é composto — continua sendo o nome puro, com a identificação
+como elemento irmão (D6). São regras distintas de propósito: a aba do navegador
+precisa desambiguar entre sistemas abertos; o heading precisa de nome acessível
+limpo.
+
 ## Risks / Trade-offs
 
 - **Uma requisição a mais no boot.** Mitigado por D7 (paralela ao `/auth/me`, sob
@@ -212,7 +247,5 @@ mesmo artefato, conforme `publicacao-frontend`).
 
 ## Open Questions
 
-- `SETES` é sigla de quê? Se houver forma por extenso que o cliente prefira como
-  `title` do documento (ex.: `Doc7 — SETES`), o `<title>` pode incorporá-la; a
-  spec deixa o `<title>` como "nome da aplicação", e incluir o cliente ali é
-  ajuste de uma linha.
+Nenhuma pendente. `SETES` é o **nome da empresa cliente** (não sigla a expandir),
+e o cliente definiu o título do documento como `Doc7 - SETES` — resolvido em D9.

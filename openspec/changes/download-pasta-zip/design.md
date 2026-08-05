@@ -147,17 +147,31 @@ O `.zip` é montado na memória/disco do navegador. Sem limite, uma pasta de dez
 de GB derruba a aba, e o usuário não entende por quê. Dois tetos configuráveis,
 checados **antes** de assinar qualquer URL e antes de auditar:
 
-- número máximo de arquivos no manifesto;
-- soma máxima de bytes.
+- **soma máxima de bytes: 50 MB** (definido pelo cliente) — o teto que governa;
+- número máximo de arquivos: guarda secundária contra a pasta com milhares de
+  arquivos minúsculos, que passaria folgada nos 50 MB mas produziria milhares de
+  requisições ao bucket e milhares de eventos de auditoria numa transação.
 
 Excedido ⇒ recusa com erro **específico** (não genérico), informando qual teto foi
 atingido e orientando a baixar subpastas separadamente. Nada é assinado e **nada é
 auditado** num pedido recusado — a ordem importa: validar limite → assinar →
 auditar.
 
-Valores iniciais são chute informado, não medição, e devem ser revistos com uso
-real. Ficam em `config.ts`, não hardcoded, exatamente para permitir esse ajuste
-sem deploy de código novo.
+Ambos ficam em `config.ts`, não hardcoded, para ajuste sem deploy de código.
+
+**O teto de 50 MB reforça D1.** Era o argumento que faltava: com esse volume, a
+compactação no navegador é confortável — sem risco de estourar memória, sem
+necessidade de disco temporário — e o job assíncrono seria infraestrutura
+construída para um problema que o próprio limite já elimina. A decisão de compactar
+no cliente deixa de ser "a mais barata por ora" e passa a ser a proporcional.
+
+**Contrapartida a registrar:** 50 MB é restritivo para um repositório documental.
+Uma pasta com algumas dezenas de PDFs digitalizados ultrapassa o teto, e o usuário
+vai encontrar a recusa com frequência maior do que "caso extremo" — é por isso que
+a mensagem de recusa precisa ser **acionável** (qual teto, e o que fazer), não um
+erro genérico. Se o volume de recusas incomodar em uso real, o caminho é elevar o
+teto (uma variável de ambiente) e, só se isso esbarrar na memória do navegador,
+migrar para o job. O contrato do cliente não muda em nenhum dos dois passos.
 
 ### D6 — TTL e CORS: reuso do que já existe, sem afrouxar
 
@@ -230,11 +244,12 @@ comportamento, então não há janela de incompatibilidade entre versões.
 
 ## Open Questions
 
-- **Valores iniciais dos limites de D5.** Precisam de um número de partida; a
-  sugestão é conservadora e revisável, mas convém validar com o cliente qual é o
-  tamanho típico de pasta que a SETES espera baixar.
 - **Nome do arquivo gerado.** `{nome-da-pasta}.zip` é o óbvio; se houver colisão
   de nome no diretório de downloads do usuário, o navegador resolve sozinho.
-- **Pasta raiz da unidade.** A US fala em "uma pasta". Baixar **a raiz inteira**
-  da unidade é caso limite que os tetos de D5 provavelmente barram na prática;
-  vale decidir se a ação sequer é oferecida na raiz.
+- **Pasta raiz da unidade.** A US fala em "uma pasta". Com o teto de 50 MB, baixar
+  a raiz inteira será recusado em praticamente toda unidade com uso real — vale
+  decidir se a ação é sequer oferecida ali, ou se oferecê-la e deixar a recusa
+  explicar é preferível a escondê-la sem explicação.
+- **Teto de arquivos.** O de bytes está definido (50 MB); o de contagem é guarda
+  secundária e precisa de um número de partida — sugestão conservadora na
+  implementação, revisável por variável de ambiente.

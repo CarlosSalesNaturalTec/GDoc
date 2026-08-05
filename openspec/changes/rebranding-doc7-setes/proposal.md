@@ -44,6 +44,11 @@ antes da autenticação.
 - **Exibição do subtítulo** na tela de login e no shell, **fora** do elemento de
   heading, preservando o nome acessível do título como o nome da aplicação puro
   (padrão que `LoginPage.tsx` já adota deliberadamente para o ícone).
+- **Título do documento composto em runtime** — `Doc7 - SETES` na aba do
+  navegador quando há identificação configurada, `Doc7` quando não há. O
+  `<title>` estático carrega só o nome; a composição acontece após o bootstrap,
+  para que a identificação do cliente não volte a ser hardcode em tempo de
+  compilação (D9).
 - **Testes** que ancoram o nome (`login.test.tsx`, `require-auth.test.tsx`,
   `painel.test.tsx`, `role-guard.test.tsx`, `unidades.test.tsx`,
   `minha-conta.test.tsx`) passam a ancorar `Doc7`, mais cobertura nova do

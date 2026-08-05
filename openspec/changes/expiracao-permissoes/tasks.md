@@ -72,7 +72,7 @@
 ## 6. Rotina de avisos
 
 - [ ] 6.1 `apps/api/src/config.ts`: janela de antecedência do aviso, default
-  **7 dias**, configurável por ambiente (design.md D6).
+  **7 dias** (confirmado pelo cliente), configurável por ambiente (design.md D6).
 - [ ] 6.2 Criar `apps/api/src/jobs/notify-expiring-grants.ts` no molde de
   `jobs/purge-trash.ts` (`SYSTEM_CTX` de manutenção, sumário, tolerância a falha
   parcial).
@@ -148,5 +148,5 @@
 - [ ] 12.2 Exercício manual: conceder com prazo curto, confirmar corte no
   vencimento **sem** rodar o job, depois rodar `npm run notify:grants` e conferir
   os avisos nos dois destinatários.
-- [ ] 12.3 Confirmar a janela de 7 dias com o cliente antes do deploy (ver Open
-  Questions do design).
+- [ ] 12.3 Conferir que a janela default resolvida em runtime é de 7 dias e que
+  alterá-la por variável de ambiente muda o comportamento sem rebuild.

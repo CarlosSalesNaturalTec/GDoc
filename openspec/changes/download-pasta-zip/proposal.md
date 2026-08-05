@@ -34,9 +34,11 @@ que o pacote contenha **apenas os itens permitidos ao solicitante**.
 - **Auditoria por arquivo** — cada arquivo incluído no manifesto grava um evento
   `download`, exatamente como `POST /files/:id/download-url` já faz na emissão da
   URL. Baixar uma pasta com 47 arquivos permitidos produz 47 eventos.
-- **Limite de tamanho do pedido** — manifesto acima do limite configurado (número
-  de arquivos ou soma de bytes) é recusado com erro explícito orientando a baixar
-  subpastas separadamente, em vez de estourar a memória do navegador.
+- **Limite de tamanho do pedido** — teto de **50 MB** por pacote (definido pelo
+  cliente), mais uma guarda secundária de contagem de arquivos. Pedido acima do
+  teto é recusado com erro **acionável** — identifica qual limite foi atingido e
+  orienta a baixar subpastas separadamente —, em vez de estourar a memória do
+  navegador. Ambos configuráveis por ambiente.
 - **Interface** — ação "Baixar pasta" na página de Arquivos, com progresso,
   aviso de recorte parcial, mensagem própria para "nenhum item disponível" e
   cancelamento.

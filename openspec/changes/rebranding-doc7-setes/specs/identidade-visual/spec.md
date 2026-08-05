@@ -13,13 +13,32 @@ registrado em `apps/web/src/auth/LoginPage.tsx`. Ver design.md D1–D8.
 A aplicação SHALL exibir **Doc7** como nome do produto em toda a camada de
 apresentação: título do documento no navegador, cabeçalho da tela de login, marca
 do shell autenticado e tela de Início. O nome NÃO SHALL variar por papel, por
-unidade ou por estado de autenticação. Referência: design.md D5 (identificadores
-internos de código e infraestrutura permanecem inalterados e não são objeto deste
-requisito).
+unidade ou por estado de autenticação.
 
-#### Scenario: Título do documento apresenta o nome da aplicação
-- **WHEN** uma pessoa abre a aplicação no navegador
-- **THEN** o título do documento apresenta o nome **Doc7**
+O **título do documento** SHALL ser composto pelo nome da aplicação seguido da
+identificação do cliente, quando esta estiver configurada, no formato
+`Doc7 - SETES`. O título estático servido no documento SHALL conter **apenas o
+nome da aplicação**, e a composição com a identificação do cliente SHALL ocorrer
+em tempo de execução, após a resolução da configuração — de modo que a
+identificação NÃO SHALL ser fixada em tempo de compilação. Sem identificação
+configurada, o título SHALL permanecer apenas com o nome da aplicação. Referência:
+design.md D5 (identificadores internos de código e infraestrutura permanecem
+inalterados e não são objeto deste requisito); design.md D9.
+
+#### Scenario: Título do documento compõe nome e identificação do cliente
+- **WHEN** uma pessoa abre a aplicação no navegador com a identificação do cliente
+  configurada como `SETES`
+- **THEN** o título do documento apresenta `Doc7 - SETES`
+
+#### Scenario: Sem identificação configurada o título fica só com o nome
+- **WHEN** uma pessoa abre a aplicação numa implantação sem identificação de
+  cliente configurada
+- **THEN** o título do documento apresenta apenas `Doc7`
+
+#### Scenario: Identificação do cliente não é fixada em tempo de compilação
+- **WHEN** a identificação do cliente é alterada na configuração da implantação
+- **THEN** o título do documento passa a refletir a nova identificação sem exigir
+  nova compilação do frontend
 
 #### Scenario: Tela de login apresenta o nome da aplicação
 - **WHEN** uma pessoa não autenticada abre a tela de login

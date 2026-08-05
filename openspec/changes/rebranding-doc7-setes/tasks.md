@@ -29,7 +29,12 @@
   configuração ⇒ `clientName` vazio, nunca bloqueio.
 - [ ] 3.2 Expor a identidade visual pelo contexto para consumo do login e do
   shell.
-- [ ] 3.3 `apps/web/index.html`: `<title>` para `Doc7`.
+- [ ] 3.3 `apps/web/index.html`: `<title>` para **`Doc7`** — apenas o nome, sem a
+  identificação do cliente (design.md D9: literal no HTML estático reintroduziria
+  o hardcode que esta change remove).
+- [ ] 3.3a Compor `document.title` como `{appName} - {clientName}` quando houver
+  identificação, num **único** ponto após a resolução do bootstrap. Sem
+  identificação, manter o título estático.
 - [ ] 3.4 `apps/web/src/auth/LoginPage.tsx`: heading para `Doc7`; identificação
   do cliente como elemento **irmão**, abaixo do heading e acima de "Acesse sua
   conta" — preservando o nome acessível puro do heading (design.md D6). Manter o
@@ -65,6 +70,8 @@
   bootstrap nem o login.
 - [ ] 5.5 Novo caso (shell): identificação visível no estado expandido e ausente
   no colapsado.
+- [ ] 5.5a Novo caso: `document.title` compõe `Doc7 - SETES` com identificação
+  configurada, e permanece `Doc7` sem ela.
 - [ ] 5.6 **(API)** Novo caso: `GET /auth/public-config` responde `200` **sem
   cookie de sessão**, e a resposta contém apenas `appName` e `clientName`.
 - [ ] 5.7 Confirmar que `__tests__/web-serving.test.ts` continua passando sem

@@ -23,8 +23,10 @@
 
 ## 3. API — rota de manifesto
 
-- [ ] 3.1 `apps/api/src/config.ts`: limites `DOWNLOAD_MANIFEST_MAX_FILES` e
-  `DOWNLOAD_MANIFEST_MAX_BYTES` (design.md D5), com defaults conservadores.
+- [ ] 3.1 `apps/api/src/config.ts`: limites `DOWNLOAD_MANIFEST_MAX_BYTES` com
+  default **50 MB** (definido pelo cliente) e `DOWNLOAD_MANIFEST_MAX_FILES` como
+  guarda secundária, com default conservador (design.md D5). Ambos configuráveis
+  por ambiente.
 - [ ] 3.2 `apps/api/src/routes/folders.ts`: `POST /folders/:id/download-manifest`.
   Ordem obrigatória: **checar `view` na pasta → percorrer e filtrar por
   `download` item a item → validar limites → emitir URLs assinadas → auditar**
@@ -99,5 +101,6 @@
 - [ ] 9.1 `npm run lint && npm run build && npm run test` na raiz.
 - [ ] 9.2 Exercício manual: pasta com subpastas e permissões mistas entre duas
   pessoas, conferindo pacote, aviso de recorte e eventos de auditoria.
-- [ ] 9.3 Revisar os valores default dos limites de D5 com o cliente antes do
-  deploy (ver Open Questions do design).
+- [ ] 9.3 Exercício manual do teto: pasta acima de 50 MB ⇒ recusa **acionável**
+  (identifica o teto e orienta), com **zero** URLs assinadas e **zero** eventos de
+  auditoria gravados.
