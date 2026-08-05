@@ -211,6 +211,25 @@ shell da fatia 1.
   próprio com `theme.useToken()`, sem `@ant-design/plots` (design.md D1)
 - **Depende de**: Fatia 1 (rota de administração)
 
+### Fatia 11 — Download de pasta compactada  ✅ entregue
+- **Capability**: `download-pasta` (change `download-pasta-zip`, fatia
+  entregue após as 10 originais — US 3.3 estava adiada por dependência do
+  motor de permissão, satisfeita pela Fatia 6)
+- **PRD**: US 3.3
+- **Endpoints**: `POST /folders/:id/download-manifest`,
+  `POST /folders/root/download-manifest` (manifesto de URLs assinadas — a API
+  nunca compacta; ver design.md D1 do change)
+- **Entrega**: ação "Baixar pasta" na linha da pasta e no cabeçalho do
+  explorador (`navegacao/`), oferecida em toda pasta inclusive na raiz da
+  unidade; compactação **em streaming no cliente** (`client-zip`), sem reter
+  todos os arquivos em memória simultaneamente; aviso de recorte parcial
+  ("N de M itens disponíveis") quando parte do conteúdo é filtrada por
+  permissão; mensagem própria e nenhum arquivo gerado quando nada está
+  disponível; progresso agregado e cancelamento; recusa por limite (100
+  arquivos / 50 MB) tratada com a orientação específica da API
+- **AntD**: `Modal`, `Progress`, `Alert`
+- **Depende de**: Fatia 2 (explorador), Fatia 6 (motor de permissão)
+
 ## Grafo de dependências
 
 ```

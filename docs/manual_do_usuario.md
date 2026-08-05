@@ -156,8 +156,18 @@ abrir o arquivo no aplicativo do seu computador.
 Use o botão **Baixar** na linha do arquivo. O download respeita suas permissões: sem
 permissão de baixar, a ação é recusada.
 
-Pastas são baixadas **arquivo a arquivo** — nesta versão não há download de uma pasta
-inteira de uma só vez (veja a seção 10).
+**Baixar uma pasta inteira.** Use **Baixar pasta**, disponível em toda pasta — inclusive
+na raiz da unidade — para receber a pasta e suas subpastas num único arquivo
+compactado (`.zip`), com a mesma estrutura de pastas original. O pacote contém
+**apenas os arquivos que você tem permissão de baixar**: se parte do conteúdo estiver
+fora do seu alcance, você é avisado de quantos itens foram incluídos em relação ao
+total antes do download começar, e se **nenhum** item estiver disponível, nenhum
+arquivo é gerado. Você pode acompanhar o progresso e **cancelar** a qualquer momento.
+
+Pastas muito grandes são recusadas com uma mensagem que informa **qual** limite foi
+atingido (quantidade de arquivos ou tamanho total) e orienta a baixar as subpastas
+separadamente — os limites desta versão são de até **100 arquivos** e **50 MB** por
+pacote.
 
 ### 5.6 Renomear e substituir arquivos
 
@@ -364,6 +374,7 @@ Você também define quem é **administrador de unidade** e acompanha o **painel
 | Enviar uma pasta inteira       | Arquivos      | Botão **Enviar pasta**                                    |
 | Visualizar sem baixar          | Arquivos      | Clicar no nome ou em **Visualizar**                       |
 | Baixar um arquivo              | Arquivos      | Botão **Baixar** na linha do arquivo                      |
+| Baixar uma pasta inteira       | Arquivos      | Botão **Baixar pasta** (gera um `.zip`)                   |
 | Renomear/substituir um arquivo | Arquivos      | Botão **Renomear** (precisa de permissão)                 |
 | Excluir                        | Arquivos      | Botão **Excluir** (vai para a Lixeira)                    |
 | Recuperar algo excluído        | Lixeira       | **Restaurar** (dentro de 30 dias)                         |
@@ -400,8 +411,9 @@ Documentos do Office não têm pré-visualização nesta versão. O sistema avis
 o **download** — baixe e abra no aplicativo do seu computador.
 
 **Quero baixar uma pasta inteira de uma vez.**
-Nesta versão o download é feito arquivo a arquivo. O download de pasta compactada está
-previsto (seção 10).
+Use **Baixar pasta** (seção 5.5): você recebe um `.zip` com a estrutura de subpastas
+preservada, contendo os arquivos que você tem permissão de baixar. Pastas acima de
+100 arquivos ou 50 MB são recusadas com orientação para baixar subpastas separadamente.
 
 **Esqueci minha senha.**
 Peça à área administrativa que a **redefina**. Você recebe uma senha nova, gerada pelo
@@ -422,8 +434,6 @@ o seu perfil.
 
 Estes recursos constam do planejamento do produto e **ainda não estão nesta versão**:
 
-- **Download de uma pasta completa em arquivo compactado** — hoje o download é feito
-  arquivo a arquivo.
 - **Prazo de expiração para permissões**, com aviso prévio à pessoa e à administração
   no momento do corte — hoje as permissões valem até serem **revogadas manualmente**
   em **Permissões → Revogar**.

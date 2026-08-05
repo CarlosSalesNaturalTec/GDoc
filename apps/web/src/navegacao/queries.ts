@@ -3,6 +3,7 @@ import type {
   CreateFolderRequest,
   FileSummaryResponse,
   FolderContentsResponse,
+  FolderDownloadManifestResponse,
   FolderResponse,
   RenameFileRequest,
 } from '@gdoc/shared';
@@ -10,6 +11,7 @@ import { apiClient } from '../lib/api-client';
 import {
   fileSummaryResponseSchema,
   folderContentsResponseSchema,
+  folderDownloadManifestResponseSchema,
   folderResponseSchema,
 } from '../lib/schemas';
 
@@ -77,5 +79,21 @@ export function useDeleteFolder() {
   return useMutation({
     mutationFn: (folderId: string) => apiClient.delete<void>(`/folders/${folderId}`),
     onSuccess: invalidate,
+  });
+}
+
+/**
+ * `POST /folders/:id/download-manifest` ou `/folders/root/download-manifest`
+ * (design.md D1/D9, `download-pasta-zip`): cada chamada é um novo pedido de
+ * acesso (URLs assinadas + auditoria por arquivo), por isso `useMutation`,
+ * não `useQuery` — mesma razão de `useDownloadUrl`.
+ */
+export function useDownloadFolderManifest() {
+  return useMutation({
+    mutationFn: async ({ folderId, signal }: { folderId: string | null; signal?: AbortSignal }) => {
+      const path = folderId === null ? '/folders/root/download-manifest' : `/folders/${folderId}/download-manifest`;
+      const raw = await apiClient.post<FolderDownloadManifestResponse>(path, undefined, signal);
+      return folderDownloadManifestResponseSchema.parse(raw);
+    },
   });
 }

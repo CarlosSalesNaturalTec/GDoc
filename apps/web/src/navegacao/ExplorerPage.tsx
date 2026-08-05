@@ -5,6 +5,7 @@ import {
   AuditOutlined,
   CloudDownloadOutlined,
   DeleteOutlined,
+  DownloadOutlined,
   EditOutlined,
   EyeOutlined,
   FileOutlined,
@@ -22,6 +23,7 @@ import { PermissoesModal } from '../permissoes/PermissoesModal';
 import { PreviewModal } from '../visualizacao/PreviewModal';
 import { useDownloadFile } from '../visualizacao/useDownloadFile';
 import { UploadArea } from '../upload/UploadArea';
+import { DownloadFolderModal } from './DownloadFolderModal';
 import { useCreateFolder, useDeleteFile, useDeleteFolder, useFolderContents, useRenameFile } from './queries';
 import { NewFolderModal } from './NewFolderModal';
 import { RenameFileModal } from './RenameFileModal';
@@ -31,6 +33,11 @@ interface ManagingResource {
   resourceType: GrantResourceType;
   resourceId: string;
   resourceName: string;
+}
+
+interface DownloadingFolder {
+  folderId: string | null;
+  folderName: string;
 }
 
 type Row =
@@ -63,6 +70,7 @@ export function ExplorerPage() {
   const [previewingFile, setPreviewingFile] = useState<FileSummaryResponse | null>(null);
   const [managingResource, setManagingResource] = useState<ManagingResource | null>(null);
   const [auditingFile, setAuditingFile] = useState<FileSummaryResponse | null>(null);
+  const [downloadingFolder, setDownloadingFolder] = useState<DownloadingFolder | null>(null);
   const { download, isPending: downloading } = useDownloadFile();
 
   // US 2.2 cenário 2 / design.md D4: o cliente não infere permissão, oferece
@@ -184,6 +192,13 @@ export function ExplorerPage() {
       render: (_, row) =>
         row.kind === 'folder' ? (
           <Space>
+            <Button
+              size="small"
+              icon={<DownloadOutlined />}
+              onClick={() => setDownloadingFolder({ folderId: row.folder.id, folderName: row.folder.name })}
+            >
+              Baixar pasta
+            </Button>
             {isAdmin && (
               <Button
                 size="small"
@@ -300,6 +315,17 @@ export function ExplorerPage() {
         <Button type="primary" icon={<FolderAddOutlined />} onClick={() => setNewFolderOpen(true)}>
           Nova pasta
         </Button>
+        {/* Oferecida uniformemente, inclusive na raiz da unidade — a recusa
+            por limite é que ensina o teto, não a ausência da ação
+            (design.md D9). */}
+        <Button
+          icon={<DownloadOutlined />}
+          onClick={() =>
+            setDownloadingFolder({ folderId: currentFolderId, folderName: data.folder?.name ?? 'Arquivos' })
+          }
+        >
+          Baixar esta pasta
+        </Button>
         {data.folder !== null && (
           <Popconfirm
             title="Excluir esta pasta"
@@ -330,6 +356,14 @@ export function ExplorerPage() {
       />
       <PreviewModal file={previewingFile} onClose={() => setPreviewingFile(null)} />
       <AuditoriaModal file={auditingFile} onClose={() => setAuditingFile(null)} />
+      {downloadingFolder && (
+        <DownloadFolderModal
+          open
+          folderId={downloadingFolder.folderId}
+          folderName={downloadingFolder.folderName}
+          onClose={() => setDownloadingFolder(null)}
+        />
+      )}
       <PermissoesModal
         resourceType={managingResource ? managingResource.resourceType : GrantResourceType.FILE}
         resourceId={managingResource ? managingResource.resourceId : ''}

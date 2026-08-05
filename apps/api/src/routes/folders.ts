@@ -2,9 +2,18 @@ import { Router } from 'express';
 import type { Ports } from '../ports/index.js';
 import type { TenantContext } from '../ports/database-port.js';
 import { AuditAction, GrantResourceType, Permission } from '@gdoc/shared';
-import type { CreateFolderRequest, FolderResponse, FolderRestoreResponse, FileSummaryResponse } from '@gdoc/shared';
+import type {
+  CreateFolderRequest,
+  FolderDownloadManifestEntry,
+  FolderDownloadManifestLimitExceededResponse,
+  FolderDownloadManifestResponse,
+  FolderResponse,
+  FolderRestoreResponse,
+  FileSummaryResponse,
+} from '@gdoc/shared';
 import type { PoolClient } from 'pg';
-import { findFolderById, type FolderRow } from '../lib/folder-tree.js';
+import { config } from '../config.js';
+import { findFolderById, traverseFolderSubtree, type FolderRow, type SubtreeManifest } from '../lib/folder-tree.js';
 import { hasAccess, isAdminOfUnit, visibleResourceClause } from '../lib/access.js';
 
 interface FileSummaryRow {
@@ -139,6 +148,92 @@ async function recordFileAudits(
   });
 }
 
+type DownloadManifestOutcome =
+  | { ok: true; response: FolderDownloadManifestResponse }
+  | { ok: false; status: 413; body: FolderDownloadManifestLimitExceededResponse };
+
+/**
+ * Valida limites, assina e audita o manifesto (design.md D5, task 3.2):
+ * ordem obrigatória **validar limites → emitir URLs assinadas → auditar** —
+ * nada é assinado nem auditado num pedido recusado por limite. `entries` já
+ * chega filtrada por `download` item a item (`traverseFolderSubtree`);
+ * `totalFiles` é o total vivo da subárvore visível, sempre devolvido mesmo
+ * quando nenhum arquivo é permitido (design.md D3).
+ */
+async function finalizeDownloadManifest(
+  ports: Ports,
+  ctx: TenantContext,
+  manifest: SubtreeManifest,
+): Promise<DownloadManifestOutcome> {
+  const { entries, totalFiles } = manifest;
+
+  if (entries.length > config.downloadManifest.maxFiles) {
+    return {
+      ok: false,
+      status: 413,
+      body: {
+        error: 'download_manifest_limit_exceeded',
+        limit: 'maxFiles',
+        found: entries.length,
+        allowed: config.downloadManifest.maxFiles,
+      },
+    };
+  }
+
+  const totalBytes = entries.reduce((sum, entry) => sum + entry.sizeBytes, 0);
+  if (totalBytes > config.downloadManifest.maxBytes) {
+    return {
+      ok: false,
+      status: 413,
+      body: {
+        error: 'download_manifest_limit_exceeded',
+        limit: 'maxBytes',
+        found: totalBytes,
+        allowed: config.downloadManifest.maxBytes,
+      },
+    };
+  }
+
+  // Assinatura fora da transação de leitura (mesmo padrão do upload em lote,
+  // routes/files.ts): evita manter a transação aberta durante N chamadas de
+  // rede ao signer. Mesmo TTL já praticado pelo download unitário
+  // (design.md D6) — `getDownloadUrl` não recebe parâmetro de TTL.
+  const signedEntries: FolderDownloadManifestEntry[] = await Promise.all(
+    entries.map(async (entry) => {
+      const signed = await ports.storage.getDownloadUrl(entry.objectPath, entry.fileName);
+      return {
+        relativePath: entry.relativePath,
+        fileName: entry.fileName,
+        sizeBytes: entry.sizeBytes,
+        url: signed.url,
+        expiresAt: signed.expiresAt.toISOString(),
+      };
+    }),
+  );
+
+  // Um evento `download` por arquivo incluído, em lote na mesma transação
+  // (design.md D4) — mesma semântica do download unitário, N vezes.
+  await recordFileAudits(
+    ports,
+    ctx,
+    entries.map((entry) => ({ id: entry.fileId, unit_id: entry.unitId })),
+    AuditAction.DOWNLOAD,
+  );
+
+  return {
+    ok: true,
+    response: { entries: signedEntries, totalFiles, allowedFiles: entries.length, totalBytes },
+  };
+}
+
+function sendDownloadManifestOutcome(res: import('express').Response, outcome: DownloadManifestOutcome): void {
+  if (!outcome.ok) {
+    res.status(outcome.status).json(outcome.body);
+    return;
+  }
+  res.json(outcome.response);
+}
+
 export function foldersRouter(ports: Ports): Router {
   const router = Router();
 
@@ -230,6 +325,52 @@ export function foldersRouter(ports: Ports): Router {
         folders: outcome.folders.map(toFolderResponse),
         files: outcome.files.map(toFileSummaryResponse),
       });
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  // Precisa vir antes de `/folders/:id/download-manifest` — mesma razão de
+  // `/folders/root/contents` acima. Raiz da unidade não é um recurso
+  // próprio, então não há checagem de `view` a fazer (design.md D9, US 3.3):
+  // a ação é oferecida uniformemente, inclusive aqui.
+  router.post('/folders/root/download-manifest', async (req, res, next) => {
+    try {
+      const ctx = req.tenantContext!;
+      const manifest = await ports.database.withTenantTransaction(ctx, (client) =>
+        traverseFolderSubtree(client, ctx, null),
+      );
+      const outcome = await finalizeDownloadManifest(ports, ctx, manifest);
+      sendDownloadManifestOutcome(res, outcome);
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  router.post('/folders/:id/download-manifest', async (req, res, next) => {
+    try {
+      const ctx = req.tenantContext!;
+      const manifestOrDenied = await ports.database.withTenantTransaction(ctx, async (client) => {
+        const folder = await findFolderById(client, req.params.id);
+        // Mesmo fail-closed de `/folders/:id/contents` (design.md D2):
+        // pasta inexistente/de outra unidade e pasta sem `view` resolvem
+        // igual, 403, sem vazar existência — "abrir a pasta" é
+        // pré-condição do download da pasta.
+        if (!folder) return { ok: false as const };
+        const allowed = await hasAccess(client, ctx, GrantResourceType.FOLDER, folder.id, Permission.VIEW);
+        if (!allowed) return { ok: false as const };
+
+        const manifest = await traverseFolderSubtree(client, ctx, folder.id);
+        return { ok: true as const, manifest };
+      });
+
+      if (!manifestOrDenied.ok) {
+        res.status(403).json({ error: 'forbidden' });
+        return;
+      }
+
+      const outcome = await finalizeDownloadManifest(ports, ctx, manifestOrDenied.manifest);
+      sendDownloadManifestOutcome(res, outcome);
     } catch (err) {
       next(err);
     }
