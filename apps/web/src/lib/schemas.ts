@@ -8,6 +8,8 @@ import type {
   FileRestoreResponse,
   FileSummaryResponse,
   FolderContentsResponse,
+  FolderDownloadManifestEntry,
+  FolderDownloadManifestResponse,
   FolderResponse,
   GrantListResponse,
   GrantResponse,
@@ -255,6 +257,23 @@ export const resetPasswordResponseSchema: z.ZodType<ResetPasswordResponse> = z.o
 export const publicConfigResponseSchema: z.ZodType<PublicConfigResponse> = z.object({
   appName: z.string(),
   clientName: z.string(),
+});
+
+/** Espelha `FolderDownloadManifestEntry` (design.md D1/D7, `download-pasta-zip`). */
+export const folderDownloadManifestEntrySchema: z.ZodType<FolderDownloadManifestEntry> = z.object({
+  relativePath: z.string(),
+  fileName: z.string(),
+  sizeBytes: z.number(),
+  url: z.string(),
+  expiresAt: z.string(),
+});
+
+/** Espelha `FolderDownloadManifestResponse` (design.md D3, `download-pasta-zip`). */
+export const folderDownloadManifestResponseSchema: z.ZodType<FolderDownloadManifestResponse> = z.object({
+  entries: z.array(folderDownloadManifestEntrySchema),
+  totalFiles: z.number(),
+  allowedFiles: z.number(),
+  totalBytes: z.number(),
 });
 
 /** Espelha `AuditQueryResponse` (design.md D6, `web-auditoria`): acessos (`view`/`download`) de um arquivo. */

@@ -58,6 +58,16 @@ export const config = {
   // Retenção da lixeira em dias (design.md D6/D7) — corte do expurgo diário.
   trashRetentionDays: Number(optional('TRASH_RETENTION_DAYS', '30')),
 
+  // Tetos do manifesto de download de pasta (change download-pasta-zip,
+  // design.md D5): compactação acontece no navegador, então o limite
+  // protege a memória do cliente, não o servidor. Configuráveis por
+  // ambiente, nunca hardcoded — se apertarem demais em uso real, o ajuste é
+  // uma variável de ambiente, sem deploy de código.
+  downloadManifest: {
+    maxBytes: Number(optional('DOWNLOAD_MANIFEST_MAX_BYTES', String(50 * 1024 * 1024))),
+    maxFiles: Number(optional('DOWNLOAD_MANIFEST_MAX_FILES', '100')),
+  },
+
   secretsDriver: optional('SECRETS_DRIVER', 'env') as 'env' | 'secret-manager',
 
   // Autenticação da notificação de finalização (push do Pub/Sub → API).

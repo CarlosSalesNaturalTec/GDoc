@@ -24,3 +24,39 @@ export interface FolderContentsResponse {
   folders: FolderResponse[];
   files: FileSummaryResponse[];
 }
+
+/** Um arquivo do manifesto de download de pasta (design.md D1/D7 de `download-pasta-zip`). */
+export interface FolderDownloadManifestEntry {
+  /** Caminho relativo à pasta solicitada, com a hierarquia de subpastas preservada. */
+  relativePath: string;
+  fileName: string;
+  sizeBytes: number;
+  /** URL assinada de download, mesmo TTL já praticado pelo download unitário. */
+  url: string;
+  expiresAt: string;
+}
+
+/**
+ * `POST /folders/:id/download-manifest` (US 3.3, design.md D1/D3): o cliente
+ * compacta a partir deste manifesto — a API nunca produz o `.zip`.
+ * `totalFiles`/`allowedFiles` sempre presentes, mesmo quando `allowedFiles`
+ * é 0, para que a interface distinga recorte parcial de pacote vazio.
+ */
+export interface FolderDownloadManifestResponse {
+  entries: FolderDownloadManifestEntry[];
+  totalFiles: number;
+  allowedFiles: number;
+  totalBytes: number;
+}
+
+/**
+ * Recusa por limite (design.md D5): identifica **qual** teto foi atingido,
+ * com o valor encontrado e o permitido, para a interface orientar a baixar
+ * subpastas separadamente em vez de mostrar um erro genérico.
+ */
+export interface FolderDownloadManifestLimitExceededResponse {
+  error: 'download_manifest_limit_exceeded';
+  limit: 'maxFiles' | 'maxBytes';
+  found: number;
+  allowed: number;
+}

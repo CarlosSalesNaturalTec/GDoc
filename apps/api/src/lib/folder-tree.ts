@@ -1,7 +1,7 @@
 import type { PoolClient } from 'pg';
 import { GrantResourceType, Permission } from '@gdoc/shared';
 import type { TenantContext } from '../ports/database-port.js';
-import { hasAccess } from './access.js';
+import { hasAccess, isAdminOfUnit, resourceScopeClause, visibleResourceClause } from './access.js';
 
 export interface FolderRow {
   id: string;
@@ -128,4 +128,113 @@ export async function ensureFolderPath(
     parentId = folder.id;
   }
   return { ok: true, folderId: parentId };
+}
+
+interface SubtreeFileRow {
+  id: string;
+  unit_id: string;
+  owner_id: string;
+  object_path: string;
+  file_name: string;
+  size_bytes: string | null;
+  allowed: boolean;
+}
+
+/**
+ * Uma pasta em profundidade da travessia (design.md D2): subpastas SHALL vir
+ * já filtradas por `view` (mesmo fragmento de `listContents`,
+ * `routes/folders.ts`) e arquivos SHALL vir com a coluna `allowed` calculada
+ * em SQL a partir do mesmo fragmento de acesso, agora para o verbo
+ * `download` — sem round-trip extra por item.
+ */
+async function listSubtreeLevel(
+  client: PoolClient,
+  ctx: TenantContext,
+  folderId: string | null,
+): Promise<{ folders: FolderRow[]; files: SubtreeFileRow[] }> {
+  const admin = isAdminOfUnit(ctx, ctx.unitId);
+  const params: string[] = admin ? [] : [ctx.userId];
+  const ownerPlaceholder = admin ? '' : `$${params.length}`;
+
+  let anchorClause = '';
+  if (folderId !== null) {
+    params.push(folderId);
+    anchorClause = `$${params.length}`;
+  }
+
+  const parentClause = folderId === null ? 'parent_id IS NULL' : `parent_id = ${anchorClause}`;
+  const { rows: folders } = await client.query<FolderRow>(
+    `SELECT * FROM folders WHERE ${visibleResourceClause(GrantResourceType.FOLDER, ownerPlaceholder, ctx)} AND ${parentClause} ORDER BY name`,
+    params,
+  );
+
+  const folderClause = folderId === null ? 'folder_id IS NULL' : `folder_id = ${anchorClause}`;
+  const { rows: files } = await client.query<SubtreeFileRow>(
+    `SELECT id, unit_id, owner_id, object_path, file_name, size_bytes,
+       (${resourceScopeClause(GrantResourceType.FILE, ownerPlaceholder, ctx, Permission.DOWNLOAD)}) AS allowed
+     FROM files WHERE deleted_at IS NULL AND ${folderClause} ORDER BY file_name`,
+    params,
+  );
+
+  return { folders, files };
+}
+
+export interface SubtreeManifestEntry {
+  fileId: string;
+  unitId: string;
+  objectPath: string;
+  fileName: string;
+  sizeBytes: number;
+  relativePath: string;
+}
+
+export interface SubtreeManifest {
+  entries: SubtreeManifestEntry[];
+  /** Arquivos vivos na subárvore **visível** ao solicitante (design.md D3) — não conta o
+   * que está dentro de subpastas podadas por falta de `view` (design.md D2), para não
+   * vazar a existência de conteúdo que o solicitante não pode nem abrir. */
+  totalFiles: number;
+}
+
+/**
+ * Percorre a subárvore **viva** (`deleted_at IS NULL`) a partir de
+ * `rootFolderId` (`null` = raiz da unidade), produzindo o caminho relativo de
+ * cada arquivo permitido (inverso de `normalizeRelativePath`, design.md D7).
+ * A checagem de `view` sobre a própria pasta pedida é responsabilidade do
+ * chamador — esta função só decide sobre a descendência (design.md D2):
+ * subpasta sem `view` é podada com toda a sua descendência (task 2.2), e
+ * pastas cujo conteúdo foi integralmente filtrado nunca geram entrada própria
+ * — só arquivos viram entrada (task 2.3).
+ */
+export async function traverseFolderSubtree(
+  client: PoolClient,
+  ctx: TenantContext,
+  rootFolderId: string | null,
+): Promise<SubtreeManifest> {
+  const entries: SubtreeManifestEntry[] = [];
+  let totalFiles = 0;
+
+  async function walk(folderId: string | null, pathSegments: string[]): Promise<void> {
+    const { folders, files } = await listSubtreeLevel(client, ctx, folderId);
+
+    totalFiles += files.length;
+    for (const file of files) {
+      if (!file.allowed) continue;
+      entries.push({
+        fileId: file.id,
+        unitId: file.unit_id,
+        objectPath: file.object_path,
+        fileName: file.file_name,
+        sizeBytes: Number(file.size_bytes ?? '0'),
+        relativePath: [...pathSegments, file.file_name].join('/'),
+      });
+    }
+
+    for (const folder of folders) {
+      await walk(folder.id, [...pathSegments, folder.name]);
+    }
+  }
+
+  await walk(rootFolderId, []);
+  return { entries, totalFiles };
 }
