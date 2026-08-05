@@ -152,19 +152,33 @@ Colunas relevantes: `recipient_user_id`, `kind` (`grant_expiring` /
 `source_ref` existe para **idempotência**: um índice único sobre
 `(recipient_user_id, kind, source_ref)` garante que reexecutar o job — por retry
 do Scheduler, por deploy no meio da janela, por operação manual — não produza
-avisos duplicados. `source_ref` identifica o grant e o evento
-(ex.: grant + vencimento), não o instante da execução; ancorar no tempo de
-execução derrotaria o propósito.
+avisos duplicados. `source_ref` **nunca** ancora no instante da execução; isso
+derrotaria o propósito.
+
+**Granularidade: `(recurso, vencimento)`, não o grant.** Esta escolha é o que
+impede o canal de virar ruído. Um grant é uma linha **por verbo** — conceder
+"visualizar, baixar e renomear" com prazo sobre uma pasta cria três linhas. Se
+`source_ref` fosse o id do grant, essa única ação administrativa geraria **três**
+notificações idênticas exceto pelo verbo, e o aviso prévio geraria outras três
+sete dias depois. Ancorando em `(recurso, vencimento)`, a pessoa recebe **uma**
+notificação que lista os verbos afetados — que é como ela pensa no assunto
+("ganhei acesso àquela pasta até tal dia"), não como o schema os armazena.
+
+Efeito colateral desejável: reconceder com prazo diferente muda o `vencimento`,
+logo muda o `source_ref`, logo **notifica de novo**. Correto — o prazo mudou, e é
+exatamente isso que a pessoa precisa saber. Já reconceder com o **mesmo** prazo não
+produz notificação nova, que também é correto: nada mudou para ela.
 
 Isso é o que permite o job ser burro e reexecutável, em vez de manter estado
 próprio de "até onde já processei".
 
 ### D6 — Quem é avisado, e quando
 
-| Evento | Destinatário | Momento |
-|---|---|---|
-| Vencimento se aproxima | a **pessoa** que recebeu a concessão | janela configurável antes do vencimento, default **7 dias** |
-| Prazo atingido, acesso cortado | os **administradores da unidade do grant** | na primeira execução após o vencimento |
+| Evento | Destinatário | Momento | Emitido por |
+|---|---|---|---|
+| Concessão com prazo recebida | a **pessoa** que recebeu a concessão | no ato da concessão | a rota (D8) |
+| Vencimento se aproxima | a **pessoa** que recebeu a concessão | janela configurável antes do vencimento, default **7 dias** | o job |
+| Prazo atingido, acesso cortado | os **administradores da unidade do grant** | na primeira execução após o vencimento | o job |
 
 Sobre a janela de **7 dias**: valor **confirmado pelo cliente**. É o menor prazo
 que ainda permite uma reação administrativa útil (pedir renovação, concluir o
@@ -201,6 +215,42 @@ momento. Um deslocamento de alguns minutos basta e é configurável, como
 
 Falha do job **não** afeta acesso: o corte já aconteceu por D1. Um job que falha
 degrada avisos, não segurança — e essa separação é o ponto principal do desenho.
+
+### D8 — Aviso de concessão é emitido pela rota, e nunca derruba a concessão
+
+A pessoa é avisada **no ato** em que recebe uma concessão com prazo. Esse aviso
+**não** passa pelo job: é evento de ação do usuário, não de passagem do tempo.
+Esperar até 24 h para informar alguém de um acesso temporário que já começou a
+correr desperdiçaria parte do prazo concedido.
+
+Consequência que precisa ser explícita: a emissão acontece **dentro da requisição**
+de `POST /grants`, mas **fora da transação** que grava os grants, e **depois** do
+commit. Falha ao notificar — indisponibilidade, erro do adapter, o que for — SHALL
+ser registrada e **descartada**, jamais propagada:
+
+```
+   POST /grants
+        │
+        ├─ transação: grava/atualiza os grants ──► COMMIT ✅ (ato autoritativo)
+        │
+        └─ após o commit: emite a notificação
+                 ├─ sucesso ──► 201
+                 └─ falha ────► registra e segue ──► 201
+```
+
+A concessão é o ato autoritativo; a notificação é efeito colateral. Inverter
+isso — deixar a falha de um aviso reverter uma concessão, ou devolver erro ao
+administrador que concedeu corretamente — subordinaria a governança de acesso à
+disponibilidade de um canal de avisos. O administrador vê na listagem que a
+concessão existe; o pior caso é a pessoa descobrir o acesso ao usá-lo, que é
+exatamente o comportamento de hoje.
+
+**Só concessão com prazo notifica.** Concessão permanente não gera aviso — foi o
+recorte pedido. A assimetria é real e vale registrar: ganhar acesso temporário
+avisa, ganhar acesso permanente não. A justificativa é que o prazo é a informação
+perecível, a que exige ação da pessoa dentro de uma janela; acesso permanente não
+tem urgência associada. Se o cliente quiser notificar toda concessão, é a mesma
+emissão sem o predicado de prazo — mudança de uma condição, não de desenho.
 
 ## Risks / Trade-offs
 
@@ -244,9 +294,6 @@ haveria uma janela em que um acesso "temporário" seria de fato permanente.
 
 ## Open Questions
 
-- **Aviso ao conceder.** A pessoa deveria ser notificada no momento em que recebe
-  uma concessão com prazo, além do aviso prévio? A US não pede; seria coerente,
-  mas é escopo adicional.
 - **Concessões já existentes.** Todas permanecem permanentes (nulo). Se o cliente
   quiser aplicar prazo retroativo a concessões antigas, isso é uma operação
   administrativa em massa que esta fatia não oferece.

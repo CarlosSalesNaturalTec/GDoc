@@ -137,11 +137,22 @@ evento. Referência: PRD RF #9/#11; design.md D4, D5.
 
 O sistema SHALL impor limites configuráveis ao pedido — número máximo de arquivos
 e soma máxima de bytes — e SHALL recusar pedidos que os excedam, com erro
-**específico** que identifique o limite atingido e oriente a baixar subpastas
-separadamente. A verificação SHALL ocorrer **antes** de emitir qualquer URL
-assinada e **antes** de registrar qualquer auditoria. Os limites SHALL ser
-configuração de ambiente, e NÃO SHALL ser valores fixos no código. Referência:
-design.md D5.
+**específico** que identifique **qual** dos limites foi atingido, informe o valor
+encontrado e o valor permitido, e oriente a baixar subpastas separadamente. A
+verificação SHALL ocorrer **antes** de emitir qualquer URL assinada e **antes** de
+registrar qualquer auditoria. Os limites SHALL ser configuração de ambiente, e NÃO
+SHALL ser valores fixos no código.
+
+A ação de baixar pasta SHALL ser oferecida uniformemente em **toda** pasta,
+incluindo a raiz da unidade, e NÃO SHALL ser ocultada em função do tamanho provável
+do conteúdo — pedidos que excedam os limites SHALL ser recusados com a mensagem
+acionável acima, em vez de a ação desaparecer da interface sem explicação.
+Referência: design.md D5, D9.
+
+#### Scenario: A ação é oferecida também na raiz da unidade
+- **WHEN** uma pessoa visualiza a raiz da unidade
+- **THEN** a ação de baixar a pasta é oferecida, ainda que o conteúdo possa exceder
+  os limites
 
 #### Scenario: Pedido excedente é recusado antes de assinar e auditar
 - **WHEN** uma pessoa solicita o download de uma pasta que excede um dos limites
@@ -151,8 +162,14 @@ design.md D5.
 
 #### Scenario: A recusa identifica o limite e orienta a alternativa
 - **WHEN** um pedido é recusado por exceder um limite
-- **THEN** a mensagem identifica qual limite foi atingido e orienta a baixar
-  subpastas separadamente
+- **THEN** a mensagem identifica qual dos limites foi atingido, com o valor
+  encontrado e o permitido, e orienta a baixar subpastas separadamente
+
+#### Scenario: Recusa por contagem é distinguível de recusa por tamanho
+- **WHEN** um pedido é recusado por exceder a contagem de arquivos, e outro por
+  exceder a soma de bytes
+- **THEN** cada recusa identifica o seu próprio limite, sem que as duas produzam a
+  mesma mensagem
 
 ### Requirement: Itens na lixeira nunca integram o pacote
 

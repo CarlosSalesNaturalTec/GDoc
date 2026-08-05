@@ -63,12 +63,33 @@ motivou, e NÃO SHALL criar notificação duplicada para o mesmo destinatário, 
 evento de origem. A identificação do evento de origem NÃO SHALL depender do
 instante da execução, de modo que reexecutar a rotina — por nova tentativa
 automática, por implantação no meio da janela ou por execução manual — NÃO SHALL
-produzir avisos repetidos. Referência: design.md D5.
+produzir avisos repetidos.
+
+O evento de origem, para os avisos relativos a concessões, SHALL ser identificado
+pelo **recurso e pelo vencimento**, e NÃO por cada verbo concedido isoladamente.
+Uma operação que conceda **vários verbos** sobre o **mesmo recurso** com o **mesmo
+prazo** SHALL produzir **uma única** notificação, que enumera os verbos afetados —
+e não uma notificação por verbo. Alterar o prazo de uma concessão SHALL constituir
+um evento de origem novo, apto a notificar novamente; reconceder mantendo o mesmo
+prazo NÃO SHALL produzir notificação nova. Referência: design.md D5, D8.
 
 #### Scenario: Reexecução no mesmo dia não duplica aviso
 - **WHEN** a rotina de avisos é executada mais de uma vez enquanto a mesma
   condição persiste
 - **THEN** o destinatário continua com uma única notificação para aquele evento
+
+#### Scenario: Vários verbos no mesmo recurso e prazo geram uma notificação
+- **WHEN** um administrador concede vários verbos sobre o mesmo recurso, com o
+  mesmo prazo, numa única operação
+- **THEN** a pessoa recebe uma única notificação, que enumera os verbos concedidos
+
+#### Scenario: Alterar o prazo notifica novamente
+- **WHEN** um administrador reconcede alterando o prazo de expiração
+- **THEN** a pessoa recebe nova notificação referente ao novo vencimento
+
+#### Scenario: Reconceder com o mesmo prazo não notifica de novo
+- **WHEN** um administrador reconcede mantendo exatamente o mesmo prazo
+- **THEN** nenhuma notificação nova é criada, porque nada mudou para a pessoa
 
 #### Scenario: Eventos distintos geram notificações distintas
 - **WHEN** a mesma pessoa é avisada da aproximação do vencimento e, depois, ocorre
@@ -89,6 +110,34 @@ NÃO SHALL apagar a notificação. Referência: design.md D4.
 #### Scenario: Marcar como lida preserva a notificação
 - **WHEN** uma pessoa marca uma notificação como lida
 - **THEN** a notificação deixa de contar como não lida, mas continua consultável
+
+### Requirement: Concessão com prazo avisa a pessoa no ato da concessão
+
+O sistema SHALL avisar a **pessoa destinatária** no momento em que ela recebe uma
+concessão com prazo de expiração, sem esperar por nenhuma rotina agendada. O aviso
+SHALL identificar o recurso, os verbos concedidos e a data de vencimento.
+Concessão **sem** prazo NÃO SHALL gerar este aviso.
+
+A emissão SHALL ocorrer **após** a concessão estar efetivada, e a sua falha NÃO
+SHALL, em nenhuma hipótese, impedir a concessão, revertê-la ou fazer a operação
+retornar erro a quem concedeu — a concessão é o ato autoritativo e a notificação é
+efeito colateral. Uma falha de emissão SHALL ser registrada. Referência:
+design.md D8.
+
+#### Scenario: Pessoa é avisada ao receber concessão com prazo
+- **WHEN** um administrador concede a uma pessoa um ou mais verbos com prazo de
+  expiração
+- **THEN** a pessoa recebe, no ato, um aviso identificando o recurso, os verbos e a
+  data de vencimento
+
+#### Scenario: Concessão permanente não gera aviso de concessão
+- **WHEN** um administrador concede um verbo sem prazo de expiração
+- **THEN** nenhum aviso de concessão é emitido
+
+#### Scenario: Falha ao avisar não impede a concessão
+- **WHEN** a emissão do aviso falha durante a concessão
+- **THEN** a concessão permanece efetivada, a operação retorna sucesso a quem
+  concedeu, e a falha é registrada
 
 ### Requirement: Aviso prévio de expiração é enviado à pessoa que recebeu a concessão
 

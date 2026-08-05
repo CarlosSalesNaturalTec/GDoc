@@ -148,9 +148,16 @@ de GB derruba a aba, e o usuário não entende por quê. Dois tetos configuráve
 checados **antes** de assinar qualquer URL e antes de auditar:
 
 - **soma máxima de bytes: 50 MB** (definido pelo cliente) — o teto que governa;
-- número máximo de arquivos: guarda secundária contra a pasta com milhares de
-  arquivos minúsculos, que passaria folgada nos 50 MB mas produziria milhares de
-  requisições ao bucket e milhares de eventos de auditoria numa transação.
+- **número máximo de arquivos: 100** (definido pelo cliente) — guarda secundária
+  contra a pasta com muitos arquivos minúsculos, que passaria folgada nos 50 MB
+  mas produziria centenas de requisições ao bucket e centenas de eventos de
+  auditoria numa transação.
+
+Os dois tetos se cruzam de forma útil: 100 arquivos dentro de 50 MB dá uma média
+de 500 KB por arquivo. Pastas de documentos leves batem no teto de **contagem**;
+pastas de digitalizações batem no de **bytes**. Por isso a recusa precisa dizer
+**qual** dos dois foi atingido — a ação corretiva é a mesma (baixar subpastas),
+mas o usuário só entende o porquê se souber qual limite o barrou.
 
 Excedido ⇒ recusa com erro **específico** (não genérico), informando qual teto foi
 atingido e orientando a baixar subpastas separadamente. Nada é assinado e **nada é
@@ -242,14 +249,25 @@ Sem migração de banco e sem mudança de infraestrutura. Ordem:
 O recurso nasce desligado de qualquer dado existente — nenhuma rota atual muda de
 comportamento, então não há janela de incompatibilidade entre versões.
 
+### D9 — A ação é oferecida em toda pasta, inclusive na raiz da unidade
+
+A ação "Baixar pasta" SHALL aparecer uniformemente, sem esconder-se onde o
+pedido provavelmente será recusado — inclusive na **raiz da unidade**, onde os
+tetos de D5 barrarão o pedido em praticamente qualquer unidade com uso real.
+
+_Alternativa descartada:_ omitir a ação na raiz. Uma ação que existe em toda pasta
+menos numa vira defeito aparente: o usuário procura, não encontra, e não tem como
+saber por quê. Pior, a fronteira seria arbitrária — se a raiz é escondida por ser
+grande demais, uma subpasta de 400 MB deveria ser também, e aí a regra de exibição
+teria que consultar o tamanho antes de desenhar o menu.
+
+Deixar a recusa explicar transforma um mistério de interface numa mensagem que
+ensina o modelo: *"esta pasta tem 312 arquivos (limite: 100). Baixe subpastas
+separadamente."* O usuário aprende o limite e a saída no mesmo gesto. Isso só
+funciona porque a recusa é acionável por contrato (D5) — com erro genérico, esta
+decisão seria hostil.
+
 ## Open Questions
 
 - **Nome do arquivo gerado.** `{nome-da-pasta}.zip` é o óbvio; se houver colisão
   de nome no diretório de downloads do usuário, o navegador resolve sozinho.
-- **Pasta raiz da unidade.** A US fala em "uma pasta". Com o teto de 50 MB, baixar
-  a raiz inteira será recusado em praticamente toda unidade com uso real — vale
-  decidir se a ação é sequer oferecida ali, ou se oferecê-la e deixar a recusa
-  explicar é preferível a escondê-la sem explicação.
-- **Teto de arquivos.** O de bytes está definido (50 MB); o de contagem é guarda
-  secundária e precisa de um número de partida — sugestão conservadora na
-  implementação, revisável por variável de ambiente.

@@ -50,10 +50,17 @@ que estendeu o acesso e não teria estendido nada.
   persiste em tabela `notifications` (tenant-scoped: `unit_id` + RLS), e leitura
   no shell da SPA. É a infraestrutura mínima que satisfaz os dois cenários da
   US 4.3 sem introduzir dependência externa.
+- **Aviso no ato da concessão** — quem recebe uma concessão **com prazo** é
+  avisado imediatamente pela própria rota, sem esperar rotina agendada. A falha do
+  aviso nunca derruba a concessão: o grant é o ato autoritativo, a notificação é
+  efeito colateral pós-commit.
 - **Rotina diária de avisos** — novo job `notify-expiring-grants`, no molde do
   `purge-trash`: avisa a **pessoa** quando o vencimento se aproxima (janela
   configurável, default 7 dias) e avisa a **administração da unidade** quando o
   prazo é atingido. Idempotente: rodar duas vezes no mesmo dia não duplica aviso.
+- **Um aviso por recurso e vencimento, não por verbo** — conceder três verbos
+  sobre a mesma pasta com o mesmo prazo produz **uma** notificação enumerando os
+  verbos, não três. É o que impede o canal de nascer ruidoso.
 - **Interface** — campo de prazo opcional ao conceder; coluna de vencimento e
   marcação de expirada em "Concessões vigentes"; central de notificações no
   shell.
@@ -107,8 +114,8 @@ Fora de escopo (registrado em design.md):
   lida); novo `jobs/notify-expiring-grants.ts`; `config.ts` ganha a janela de
   aviso.
 - **Shared (`packages/shared/src`):** `expiresAt` nos DTOs de grant; DTOs de
-  notificação e enum de tipo (`grant_expiring`, `grant_expired`); rebuild de
-  `dist`.
+  notificação e enum de tipo (`grant_created`, `grant_expiring`, `grant_expired`);
+  rebuild de `dist`.
 - **Web (`apps/web/src`):** campo de prazo em `permissoes/`; coluna de vencimento
   e marcação de expirada; central de notificações no `shell/`.
 - **Infra (`infra/terraform`):** novo Cloud Run Job + Cloud Scheduler para os

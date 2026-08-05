@@ -23,10 +23,9 @@
 
 ## 3. API — rota de manifesto
 
-- [ ] 3.1 `apps/api/src/config.ts`: limites `DOWNLOAD_MANIFEST_MAX_BYTES` com
-  default **50 MB** (definido pelo cliente) e `DOWNLOAD_MANIFEST_MAX_FILES` como
-  guarda secundária, com default conservador (design.md D5). Ambos configuráveis
-  por ambiente.
+- [ ] 3.1 `apps/api/src/config.ts`: `DOWNLOAD_MANIFEST_MAX_BYTES` default
+  **50 MB** e `DOWNLOAD_MANIFEST_MAX_FILES` default **100** (ambos definidos pelo
+  cliente, design.md D5), configuráveis por ambiente.
 - [ ] 3.2 `apps/api/src/routes/folders.ts`: `POST /folders/:id/download-manifest`.
   Ordem obrigatória: **checar `view` na pasta → percorrer e filtrar por
   `download` item a item → validar limites → emitir URLs assinadas → auditar**
@@ -39,14 +38,17 @@
   transação (design.md D4).
 - [ ] 3.6 Devolver `totalFiles`/`allowedFiles` sempre, inclusive quando
   `allowedFiles === 0` (design.md D3).
-- [ ] 3.7 Recusa por limite: erro **específico** identificando o teto atingido.
+- [ ] 3.7 Recusa por limite: erro **específico** identificando **qual** teto foi
+  atingido, com o valor encontrado e o permitido — contagem e bytes precisam
+  produzir mensagens distinguíveis (design.md D5).
 - [ ] 3.8 Confirmar que nenhum prefixo de topo novo é criado — a rota fica sob
   `/folders`, já presente nas três listas.
 
 ## 4. Web — ação de baixar pasta
 
 - [ ] 4.1 Ação "Baixar pasta" na linha da pasta e no cabeçalho da pasta aberta
-  (`apps/web/src/navegacao/`).
+  (`apps/web/src/navegacao/`), oferecida **uniformemente**, inclusive na raiz da
+  unidade — não esconder onde o pedido provavelmente será recusado (design.md D9).
 - [ ] 4.2 Módulo de compactação **em streaming** no cliente, sem reter todos os
   arquivos em memória simultaneamente.
 - [ ] 4.3 Progresso por arquivo e agregado, com **cancelamento**.
@@ -69,6 +71,8 @@
 - [ ] 5.7 Auditoria: N arquivos incluídos ⇒ N eventos `download`; arquivo omitido
   ⇒ nenhum evento.
 - [ ] 5.8 Limite excedido ⇒ recusa, **zero** URLs assinadas e **zero** eventos.
+  Um caso por teto (contagem e bytes), verificando que as mensagens são
+  distinguíveis.
 - [ ] 5.9 Itens na lixeira nunca entram, inclusive para admin da unidade.
 - [ ] 5.10 Isolamento: pasta de outra unidade negada; `global_admin` não obtém
   conteúdo de outra unidade (trava do bypass).

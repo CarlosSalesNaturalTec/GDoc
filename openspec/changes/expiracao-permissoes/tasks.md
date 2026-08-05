@@ -26,8 +26,9 @@
 
 - [ ] 2.1 `expiresAt` (opcional) nos DTOs de grant — request de concessão e
   response de listagem, esta última também expondo o estado vigente/expirada.
-- [ ] 2.2 Enum de tipo de notificação (`grant_expiring`, `grant_expired`) e DTOs
-  de notificação.
+- [ ] 2.2 Enum de tipo de notificação (`grant_created`, `grant_expiring`,
+  `grant_expired`) e DTOs de notificação, com o payload comportando **lista de
+  verbos** (um aviso cobre vários verbos do mesmo recurso e prazo).
 - [ ] 2.3 `npm run build --workspace packages/shared`.
 
 ## 3. Resolução de acesso (o corte)
@@ -53,6 +54,12 @@
 - [ ] 4.3 `GET /grants`: devolver `expiresAt` e o estado vigente/expirada, **sem**
   ocultar as expiradas (design.md D2).
 - [ ] 4.4 `DELETE /grants/:id` (revogar) permanece removendo a linha — inalterado.
+- [ ] 4.5 Emitir o aviso `grant_created` quando a operação envolver prazo: **após
+  o commit** da transação, **fora** dela, com falha registrada e **descartada** —
+  jamais propagada ao chamador (design.md D8). Concessão sem prazo não avisa.
+- [ ] 4.6 Agrupar a emissão por `(recurso, vencimento)`: uma requisição com vários
+  verbos sobre o mesmo recurso e prazo emite **um** aviso enumerando os verbos
+  (design.md D5).
 
 ## 5. Canal de notificação (seam + adapter)
 
@@ -60,6 +67,9 @@
   emissão (destinatário, tipo, payload, `source_ref`).
 - [ ] 5.2 Criar o adapter in-app em `apps/api/src/adapters/` persistindo em
   `notifications`, com upsert que absorve a colisão do índice único (idempotência).
+- [ ] 5.2a Compor `source_ref` a partir de **`(recurso, vencimento)`** — nunca do
+  id do grant nem do instante da execução (design.md D5). É o que colapsa os
+  verbos num aviso e o que faz a mudança de prazo notificar de novo.
 - [ ] 5.3 Plugar em `ports/index.ts::createPorts()` — **único** ponto de escolha
   da implementação ativa (design.md D4).
 - [ ] 5.4 Novo `apps/api/src/routes/notifications.ts`: listar as próprias, contar
@@ -116,6 +126,13 @@
 - [ ] 9.5 Concessão expirada permanece na listagem, marcada; revogar remove.
 - [ ] 9.6 Job: aviso prévio ao destinatário dentro da janela; concessão sem prazo
   não gera aviso.
+- [ ] 9.6a Concessão **com** prazo avisa a pessoa no ato; **sem** prazo não avisa.
+- [ ] 9.6b Vários verbos no mesmo recurso e prazo ⇒ **uma** notificação enumerando
+  os verbos.
+- [ ] 9.6c Reconceder alterando o prazo notifica de novo; reconceder com o **mesmo**
+  prazo não.
+- [ ] 9.6d Falha na emissão do aviso **não** reverte a concessão nem faz
+  `POST /grants` retornar erro (design.md D8).
 - [ ] 9.7 Job: aviso de corte aos `unit_admin` **da unidade do grant**;
   administradores de outra unidade não recebem; pessoa afetada não é avisada de
   novo.
