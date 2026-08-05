@@ -13,6 +13,7 @@ import type {
   GrantResponse,
   MyProfileResponse,
   PersonResponse,
+  PublicConfigResponse,
   ResetPasswordResponse,
   SearchFilesResponse,
   SignedUrlResponse,
@@ -248,6 +249,12 @@ export const myProfileResponseSchema: z.ZodType<MyProfileResponse> = z.object({
 /** Espelha `ResetPasswordResponse` (change `troca-de-senha`, `web-pessoas`) — fronteira de `POST /users/:id/password`. */
 export const resetPasswordResponseSchema: z.ZodType<ResetPasswordResponse> = z.object({
   generatedPassword: z.string(),
+});
+
+/** Espelha `PublicConfigResponse` (change `rebranding-doc7-setes`) — fronteira de `GET /auth/public-config`. */
+export const publicConfigResponseSchema: z.ZodType<PublicConfigResponse> = z.object({
+  appName: z.string(),
+  clientName: z.string(),
 });
 
 /** Espelha `AuditQueryResponse` (design.md D6, `web-auditoria`): acessos (`view`/`download`) de um arquivo. */

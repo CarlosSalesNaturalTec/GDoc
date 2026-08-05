@@ -1,5 +1,5 @@
 import { PlaceholderPage } from './PlaceholderPage';
 
 export function HomePage() {
-  return <PlaceholderPage title="Bem-vindo ao GDoc" />;
+  return <PlaceholderPage title="Bem-vindo ao Doc7" />;
 }

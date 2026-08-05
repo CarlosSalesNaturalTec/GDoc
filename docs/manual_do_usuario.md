@@ -1,6 +1,6 @@
-# Manual do Usuário — GDoc
+# Manual do Usuário — Doc7
 
-Bem-vindo(a) ao **GDoc**, o repositório documental corporativo da organização. Este
+Bem-vindo(a) ao **Doc7**, o repositório documental corporativo da organização. Este
 manual explica, em linguagem simples, como usar o sistema no dia a dia. É um guia
 **funcional**: fala do que você vê e faz na tela, não de como o sistema é construído
 por dentro.
@@ -13,9 +13,9 @@ nada.
 
 ---
 
-## 1. O que é o GDoc
+## 1. O que é o Doc7
 
-O GDoc é um repositório de arquivos na nuvem com **controle rigoroso de acesso**. A
+O Doc7 é um repositório de arquivos na nuvem com **controle rigoroso de acesso**. A
 ideia central é simples: cada pessoa vê, baixa, envia, altera ou exclui **apenas
 aquilo que criou ou que lhe foi liberado** — nada além disso. Tudo que acontece com
 os arquivos importantes (visualizações e downloads) fica registrado, e cada unidade
@@ -38,7 +38,7 @@ Principais recursos:
 
 ## 2. Perfis de usuário
 
-O que você pode fazer no GDoc depende do seu **perfil**, definido pela administração
+O que você pode fazer no Doc7 depende do seu **perfil**, definido pela administração
 quando sua conta é criada. Existem três:
 
 | Perfil                       | O que enxerga                                                                                 | O que pode fazer                                                                                                                                                                            |
@@ -55,7 +55,7 @@ quando sua conta é criada. Existem três:
 
 ## 3. Primeiro acesso
 
-O GDoc **não tem autocadastro**. Sua conta é criada pela área administrativa, que lhe
+O Doc7 **não tem autocadastro**. Sua conta é criada pela área administrativa, que lhe
 informa o **e-mail** e a **senha inicial**.
 
 1. Abra o endereço da aplicação no navegador.
@@ -84,6 +84,10 @@ Para **sair**, clique no seu perfil no canto superior direito e escolha **Sair**
 ---
 
 ## 4. Conhecendo a tela
+
+Na tela de **login** e no menu lateral, logo abaixo do nome **Doc7**, aparece a
+identificação da sua organização (por exemplo, "SETES") — ela confirma que você
+está na implantação correta quando existe mais de uma.
 
 Depois de entrar, você vê um **menu lateral** à esquerda. Os itens disponíveis
 dependem do seu perfil:
@@ -388,7 +392,7 @@ item é apagado permanentemente.
 Você pode ter atingido sua **cota de 10 GB**. Exclua arquivos para liberar espaço.
 
 **Substituí um arquivo e preciso da versão antiga.**
-O GDoc não guarda versões anteriores: a substituição troca o arquivo vigente. Guarde
+O Doc7 não guarda versões anteriores: a substituição troca o arquivo vigente. Guarde
 uma cópia por fora antes de substituir, se precisar do histórico.
 
 **Cliquei em visualizar um Word (ou Excel) e não abriu na tela.**
@@ -426,5 +430,5 @@ Estes recursos constam do planejamento do produto e **ainda não estão nesta ve
 
 ---
 
-_Este manual cobre o uso funcional do GDoc. Para dúvidas sobre políticas de acesso da
+_Este manual cobre o uso funcional do Doc7. Para dúvidas sobre políticas de acesso da
 sua organização, procure a área administrativa da sua unidade._

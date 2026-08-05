@@ -7,7 +7,7 @@ import { useSession } from './session-context';
 import { ApiError } from '../lib/api-client';
 
 export function LoginPage() {
-  const { status, login } = useSession();
+  const { status, login, publicConfig } = useSession();
   const { message } = App.useApp();
   const { token } = theme.useToken();
   const [submitting, setSubmitting] = useState(false);
@@ -47,8 +47,9 @@ export function LoginPage() {
       }}
     >
       <Card style={{ width: 360 }}>
-        {/* Cabeçalho: badge + título + subtítulo. O ícone fica FORA do heading para
-            não poluir seu nome acessível (a US 1.2 e os testes exigem "GDoc" puro). */}
+        {/* Cabeçalho: badge + título + identificação do cliente + subtítulo. O ícone
+            e a identificação do cliente ficam FORA do heading para não poluir seu
+            nome acessível (a US 1.2 e os testes exigem "Doc7" puro — design.md D6). */}
         <div style={{ textAlign: 'center', marginBottom: 24 }} aria-hidden="true">
           <span
             style={{
@@ -67,8 +68,16 @@ export function LoginPage() {
           </span>
         </div>
         <Typography.Title level={3} style={{ textAlign: 'center', marginTop: 0, marginBottom: 4 }}>
-          GDoc
+          Doc7
         </Typography.Title>
+        {publicConfig.clientName && (
+          <Typography.Text
+            type="secondary"
+            style={{ display: 'block', textAlign: 'center', marginBottom: 4 }}
+          >
+            {publicConfig.clientName}
+          </Typography.Text>
+        )}
         <Typography.Paragraph
           type="secondary"
           style={{ textAlign: 'center', marginBottom: 24 }}

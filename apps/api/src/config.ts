@@ -86,4 +86,10 @@ export const config = {
     email: optional('BOOTSTRAP_ADMIN_EMAIL', 'admin.global@gdoc.dev'),
     password: optional('BOOTSTRAP_ADMIN_PASSWORD', 'dev-password-only'),
   },
+
+  // Identificação do cliente exibida na tela de login/shell (change
+  // rebranding-doc7-setes, design.md D8) — dado público, servido por
+  // GET /auth/public-config; não passa pelo SecretsPort. Vazia/ausente ⇒
+  // nenhuma identificação de cliente é exibida.
+  appClientName: optional('APP_CLIENT_NAME', ''),
 };

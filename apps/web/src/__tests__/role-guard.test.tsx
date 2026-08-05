@@ -15,7 +15,7 @@ describe('Guarda de rota por papel e shell condicionado ao papel', () => {
     renderApp(['/admin/pessoas']);
 
     // guarda por papel: navegado de volta para a home, a tela de admin nunca renderiza
-    await screen.findByText('Bem-vindo ao GDoc');
+    await screen.findByText('Bem-vindo ao Doc7');
     expect(screen.queryByText('Nova pessoa')).not.toBeInTheDocument();
     expect(screen.queryByText('Pessoas')).not.toBeInTheDocument();
     expect(screen.queryByText('Painel')).not.toBeInTheDocument();

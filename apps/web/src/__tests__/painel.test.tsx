@@ -117,7 +117,7 @@ describe('Painel gerencial da SPA (web-painel)', () => {
     renderApp(['/admin/painel']);
 
     // marca que a autenticação já resolveu e o shell (com o próprio Painel) montou
-    await screen.findByText('GDoc');
+    await screen.findByText('Doc7');
     expect(document.querySelector('.ant-spin')).toBeInTheDocument();
     expect(screen.queryByText('Total de arquivos')).not.toBeInTheDocument();
 

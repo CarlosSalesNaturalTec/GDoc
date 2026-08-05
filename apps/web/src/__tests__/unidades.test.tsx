@@ -72,7 +72,7 @@ describe('Gestão de unidades da SPA (web-unidades)', () => {
     renderApp(['/admin/unidades']);
 
     // guarda de papel redireciona para a home; a gestão de unidades nunca renderiza
-    await screen.findByText('Bem-vindo ao GDoc');
+    await screen.findByText('Bem-vindo ao Doc7');
     expect(screen.queryByText('Nova unidade')).not.toBeInTheDocument();
     expect(screen.queryByText('Unidades')).not.toBeInTheDocument();
   });

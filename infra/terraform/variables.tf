@@ -191,6 +191,18 @@ variable "labels" {
   default     = {}
 }
 
+variable "app_client_name" {
+  description = <<-EOT
+    Identificação do cliente exibida abaixo do nome da aplicação na tela de
+    login e no shell (change rebranding-doc7-setes, design.md D8). Não é
+    segredo — texto exibido publicamente a qualquer visitante da tela de
+    login — por isso vai como env var comum do Cloud Run, não Secret Manager.
+    Vazio (padrão) = nenhuma identificação de cliente é exibida.
+  EOT
+  type        = string
+  default     = ""
+}
+
 variable "github_repository" {
   description = <<-EOT
     Repositório GitHub ("owner/repo") autorizado a assumir a service account
