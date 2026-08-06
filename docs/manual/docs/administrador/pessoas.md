@@ -1,0 +1,64 @@
+# Pessoas
+
+Além de tudo que o colaborador faz, o administrador de unidade gerencia **sua própria
+unidade**. Seu alcance é **restrito à unidade** — você não enxerga nem gerencia
+conteúdo de outras.
+
+## Cadastrar e editar pessoas
+
+Abra **Pessoas** no menu e clique em **Nova pessoa**. Informe:
+
+- **Nome**
+- **E-mail** (único; será o login)
+- **Senha inicial** (mínimo de 8 caracteres)
+- **Telefone**
+- **Função/cargo**
+- **Área de trabalho**
+- **Observação**
+- **Papel** (Colaborador ou Administrador da unidade)
+
+Confirme em **Cadastrar**. A pessoa passa a poder entrar com essas credenciais.
+
+- Se o **e-mail já estiver em uso**, o cadastro é recusado e o campo é sinalizado —
+  ajuste o e-mail sem perder o resto do preenchimento.
+- Para **editar** uma pessoa, clique em **Editar** na linha dela. O **e-mail** não
+  pode ser alterado na edição; os demais dados e o papel, sim.
+
+A lista mostra nome, e-mail, função, papel e **status** (ativa ou desativada).
+
+## Ativar e desativar pessoas
+
+Na linha da pessoa, use **Desativar** para cortar o acesso dela ao sistema. Os
+**arquivos e a auditoria são preservados** — apenas o login deixa de funcionar. Use
+**Ativar** para devolver o acesso.
+
+!!! note
+    Você não encontra a ação de desativar na **sua própria linha** — isso evita que um
+    administrador corte o próprio acesso por engano.
+
+## Redefinir a senha de uma pessoa
+
+Quando alguém esquece a senha, clique em **Redefinir senha** na linha da pessoa e
+confirme. O sistema:
+
+1. **Gera** uma nova senha (você não a escolhe);
+2. exibe essa senha **uma única vez**, num aviso com botão para **copiar**;
+3. **encerra imediatamente** todos os acessos abertos daquela pessoa, e a senha
+   anterior deixa de funcionar.
+
+Copie e repasse a senha com segurança antes de fechar o aviso — **ela não pode ser
+consultada depois**. Se a senha se perder, é só redefinir de novo.
+
+**Quem pode redefinir a senha de quem:**
+
+| Quem redefine            | Pode redefinir de                                                             |
+| ------------------------- | ------------------------------------------------------------------------------ |
+| Administrador da unidade | Colaboradores da própria unidade                                              |
+| Administrador global     | Colaboradores e administradores de unidade                                    |
+| Ninguém                  | Administrador global — a senha dele só muda por ele mesmo, em **Minha conta** |
+
+Quando a ação não é permitida para determinada pessoa, o botão **Redefinir senha**
+simplesmente não aparece na linha dela.
+
+Administradores globais cadastram pessoas em qualquer unidade — ver
+[Unidades](unidades.md).

@@ -1,0 +1,61 @@
+name: Docs
+
+# Publica o manual do usuário (docs/manual/) no GitHub Pages. Builda em push
+# na main e em pull request (verificação de links, design.md D6); só publica
+# no push na main — pull request nunca implanta o site (tasks.md 3.1-3.2).
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/manual/**'
+      - '.github/workflows/docs.yml'
+  pull_request:
+    paths:
+      - 'docs/manual/**'
+      - '.github/workflows/docs.yml'
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install -r docs/manual/requirements.txt
+
+      # strict: true no mkdocs.yml já promove aviso de link quebrado a erro;
+      # o --strict aqui reforça a intenção (design.md D6).
+      - name: Build with MkDocs (strict)
+        run: mkdocs build -f docs/manual/mkdocs.yml --strict
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs/manual/site
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

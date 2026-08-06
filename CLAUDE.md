@@ -9,6 +9,19 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Node **22** (`.nvmrc`); npm workspaces. `postinstall` na raiz compila `packages/shared` automaticamente.
 - **Nome exibido do produto é `Doc7`** (e `APP_CLIENT_NAME` por implantação); os identificadores internos permanecem `gdoc` (`@gdoc/*`, `gdoc_dev`/`gdoc_ci`, `name_prefix = "gdoc"` no Terraform) **por decisão** — renomear o `name_prefix` faria o Terraform destruir e recriar bucket, Cloud SQL e tópico Pub/Sub. Não "padronize" esses nomes.
 
+## Manual do usuário: `docs/manual/`
+
+A documentação voltada ao usuário final (colaborador, administrador de unidade,
+administrador global) mora em `docs/manual/` — um site MkDocs (tema Material,
+`docs/manual/docs/*.md`, navegação por perfil), publicado automaticamente no GitHub
+Pages por `.github/workflows/docs.yml` quando um push na `main` toca
+`docs/manual/**`. **Não existe mais** `docs/manual_do_usuario.md` — não recrie esse
+arquivo. Continua valendo o padrão de atualizar a documentação **dentro do commit da
+feature**: uma mudança visível na tela ajusta a página correspondente do manual, com
+fidelidade à interface efetivamente entregue (capacidade só de backend, sem tela que
+a acione, não é documentada como recurso do usuário). Ver
+`openspec/specs/documentacao-usuario/` para os requisitos.
+
 ## Documento mestre: `docs/prd_final.md`
 
 O PRD é a fonte da verdade do produto — define personas, escopo do MVP, épicos e os **critérios de aceite (Dado/Quando/Então) de cada história de usuário (US x.y)**. Todo change OpenSpec implementa um recorte do PRD, e as specs **referenciam a US** em vez de reescrever critérios. Ao planejar ou implementar qualquer feature de domínio, **leia a US relevante no PRD primeiro** — os cenários de erro e casos de borda ali são vinculantes, não sugestões. O código já contém comentários que citam a US e a decisão de design correspondente (ex.: `US 1.2, cenário 3; design.md Decisão D1`); mantenha esse rastro ao alterar.
