@@ -15,7 +15,7 @@ O PRD é a fonte da verdade do produto — define personas, escopo do MVP, épic
 
 ## Fluxo de trabalho OpenSpec
 
-O repositório é **spec-driven** (`openspec/config.yaml`). Cada épico/fatia vira um *change* em `openspec/changes/` (proposal.md, design.md, specs/*/spec.md, tasks.md), é implementado, e depois arquivado em `openspec/changes/archive/` com as specs sincronizadas em `openspec/specs/`. Use os skills `opsx:*` (ou `openspec-*`) para propor, aplicar, verificar e arquivar. As specs arquivadas em `openspec/specs/` são o registro consolidado do comportamento atual — consulte-as para entender uma feature já entregue. Escreva proposals/specs em português, no estilo já existente.
+O repositório é **spec-driven** (`openspec/config.yaml`). Cada épico/fatia vira um _change_ em `openspec/changes/` (proposal.md, design.md, specs/*/spec.md, tasks.md), é implementado, e depois arquivado em `openspec/changes/archive/` com as specs sincronizadas em `openspec/specs/`. Use os skills `opsx:*` (ou `openspec-*`) para propor, aplicar, verificar e arquivar. As specs arquivadas em `openspec/specs/` são o registro consolidado do comportamento atual — consulte-as para entender uma feature já entregue. Escreva proposals/specs em português, no estilo já existente.
 
 ## Comandos
 
@@ -24,7 +24,7 @@ O repositório é **spec-driven** (`openspec/config.yaml`). Cada épico/fatia vi
 npm run lint            # eslint
 npm run build           # tsc (shared → api → web)
 npm run test            # vitest run em cada workspace
-npm run format          # prettier --write .  (format:check só valida; a CI roda lint/build/test)
+npm run format          # prettier --write .   (format:check é gate da CI)
 
 # subir a app (dev)
 npm run dev:api         # tsx watch, :8080   (= make dev-api)
@@ -47,7 +47,9 @@ npm run test --workspace apps/api -- -t "nome do caso"
 npm run test --workspace apps/web -- src/__tests__/<arquivo>.test.tsx
 ```
 
-O `Makefile` é resquício do bootstrap — só `dev-api`/`migrate`/`seed` valem; `make dev-web` falha de propósito com mensagem obsoleta. Prefira os scripts npm acima.
+O `Makefile` é um atalho fino para os mesmos scripts (`dev`, `dev-api`, `dev-web`, `migrate`, `seed`) — `make dev` sobe só a API; a SPA é um segundo processo.
+
+**Prettier:** `format:check` roda na CI, então formatação fora do padrão quebra o build. O escopo está em `.prettierignore`: código e configuração são formatados; a **prosa autoral fica de fora de propósito** — `openspec/` (o registro de specs, e `changes/archive/` é histórico imutável), `docs/` (PRD e derivados) e as skills/commands vendorizados em `.claude/`. Não formate esses diretórios "de passagem".
 
 **Ambiente de dev:** o hook `.claude/hooks/session-start.sh` (SessionStart, só roda com `CLAUDE_CODE_REMOTE=true`) provisiona de forma idempotente o Postgres local (↔ Cloud SQL) e o `fake-gcs-server` (↔ Cloud Storage), migra e faz seed. Ele **não** sobe a app — isso é sob demanda. `.env` local espelha `.env.example`; em prod os valores vêm do Secret Manager.
 
@@ -63,7 +65,7 @@ Monorepo com três workspaces:
 
 O código de negócio depende só das **interfaces** em `apps/api/src/ports/` (`StoragePort`, `DatabasePort`, `SecretsPort`, `AuthPort`, `NotificationPort`). As implementações vivem em `apps/api/src/adapters/`. **`ports/index.ts::createPorts()` é o único ponto que escolhe a implementação ativa** (via `config`), trocando GCS↔fake-gcs, Secret Manager↔env, etc. A paridade dev↔prod é mantida por esses seams — **nunca acople código de negócio direto a SDKs de nuvem**. Postgres é o mesmo em dev e prod.
 
-Dois seams merecem nota por serem pontos de extensão já desenhados: `NotificationPort` tem hoje só a implementação in-app (`in-app-notification-port.ts`) e é **idempotente por `(recipientUserId, kind, sourceRef)`** — quem decide *quem* e *quando* avisar é a regra (rota de grants, job de avisos), nunca o adapter; um canal de e-mail entra como segunda implementação, sem tocar a regra. `PreviewConversionPort` é uma interface **reservada e não implementada** (conversão de Office→PDF via LibreOffice headless); PDF/imagem/vídeo/áudio usam preview nativo do browser e não passam por ela.
+Dois seams merecem nota por serem pontos de extensão já desenhados: `NotificationPort` tem hoje só a implementação in-app (`in-app-notification-port.ts`) e é **idempotente por `(recipientUserId, kind, sourceRef)`** — quem decide _quem_ e _quando_ avisar é a regra (rota de grants, job de avisos), nunca o adapter; um canal de e-mail entra como segunda implementação, sem tocar a regra. `PreviewConversionPort` é uma interface **reservada e não implementada** (conversão de Office→PDF via LibreOffice headless); PDF/imagem/vídeo/áudio usam preview nativo do browser e não passam por ela.
 
 ### Isolamento por unidade (multi-tenant) — o núcleo de segurança
 

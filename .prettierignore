@@ -1,0 +1,23 @@
+# O Prettier cuida do código-fonte e da configuração; a prosa autoral fica
+# de fora de propósito (ver abaixo). Sem estes escopos, `npm run format`
+# reescreveria milhares de linhas de documento sem ganho.
+
+# Build e dependências
+dist/
+coverage/
+node_modules/
+package-lock.json
+
+# Registro de specs OpenSpec: markdown autoral com quebras de linha manuais.
+# `changes/archive/` é histórico imutável de changes já entregues — reescrevê-lo
+# apaga o rastro de como cada fatia foi especificada. Formatar aqui também
+# mexeria no espaçamento de `#### Scenario:`, que é estrutura da spec, não estilo.
+openspec/
+
+# Documentos do pipeline de PRD (docs/prd_final.md é a fonte da verdade do
+# produto) — mesma razão: texto escrito à mão, revisado por humanos.
+docs/
+
+# Skills e slash commands vendorizados do tooling OpenSpec — código de terceiros.
+.claude/commands/
+.claude/skills/
