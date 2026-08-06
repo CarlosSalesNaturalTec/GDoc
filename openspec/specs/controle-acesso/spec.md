@@ -17,13 +17,23 @@ change `epico-4-permissoes-granulares`).
 
 Toda ação sobre um arquivo ou pasta SHALL ser autorizada no servidor a cada
 requisição pela regra **dono do recurso OU admin da unidade do recurso OU
-detentor de grant do verbo exigido** pela ação, independentemente da interface
-ou de o link ter sido obtido diretamente. Os verbos exigidos SHALL ser: `view`
-para emitir URL de visualização e para abrir/listar uma pasta; `download` para
-emitir URL de download; `rename` para renomear ou substituir um arquivo;
+detentor de grant vigente do verbo exigido** pela ação, independentemente da
+interface ou de o link ter sido obtido diretamente. Os verbos exigidos SHALL ser:
+`view` para emitir URL de visualização e para abrir/listar uma pasta; `download`
+para emitir URL de download; `rename` para renomear ou substituir um arquivo;
 `upload` para enviar para dentro de uma pasta de outra pessoa; `delete` para
 excluir (enviar à lixeira) e para restaurar um arquivo ou pasta. Enviar para a
 raiz da unidade ou para pasta própria NÃO SHALL exigir grant.
+
+Um grant SHALL ser considerado **vigente** quando não possui prazo de expiração
+ou quando o prazo ainda não foi atingido. Um grant **vencido** NÃO SHALL conceder
+acesso em nenhum verbo e por nenhuma via, resolvendo exatamente como se não
+existisse — sem distinguir, na resposta, "nunca teve permissão" de "teve
+permissão e ela venceu". O corte SHALL valer a partir do instante do vencimento,
+NÃO SHALL depender da execução de nenhuma rotina agendada, e SHALL ser avaliado
+contra um relógio único do sistema, de modo a ser consistente entre instâncias da
+aplicação. Os ramos de **posse** e de **admin da unidade do recurso** NÃO SHALL
+ter prazo — apenas concessões expiram.
 
 O ramo **admin da unidade do recurso** SHALL conceder acesso quando o
 solicitante é `unit_admin` ou `global_admin` **e** a `unit_id` do recurso é
@@ -33,8 +43,8 @@ papel de administrador NÃO SHALL, por si só e fora da sua unidade, conceder
 acesso a conteúdo: em particular, o bypass de RLS do `global_admin` NÃO SHALL
 liberar bytes nem itens de outra unidade (a comparação de `unit_id` é imposta na
 aplicação, ainda que a RLS deixe a linha visível). Para o `collaborator`, a
-regra permanece **dono OU grant**. A resolução SHALL ser fail-closed (recurso
-inexistente ou escondido pela RLS ⇒ negado, sem distinguir os casos).
+regra permanece **dono OU grant vigente**. A resolução SHALL ser fail-closed
+(recurso inexistente ou escondido pela RLS ⇒ negado, sem distinguir os casos).
 
 A autorização do verbo `view` SHALL ser condição necessária para a
 visualização, mas NÃO SHALL, por si só, garantir a emissão de URL de
@@ -50,10 +60,11 @@ como **inexistente** para todos os verbos de conteúdo vivos (`view`, `download`
 `rename`, `upload`) — negado com 403 fail-closed, sem vazar a existência —, de
 modo que a exclusão o retire imediatamente de toda via de acesso viva; apenas as
 operações de lixeira (listar a lixeira e restaurar) SHALL alcançá-lo.
-Referência: PRD US 4.1, US 5.1, US 6.1, US 9.2, RF #10, RF #12, RF #16, NFR de
-confidencialidade; revisão do D6 do change `epico-4-permissoes-granulares`;
-design.md D2/D3 do change `epico-6-lixeira-retencao`; design.md D4 do change
-`epico-9-preview-cenario-2`.
+Referência: PRD US 4.1, US 4.3, US 5.1, US 6.1, US 9.2, RF #10, RF #12, RF #16,
+NFR de confidencialidade; revisão do D6 do change
+`epico-4-permissoes-granulares`; design.md D2/D3 do change
+`epico-6-lixeira-retencao`; design.md D4 do change `epico-9-preview-cenario-2`;
+design.md D1 do change `expiracao-permissoes`.
 
 #### Scenario: Não-dono da mesma unidade sem permissão é bloqueado
 - **WHEN** um `collaborator` solicita a URL de visualização ou de download de um
@@ -68,6 +79,28 @@ design.md D2/D3 do change `epico-6-lixeira-retencao`; design.md D4 do change
   **formato pré-visualizável**
 - **THEN** a URL assinada de TTL curto é emitida e o acesso é registrado na auditoria
   com a ação correspondente
+
+#### Scenario: Grant vencido não concede acesso
+- **WHEN** uma pessoa cujo grant sobre um arquivo já atingiu o prazo de expiração
+  solicita a URL correspondente
+- **THEN** o acesso é negado com 403, nenhuma URL é emitida e nenhuma auditoria é
+  gravada, exatamente como se a concessão não existisse
+
+#### Scenario: Corte independe da execução da rotina de avisos
+- **WHEN** o prazo de uma concessão é atingido e a rotina diária de avisos ainda
+  não executou
+- **THEN** o acesso correspondente já está encerrado
+
+#### Scenario: Grant com prazo ainda não atingido concede normalmente
+- **WHEN** uma pessoa com grant cujo prazo de expiração ainda não chegou solicita
+  a URL correspondente
+- **THEN** o acesso é concedido e auditado normalmente
+
+#### Scenario: Vencimento não afeta posse nem alcance de administração
+- **WHEN** o dono de um arquivo, ou o admin da unidade do arquivo, acessa o
+  recurso
+- **THEN** o acesso é concedido independentemente de qualquer prazo, porque posse
+  e administração da unidade não expiram
 
 #### Scenario: Detentor de view sobre formato não pré-visualizável não gera URL nem auditoria
 - **WHEN** uma pessoa com grant `view` (ou posse, ou alcance de admin da unidade)
@@ -134,28 +167,49 @@ Referência: PRD US 4.2, cenário 1.
 
 A listagem do conteúdo de uma pasta (e da raiz da unidade) SHALL retornar, para
 um `collaborator`, apenas os itens que a pessoa **criou** OU sobre os quais
-possui grant `view` — arquivos e subpastas —, nunca itens de terceiros sem
-liberação. Para um **admin da unidade** (solicitante `unit_admin` ou
-`global_admin` cuja `unit_id` é a da listagem), a listagem SHALL retornar
-**todos** os itens da unidade, sem exigir posse ou grant. Para o `global_admin`,
-a listagem SHALL ser restringida à sua unidade na própria consulta (não confiar
-no bypass de RLS para evitar trazer itens de outra unidade). Abrir uma pasta
-SHALL exigir posse, grant `view` **ou** ser admin da unidade da pasta. Como não
-há herança, abrir uma pasta liberada por grant SHALL mostrar apenas os filhos
-igualmente próprios ou liberados (o alcance amplo de unidade vale só para o
-admin).
+possui grant `view` **vigente** — arquivos e subpastas —, nunca itens de
+terceiros sem liberação e nunca itens liberados por concessão já vencida. Para um
+**admin da unidade** (solicitante `unit_admin` ou `global_admin` cuja `unit_id` é
+a da listagem), a listagem SHALL retornar **todos** os itens da unidade, sem
+exigir posse ou grant. Para o `global_admin`, a listagem SHALL ser restringida à
+sua unidade na própria consulta (não confiar no bypass de RLS para evitar trazer
+itens de outra unidade). Abrir uma pasta SHALL exigir posse, grant `view` vigente
+**ou** ser admin da unidade da pasta. Como não há herança, abrir uma pasta
+liberada por grant SHALL mostrar apenas os filhos igualmente próprios ou
+liberados (o alcance amplo de unidade vale só para o admin).
+
+O filtro de vigência SHALL ser aplicado de forma **uniforme em todas as vias de
+alcance por concessão** — listagem de pasta, busca e listagem da lixeira —, de
+modo que um grant vencido não faça um item continuar aparecendo em nenhuma
+delas, mesmo que a abertura do item já esteja negada.
 
 Toda listagem viva SHALL excluir os itens que estão na lixeira (excluídos, ainda
 não expurgados) — nenhum item excluído SHALL aparecer na navegação, nem para o
 `collaborator` nem para o admin da unidade; itens na lixeira só aparecem na
 listagem própria da lixeira. Referência: PRD US 2.1, cenário 2; US 4.1, cenário
-2; US 5.1; US 6.1; design.md D2 do change `epico-6-lixeira-retencao`.
+2; US 4.3; US 5.1; US 6.1; design.md D2 do change `epico-6-lixeira-retencao`;
+design.md D1 do change `expiracao-permissoes`.
 
 #### Scenario: Listagem mostra criados e liberados, oculta o resto (collaborator)
 - **WHEN** um `collaborator` abre uma pasta que contém itens próprios, itens
   liberados a ele e itens de terceiros sem liberação
 - **THEN** vê apenas os itens que criou e os que lhe foram liberados, e os itens sem
   permissão não aparecem
+
+#### Scenario: Item liberado por grant vencido some da listagem
+- **WHEN** um `collaborator` abre uma pasta onde havia um item visível apenas por
+  um grant `view` cujo prazo já foi atingido
+- **THEN** o item não aparece na listagem
+
+#### Scenario: Busca não retorna item liberado por grant vencido
+- **WHEN** um `collaborator` busca por um arquivo que só lhe era alcançável por
+  um grant já vencido
+- **THEN** o arquivo não aparece nos resultados
+
+#### Scenario: Lixeira não lista raiz alcançada por grant vencido
+- **WHEN** um `collaborator` abre a lixeira e havia uma raiz de exclusão
+  alcançável apenas por grant `delete` já vencido
+- **THEN** essa raiz não aparece na listagem da lixeira
 
 #### Scenario: Abrir pasta sem posse nem view é negado (collaborator)
 - **WHEN** um `collaborator` tenta abrir/listar uma pasta que não lhe pertence e
