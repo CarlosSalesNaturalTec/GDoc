@@ -81,6 +81,12 @@
   `deploy-pages` falha. Fazer **antes** do merge.
 - [ ] 3.5 Conferir que `mkdocs gh-deploy` **não** é usado e que nenhuma branch
   `gh-pages` é criada (design.md D5).
+- [ ] 3.6 `.github/workflows/deploy.yml` (design.md D10): ampliar o allowlist do
+  passo `Classify merge` para acolher `.github/workflows/*` e `.gitignore`, e
+  renomear o gate de "docs-only" para **merge sem efeito em produção** — nome do
+  job, mensagens de log e a variável de saída. **Não** ampliar para `.github/**`
+  nem para qualquer caminho de `apps/`, `packages/`, `infra/` ou configuração de
+  build. Preservar intactos os dois ramos fail-safe (sem pai único, diff vazio).
 
 ## 4. Remoção do monólito e ajustes de repositório
 
@@ -88,7 +94,9 @@
   há referência viva ao caminho.
 - [ ] 4.2 **Não tocar** em `openspec/changes/archive/`, onde estão as 11
   ocorrências restantes do caminho antigo. É histórico imutável.
-- [ ] 4.3 `.gitignore`: acrescentar `site/` (saída do build do MkDocs).
+- [ ] 4.3 `docs/manual/.gitignore` com `site/` — a saída do build é
+  `docs/manual/site/`, e o arquivo dentro de `docs/manual/` já casa com o
+  allowlist. **Não** tocar no `.gitignore` da raiz (design.md D10, Peça 1).
 - [ ] 4.4 `CLAUDE.md`: registrar que a documentação do usuário mora em
   `docs/manual/` (site MkDocs publicado no Pages), como é organizada e que
   continua sendo atualizada dentro do commit da feature — senão a próxima change
@@ -110,5 +118,13 @@
 - [ ] 5.5 Após o merge, confirmar a publicação e navegar o site — sumário, busca
   em português e as páginas de todos os perfis.
 - [ ] 5.6 Confirmar que o merge seguinte, tocando **apenas** `docs/manual/**`,
-  publica a documentação **sem** disparar o deploy da aplicação (allowlist
-  docs-only do `deploy.yml` — design.md D7).
+  publica a documentação **sem** disparar o deploy da aplicação (design.md D7).
+- [ ] 5.7 **No merge desta change**, acompanhar o `deploy.yml` e confirmar que ele
+  classificou como *sem efeito em produção* e pulou build/migração/deploy — é a
+  auto-aplicação descrita em design.md D10. Se ainda assim implantar, registrar o
+  fato: o custo é um deploy sem mudança de código, e todo merge de documentação
+  seguinte já sai limpo. **Não** tentar contornar com force-push ou reescrita de
+  histórico.
+- [ ] 5.8 Confirmar, na direção oposta, que um merge com qualquer arquivo de
+  `apps/`/`packages/`/`infra/` continua implantando normalmente — o fail-safe não
+  pode ter sido afrouxado pela tarefa 3.6.

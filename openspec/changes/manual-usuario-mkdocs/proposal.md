@@ -57,6 +57,12 @@ público de GitHub, e não existe endereço que se possa passar a alguém.
   (`.github/workflows/docs.yml`): push na `main` que toque `docs/manual/**`
   builda e publica; pull request builda **sem** publicar, para que link quebrado
   reprove antes do merge (`strict: true`).
+- **O merge da documentação passa a não implantar a aplicação.** O gate do
+  `deploy.yml` deixa de se chamar "docs-only" e passa a expressar o que sempre
+  quis dizer — *merge sem efeito em produção* —, acolhendo as definições de
+  workflow e o `.gitignore`, que não entram na imagem do container nem alteram
+  schema. Em paralelo, a regra de ignore do build do MkDocs vai para um
+  `docs/manual/.gitignore`, dentro do allowlist, em vez do `.gitignore` da raiz.
 - **Remoção de `docs/manual_do_usuario.md`**, que deixa de existir — o site passa
   a ser a fonte única. Nenhuma referência viva ao caminho antigo existe no
   repositório (as 11 ocorrências estão todas em `openspec/changes/archive/`,
@@ -70,12 +76,16 @@ público de GitHub, e não existe endereço que se possa passar a alguém.
 
 - **Sem mudança de comportamento da aplicação.** Nenhum arquivo de `apps/`,
   `packages/` ou `infra/` é tocado.
-- O allowlist docs-only do `deploy.yml` (`*.md|docs/*|openspec/*|LICENSE`) já
-  cobre `docs/manual/**`, então a documentação **não** dispara build/migração/
-  deploy da aplicação. Os dois arquivos fora do allowlist —
-  `.github/workflows/docs.yml` e `.gitignore` — fazem o merge desta change ser
-  classificado como não-docs-only, disparando um deploy sem mudança de código,
-  uma única vez. É o comportamento fail-safe já desenhado, não uma regressão.
+- **Mudança no pipeline de entrega**, restrita ao critério do gate: o allowlist
+  passa a cobrir também `.github/workflows/*` e `.gitignore`, de modo que este
+  merge — e qualquer outro cuja única consequência seja publicar documentação —
+  não dispare build, migração e deploy. O fail-safe permanece: qualquer arquivo
+  de `apps/`, `packages/`, `infra/` ou de configuração de build continua fora do
+  allowlist, e diff indeterminado continua implantando. Delta em
+  `specs/platform-infrastructure/`.
+- **`.gitignore` da raiz deixa de ser tocado**: a saída do MkDocs é
+  `docs/manual/site/`, então a regra de ignore mora em `docs/manual/.gitignore`,
+  já dentro do allowlist.
 - **Passo manual de ativação, uma vez:** GitHub Pages ainda não está habilitado
   no repositório (`has_pages: false`). É preciso definir, em Settings → Pages, a
   origem **GitHub Actions**. Sem isso o job de publicação falha. Pages não é
@@ -107,3 +117,11 @@ público de GitHub, e não existe endereço que se possa passar a alguém.
   à interface efetivamente entregue, fonte única, organização navegável por perfil
   e publicação automatizada com verificação de integridade dos links. Referencia o
   PRD (`docs/prd_final.md`) como fonte das regras descritas.
+
+### Modified Capabilities
+
+- `platform-infrastructure`: o gate que decide se um merge implanta passa a
+  expressar *ausência de efeito em produção* em vez de *documentação*, acolhendo
+  definições de workflow e o arquivo de exclusões do controle de versão. Sem
+  alteração nas demais garantias do pipeline (migrar antes de trocar o tráfego,
+  idempotência, permissões, fail-safe).

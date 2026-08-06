@@ -106,10 +106,54 @@ Na direção inversa, o `deploy.yml` classifica merges docs-only pelo allowlist
 portanto `docs/manual/docs/index.md` **é** docs-only. Editar a documentação não
 implanta a aplicação.
 
-O merge **desta** change é a exceção: `.github/workflows/docs.yml` e `.gitignore`
-ficam fora do allowlist, então ele é classificado como não-docs-only e dispara um
-deploy sem mudança de código. É o comportamento fail-safe já desenhado — melhor
-implantar à toa uma vez do que arriscar pular um deploy necessário.
+O merge **desta** change seria a exceção — `.github/workflows/docs.yml` e
+`.gitignore` ficam fora do allowlist —, e o requisito é que ele publique **apenas
+a documentação**, sem deploy da aplicação. Ver D10.
+
+### D10 — O merge da documentação não implanta a aplicação
+
+Requisito: um merge cuja única consequência é publicar documentação NÃO dispara
+build, migração e deploy no Cloud Run. Duas peças, de custos muito diferentes.
+
+**Peça 1 — tirar `.gitignore` da equação (grátis).** O MkDocs resolve a saída
+relativa ao `mkdocs.yml`, então o build gera `docs/manual/site/`. A regra de
+ignore não precisa ir para o `.gitignore` da raiz: um `docs/manual/.gitignore`
+com `site/` cobre exatamente o mesmo caso e **casa com o allowlist** (`docs/*`).
+Um arquivo a menos fora do gate, sem contrapartida.
+
+Isso reduz a pegada desta change fora do allowlist a **um único arquivo**:
+`.github/workflows/docs.yml`.
+
+**Peça 2 — o gate reflete o que realmente afeta produção.** O allowlist atual
+enumera documentação, mas a pergunta que ele responde de fato é *"este merge
+muda o que roda em produção?"*. Arquivo de workflow do GitHub Actions e
+`.gitignore` **não** mudam: não entram na imagem do container, não alteram schema
+e não afetam a revisão do Cloud Run. Passam a constar do allowlist, que é
+renomeado de "docs-only" para **"merge sem efeito em produção"** — o nome que
+sempre descreveu a intenção.
+
+Alternativas descartadas:
+
+- **Aceitar um deploy à toa neste merge.** Era o desenho anterior. Custo real
+  baixo (mesma imagem, migrações idempotentes), mas contraria o requisito.
+- **Adiar `docs.yml` para um PR separado.** Não elimina o deploy, só o move.
+- **Allowlist de `.github/**` inteiro.** Amplo demais sem necessidade: a lista
+  passa a nomear `.github/workflows/*` e `.gitignore`, e nada além.
+
+**Ressalva de verificação (tasks 3.6/5.7).** Para que a nova regra classifique o
+**próprio** merge que a introduz, o `deploy.yml` alterado precisa já estar em
+vigor quando o gate roda. O gatilho é `workflow_run`, cuja definição de workflow
+o GitHub toma da branch padrão — que, no instante em que o CI da `main`
+termina, já contém o merge. A expectativa, portanto, é de auto-aplicação, e por
+isso `.github/workflows/deploy.yml` também entra no allowlist. Não tratar isso
+como certo: se na prática o deploy disparar assim mesmo, o efeito é **um** deploy
+sem mudança de código, e todo merge de documentação seguinte já sai limpo de
+qualquer forma — inclusive sem a Peça 2, porque um merge que toca apenas
+`docs/manual/**` sempre foi docs-only.
+
+O fail-safe permanece intacto onde importa: qualquer arquivo de `apps/`,
+`packages/`, `infra/` ou de configuração de build continua fora do allowlist, e
+ausência de pai único ou diff vazio continua classificando como não-docs-only.
 
 ### D8 — O manual descreve a tela, não a API
 
