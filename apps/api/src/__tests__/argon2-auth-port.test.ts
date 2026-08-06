@@ -29,9 +29,16 @@ describe('Argon2AuthPort — sessão (JWT HMAC-SHA256)', () => {
 
   it('rejeita token sem instante de emissão (fail-closed)', async () => {
     const auth = new Argon2AuthPort(new FixedSecretsPort('test-secret'), 60);
-    const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' }), 'utf-8').toString('base64url');
-    const payload = Buffer.from(JSON.stringify({ sub: 'user-1', exp: 9999999999 }), 'utf-8').toString('base64url');
-    const signature = createHmac('sha256', 'test-secret').update(`${header}.${payload}`).digest('base64url');
+    const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' }), 'utf-8').toString(
+      'base64url',
+    );
+    const payload = Buffer.from(
+      JSON.stringify({ sub: 'user-1', exp: 9999999999 }),
+      'utf-8',
+    ).toString('base64url');
+    const signature = createHmac('sha256', 'test-secret')
+      .update(`${header}.${payload}`)
+      .digest('base64url');
     const tokenWithoutIat = `${header}.${payload}.${signature}`;
     expect(await auth.verifySession(tokenWithoutIat)).toBeNull();
   });

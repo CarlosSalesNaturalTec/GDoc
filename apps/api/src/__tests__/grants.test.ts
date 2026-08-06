@@ -77,7 +77,12 @@ describe('Endpoints de gestão de permissão (routes/grants.ts, admin-only)', ()
     const create = await request(app)
       .post('/grants')
       .set('Cookie', cookie)
-      .send({ subjectUserId: userA2Id, resourceType: 'file', resourceId: fileAId, permissions: ['view'] });
+      .send({
+        subjectUserId: userA2Id,
+        resourceType: 'file',
+        resourceId: fileAId,
+        permissions: ['view'],
+      });
     expect(create.status).toBe(403);
 
     const list = await request(app)
@@ -85,7 +90,9 @@ describe('Endpoints de gestão de permissão (routes/grants.ts, admin-only)', ()
       .set('Cookie', cookie);
     expect(list.status).toBe(403);
 
-    const del = await request(app).delete('/grants/00000000-0000-0000-0000-000000000000').set('Cookie', cookie);
+    const del = await request(app)
+      .delete('/grants/00000000-0000-0000-0000-000000000000')
+      .set('Cookie', cookie);
     expect(del.status).toBe(403);
   });
 
@@ -96,22 +103,32 @@ describe('Endpoints de gestão de permissão (routes/grants.ts, admin-only)', ()
     const first = await request(app)
       .post('/grants')
       .set('Cookie', cookie)
-      .send({ subjectUserId: userA2Id, resourceType: 'file', resourceId: fileAId, permissions: ['view', 'download'] });
+      .send({
+        subjectUserId: userA2Id,
+        resourceType: 'file',
+        resourceId: fileAId,
+        permissions: ['view', 'download'],
+      });
     expect(first.status).toBe(201);
     expect(first.body.grants).toHaveLength(2);
 
     const second = await request(app)
       .post('/grants')
       .set('Cookie', cookie)
-      .send({ subjectUserId: userA2Id, resourceType: 'file', resourceId: fileAId, permissions: ['view'] });
+      .send({
+        subjectUserId: userA2Id,
+        resourceType: 'file',
+        resourceId: fileAId,
+        permissions: ['view'],
+      });
     expect(second.status).toBe(201);
     expect(second.body.grants).toHaveLength(1);
 
     const rows = await withSystemBypass(pool, (client) =>
-      client.query('SELECT permission FROM grants WHERE subject_user_id = $1 AND resource_id = $2', [
-        userA2Id,
-        fileAId,
-      ]),
+      client.query(
+        'SELECT permission FROM grants WHERE subject_user_id = $1 AND resource_id = $2',
+        [userA2Id, fileAId],
+      ),
     );
     expect(rows.rows).toHaveLength(2);
   });
@@ -120,7 +137,9 @@ describe('Endpoints de gestão de permissão (routes/grants.ts, admin-only)', ()
     const app = createApp(ports);
     const cookie = await sessionCookieFor(ports, unitAdminAId);
 
-    const list = await request(app).get(`/grants?resourceType=file&resourceId=${fileAId}`).set('Cookie', cookie);
+    const list = await request(app)
+      .get(`/grants?resourceType=file&resourceId=${fileAId}`)
+      .set('Cookie', cookie);
     expect(list.status).toBe(200);
     const permissions = list.body.grants.map((g: { permission: string }) => g.permission).sort();
     expect(permissions).toEqual(['download', 'view']);
@@ -129,8 +148,12 @@ describe('Endpoints de gestão de permissão (routes/grants.ts, admin-only)', ()
     const del = await request(app).delete(`/grants/${viewGrant.id}`).set('Cookie', cookie);
     expect(del.status).toBe(204);
 
-    const after = await request(app).get(`/grants?resourceType=file&resourceId=${fileAId}`).set('Cookie', cookie);
-    expect(after.body.grants.map((g: { permission: string }) => g.permission)).toEqual(['download']);
+    const after = await request(app)
+      .get(`/grants?resourceType=file&resourceId=${fileAId}`)
+      .set('Cookie', cookie);
+    expect(after.body.grants.map((g: { permission: string }) => g.permission)).toEqual([
+      'download',
+    ]);
   });
 
   it('unit_admin não concede sobre recurso de outra unidade, sem vazar existência', async () => {
@@ -140,7 +163,12 @@ describe('Endpoints de gestão de permissão (routes/grants.ts, admin-only)', ()
     const create = await request(app)
       .post('/grants')
       .set('Cookie', cookie)
-      .send({ subjectUserId: userA2Id, resourceType: 'folder', resourceId: folderBId, permissions: ['view'] });
+      .send({
+        subjectUserId: userA2Id,
+        resourceType: 'folder',
+        resourceId: folderBId,
+        permissions: ['view'],
+      });
     expect(create.status).toBe(404);
 
     const created = await withSystemBypass(pool, (client) =>
@@ -156,7 +184,12 @@ describe('Endpoints de gestão de permissão (routes/grants.ts, admin-only)', ()
     const create = await request(app)
       .post('/grants')
       .set('Cookie', cookie)
-      .send({ subjectUserId: ids.userB, resourceType: 'file', resourceId: fileAId, permissions: ['view'] });
+      .send({
+        subjectUserId: ids.userB,
+        resourceType: 'file',
+        resourceId: fileAId,
+        permissions: ['view'],
+      });
     expect(create.status).toBe(404);
   });
 
@@ -164,7 +197,9 @@ describe('Endpoints de gestão de permissão (routes/grants.ts, admin-only)', ()
     const app = createApp(ports);
     const cookieB = await sessionCookieFor(ports, unitAdminBId);
 
-    const list = await request(app).get(`/grants?resourceType=file&resourceId=${fileAId}`).set('Cookie', cookieB);
+    const list = await request(app)
+      .get(`/grants?resourceType=file&resourceId=${fileAId}`)
+      .set('Cookie', cookieB);
     expect(list.status).toBe(200);
     expect(list.body.grants).toEqual([]);
   });
@@ -244,33 +279,59 @@ describe('Prazo de expiração e avisos de concessão (routes/grants.ts)', () =>
     const first = await request(app)
       .post('/grants')
       .set('Cookie', cookie)
-      .send({ subjectUserId: recipientId, resourceType: 'file', resourceId: fileId, permissions: ['view'], expiresAt: t1 });
+      .send({
+        subjectUserId: recipientId,
+        resourceType: 'file',
+        resourceId: fileId,
+        permissions: ['view'],
+        expiresAt: t1,
+      });
     expect(first.status).toBe(201);
     expect(first.body.grants[0].expiresAt).toBe(new Date(t1).toISOString());
 
     const extended = await request(app)
       .post('/grants')
       .set('Cookie', cookie)
-      .send({ subjectUserId: recipientId, resourceType: 'file', resourceId: fileId, permissions: ['view'], expiresAt: t2 });
+      .send({
+        subjectUserId: recipientId,
+        resourceType: 'file',
+        resourceId: fileId,
+        permissions: ['view'],
+        expiresAt: t2,
+      });
     expect(extended.status).toBe(201);
     expect(extended.body.grants[0].expiresAt).toBe(new Date(t2).toISOString());
 
     const shortened = await request(app)
       .post('/grants')
       .set('Cookie', cookie)
-      .send({ subjectUserId: recipientId, resourceType: 'file', resourceId: fileId, permissions: ['view'], expiresAt: t1 });
+      .send({
+        subjectUserId: recipientId,
+        resourceType: 'file',
+        resourceId: fileId,
+        permissions: ['view'],
+        expiresAt: t1,
+      });
     expect(shortened.status).toBe(201);
     expect(shortened.body.grants[0].expiresAt).toBe(new Date(t1).toISOString());
 
     const madePermanent = await request(app)
       .post('/grants')
       .set('Cookie', cookie)
-      .send({ subjectUserId: recipientId, resourceType: 'file', resourceId: fileId, permissions: ['view'] });
+      .send({
+        subjectUserId: recipientId,
+        resourceType: 'file',
+        resourceId: fileId,
+        permissions: ['view'],
+      });
     expect(madePermanent.status).toBe(201);
     expect(madePermanent.body.grants[0].expiresAt).toBeNull();
 
     const rows = await withSystemBypass(pool, (client) =>
-      client.query('SELECT 1 FROM grants WHERE subject_user_id = $1 AND resource_id = $2', [recipientId, fileId]),
+      client.query('SELECT 1 FROM grants WHERE subject_user_id = $1 AND resource_id = $2', [
+        recipientId,
+        fileId,
+      ]),
     );
     expect(rows.rows).toHaveLength(1);
   });
@@ -290,7 +351,9 @@ describe('Prazo de expiração e avisos de concessão (routes/grants.ts)', () =>
     const app = createApp(ports);
     const cookie = await sessionCookieFor(ports, unitAdminAId);
 
-    const list = await request(app).get(`/grants?resourceType=file&resourceId=${fileId}`).set('Cookie', cookie);
+    const list = await request(app)
+      .get(`/grants?resourceType=file&resourceId=${fileId}`)
+      .set('Cookie', cookie);
     expect(list.status).toBe(200);
     expect(list.body.grants).toHaveLength(1);
     expect(list.body.grants[0].expired).toBe(true);
@@ -299,7 +362,9 @@ describe('Prazo de expiração e avisos de concessão (routes/grants.ts)', () =>
     const del = await request(app).delete(`/grants/${grantId}`).set('Cookie', cookie);
     expect(del.status).toBe(204);
 
-    const after = await request(app).get(`/grants?resourceType=file&resourceId=${fileId}`).set('Cookie', cookie);
+    const after = await request(app)
+      .get(`/grants?resourceType=file&resourceId=${fileId}`)
+      .set('Cookie', cookie);
     expect(after.body.grants).toHaveLength(0);
   });
 
@@ -313,13 +378,24 @@ describe('Prazo de expiração e avisos de concessão (routes/grants.ts)', () =>
     const withDeadline = await request(app)
       .post('/grants')
       .set('Cookie', cookie)
-      .send({ subjectUserId: recipientId, resourceType: 'file', resourceId: fileWithDeadline, permissions: ['view'], expiresAt });
+      .send({
+        subjectUserId: recipientId,
+        resourceType: 'file',
+        resourceId: fileWithDeadline,
+        permissions: ['view'],
+        expiresAt,
+      });
     expect(withDeadline.status).toBe(201);
 
     const withoutDeadline = await request(app)
       .post('/grants')
       .set('Cookie', cookie)
-      .send({ subjectUserId: recipientId, resourceType: 'file', resourceId: fileWithoutDeadline, permissions: ['view'] });
+      .send({
+        subjectUserId: recipientId,
+        resourceType: 'file',
+        resourceId: fileWithoutDeadline,
+        permissions: ['view'],
+      });
     expect(withoutDeadline.status).toBe(201);
 
     const notified = await notificationsFor(recipientId, 'grant_created');
@@ -361,12 +437,24 @@ describe('Prazo de expiração e avisos de concessão (routes/grants.ts)', () =>
     await request(app)
       .post('/grants')
       .set('Cookie', cookie)
-      .send({ subjectUserId: recipientId, resourceType: 'file', resourceId: fileId, permissions: ['view'], expiresAt: t1 });
+      .send({
+        subjectUserId: recipientId,
+        resourceType: 'file',
+        resourceId: fileId,
+        permissions: ['view'],
+        expiresAt: t1,
+      });
 
     await request(app)
       .post('/grants')
       .set('Cookie', cookie)
-      .send({ subjectUserId: recipientId, resourceType: 'file', resourceId: fileId, permissions: ['view'], expiresAt: t1 });
+      .send({
+        subjectUserId: recipientId,
+        resourceType: 'file',
+        resourceId: fileId,
+        permissions: ['view'],
+        expiresAt: t1,
+      });
 
     let notified = await notificationsFor(recipientId, 'grant_created');
     expect(notified.filter((n) => n.payload.resourceId === fileId)).toHaveLength(1);
@@ -374,7 +462,13 @@ describe('Prazo de expiração e avisos de concessão (routes/grants.ts)', () =>
     await request(app)
       .post('/grants')
       .set('Cookie', cookie)
-      .send({ subjectUserId: recipientId, resourceType: 'file', resourceId: fileId, permissions: ['view'], expiresAt: t2 });
+      .send({
+        subjectUserId: recipientId,
+        resourceType: 'file',
+        resourceId: fileId,
+        permissions: ['view'],
+        expiresAt: t2,
+      });
 
     notified = await notificationsFor(recipientId, 'grant_created');
     expect(notified.filter((n) => n.payload.resourceId === fileId)).toHaveLength(2);
@@ -383,7 +477,11 @@ describe('Prazo de expiração e avisos de concessão (routes/grants.ts)', () =>
   it('9.6d: falha na emissão do aviso não reverte a concessão nem faz a operação retornar erro', async () => {
     const failingPorts: Ports = {
       ...ports,
-      notifications: { notify: async () => { throw new Error('canal indisponível'); } },
+      notifications: {
+        notify: async () => {
+          throw new Error('canal indisponível');
+        },
+      },
     };
     const app = createApp(failingPorts);
     const cookie = await sessionCookieFor(failingPorts, unitAdminAId);
@@ -393,12 +491,21 @@ describe('Prazo de expiração e avisos de concessão (routes/grants.ts)', () =>
     const res = await request(app)
       .post('/grants')
       .set('Cookie', cookie)
-      .send({ subjectUserId: recipientId, resourceType: 'file', resourceId: fileId, permissions: ['view'], expiresAt });
+      .send({
+        subjectUserId: recipientId,
+        resourceType: 'file',
+        resourceId: fileId,
+        permissions: ['view'],
+        expiresAt,
+      });
 
     expect(res.status).toBe(201);
 
     const rows = await withSystemBypass(pool, (client) =>
-      client.query('SELECT 1 FROM grants WHERE subject_user_id = $1 AND resource_id = $2', [recipientId, fileId]),
+      client.query('SELECT 1 FROM grants WHERE subject_user_id = $1 AND resource_id = $2', [
+        recipientId,
+        fileId,
+      ]),
     );
     expect(rows.rows).toHaveLength(1);
   });

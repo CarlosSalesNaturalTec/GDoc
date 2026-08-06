@@ -50,7 +50,11 @@ const EXPIRED_COLUMN = `(expires_at IS NOT NULL AND expires_at <= now()) AS expi
  * `source_ref`, logo uma única notificação (design.md D5/D8); mudar o prazo
  * muda o `source_ref`, logo notifica de novo.
  */
-function grantSourceRef(resourceType: GrantResourceType, resourceId: string, expiresAt: Date): string {
+function grantSourceRef(
+  resourceType: GrantResourceType,
+  resourceId: string,
+  expiresAt: Date,
+): string {
   return `grant:${resourceType}:${resourceId}:${expiresAt.toISOString()}`;
 }
 
@@ -129,7 +133,15 @@ export function grantsRouter(ports: Ports): Router {
              ON CONFLICT (unit_id, subject_user_id, resource_type, resource_id, permission)
              DO UPDATE SET expires_at = EXCLUDED.expires_at, granted_by = EXCLUDED.granted_by, created_at = now()
              RETURNING *, ${EXPIRED_COLUMN}`,
-            [resource.unit_id, body.subjectUserId, body.resourceType, body.resourceId, permission, ctx.userId, expiresAt],
+            [
+              resource.unit_id,
+              body.subjectUserId,
+              body.resourceType,
+              body.resourceId,
+              permission,
+              ctx.userId,
+              expiresAt,
+            ],
           );
           rows.push(upserted[0]!);
         }
@@ -183,7 +195,12 @@ export function grantsRouter(ports: Ports): Router {
 
       const resourceType = req.query.resourceType;
       const resourceId = req.query.resourceId;
-      if (typeof resourceType !== 'string' || !RESOURCE_TYPES.includes(resourceType) || typeof resourceId !== 'string' || !resourceId) {
+      if (
+        typeof resourceType !== 'string' ||
+        !RESOURCE_TYPES.includes(resourceType) ||
+        typeof resourceId !== 'string' ||
+        !resourceId
+      ) {
         res.status(400).json({ error: 'invalid query' });
         return;
       }
@@ -219,7 +236,9 @@ export function grantsRouter(ports: Ports): Router {
       // grant de outra unidade não aparece, 0 linhas removidas. Revogar
       // permanece removendo a linha mesmo se já expirada (design.md D2).
       const deleted = await ports.database.withTenantTransaction(ctx, async (client) => {
-        const { rows } = await client.query('DELETE FROM grants WHERE id = $1 RETURNING id', [req.params.id]);
+        const { rows } = await client.query('DELETE FROM grants WHERE id = $1 RETURNING id', [
+          req.params.id,
+        ]);
         return rows[0] ?? null;
       });
 

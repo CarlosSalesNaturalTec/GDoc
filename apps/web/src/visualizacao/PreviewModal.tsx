@@ -30,7 +30,14 @@ export function PreviewModal({ file, onClose }: PreviewModalProps) {
   }, [fileId]);
 
   return (
-    <Modal title={file?.fileName} open={file !== null} onCancel={onClose} footer={null} width={800} destroyOnHidden>
+    <Modal
+      title={file?.fileName}
+      open={file !== null}
+      onCancel={onClose}
+      footer={null}
+      width={800}
+      destroyOnHidden
+    >
       {file && renderBody()}
     </Modal>
   );
@@ -93,6 +100,12 @@ function renderPreview(url: string, file: FileSummaryResponse) {
     case FileCategory.AUDIO:
       return <audio src={url} controls style={{ width: '100%' }} />;
     default:
-      return <iframe src={url} title={file.fileName} style={{ width: '100%', height: '70vh', border: 'none' }} />;
+      return (
+        <iframe
+          src={url}
+          title={file.fileName}
+          style={{ width: '100%', height: '70vh', border: 'none' }}
+        />
+      );
   }
 }

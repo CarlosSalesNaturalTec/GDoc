@@ -49,7 +49,10 @@ export function dashboardRouter(ports: Ports): Router {
       // ~35ms — ganho marginal e inconsistente entre as duas queries. Sem
       // migração nesta fatia; Seq Scan é aceitável na escala do MVP.
       const response = await ports.database.withTenantTransaction(ctx, async (client) => {
-        const { rows: typeRows } = await client.query<{ content_type: string | null; count: string }>(
+        const { rows: typeRows } = await client.query<{
+          content_type: string | null;
+          count: string;
+        }>(
           `SELECT content_type, count(*) AS count
            FROM files
            WHERE status = 'active' AND deleted_at IS NULL
@@ -59,7 +62,10 @@ export function dashboardRouter(ports: Ports): Router {
         const filesByTypeCounts = new Map<FileCategory, number>();
         for (const row of typeRows) {
           const category = fileCategory(row.content_type);
-          filesByTypeCounts.set(category, (filesByTypeCounts.get(category) ?? 0) + Number(row.count));
+          filesByTypeCounts.set(
+            category,
+            (filesByTypeCounts.get(category) ?? 0) + Number(row.count),
+          );
         }
         const filesByType = Array.from(filesByTypeCounts.entries()).map(([category, count]) => ({
           category,
@@ -76,10 +82,12 @@ export function dashboardRouter(ports: Ports): Router {
            ORDER BY 1`,
         );
         const monthCounts = new Map(monthRows.map((row) => [row.month, Number(row.count)]));
-        const uploadsByMonth: DashboardUploadsByMonthEntry[] = trailing12MonthKeys(new Date()).map((month) => ({
-          month,
-          count: monthCounts.get(month) ?? 0,
-        }));
+        const uploadsByMonth: DashboardUploadsByMonthEntry[] = trailing12MonthKeys(new Date()).map(
+          (month) => ({
+            month,
+            count: monthCounts.get(month) ?? 0,
+          }),
+        );
 
         const { rows: storageRows } = await client.query<{ user_count: string; used: string }>(
           `SELECT count(*) AS user_count, coalesce(sum(storage_used_bytes), 0) AS used FROM users`,

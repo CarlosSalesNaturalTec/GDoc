@@ -13,7 +13,12 @@ import type {
 } from '@gdoc/shared';
 import type { PoolClient } from 'pg';
 import { config } from '../config.js';
-import { findFolderById, traverseFolderSubtree, type FolderRow, type SubtreeManifest } from '../lib/folder-tree.js';
+import {
+  findFolderById,
+  traverseFolderSubtree,
+  type FolderRow,
+  type SubtreeManifest,
+} from '../lib/folder-tree.js';
 import { hasAccess, isAdminOfUnit, visibleResourceClause } from '../lib/access.js';
 
 interface FileSummaryRow {
@@ -138,12 +143,10 @@ async function recordFileAudits(
   if (files.length === 0) return;
   await ports.database.withTenantTransaction(ctx, async (client) => {
     for (const file of files) {
-      await client.query('INSERT INTO audit_events (unit_id, user_id, file_id, action) VALUES ($1, $2, $3, $4)', [
-        file.unit_id,
-        ctx.userId,
-        file.id,
-        action,
-      ]);
+      await client.query(
+        'INSERT INTO audit_events (unit_id, user_id, file_id, action) VALUES ($1, $2, $3, $4)',
+        [file.unit_id, ctx.userId, file.id, action],
+      );
     }
   });
 }
@@ -226,7 +229,10 @@ async function finalizeDownloadManifest(
   };
 }
 
-function sendDownloadManifestOutcome(res: import('express').Response, outcome: DownloadManifestOutcome): void {
+function sendDownloadManifestOutcome(
+  res: import('express').Response,
+  outcome: DownloadManifestOutcome,
+): void {
   if (!outcome.ok) {
     res.status(outcome.status).json(outcome.body);
     return;
@@ -306,7 +312,13 @@ export function foldersRouter(ports: Ports): Router {
         // routes/files.ts). Distinguir com 404 vazaria que a pasta existe na
         // unidade do solicitante.
         if (!folder) return { status: 403 as const };
-        const allowed = await hasAccess(client, ctx, GrantResourceType.FOLDER, folder.id, Permission.VIEW);
+        const allowed = await hasAccess(
+          client,
+          ctx,
+          GrantResourceType.FOLDER,
+          folder.id,
+          Permission.VIEW,
+        );
         if (!allowed) return { status: 403 as const };
 
         const breadcrumb = await buildBreadcrumb(client, folder);
@@ -357,7 +369,13 @@ export function foldersRouter(ports: Ports): Router {
         // igual, 403, sem vazar existência — "abrir a pasta" é
         // pré-condição do download da pasta.
         if (!folder) return { ok: false as const };
-        const allowed = await hasAccess(client, ctx, GrantResourceType.FOLDER, folder.id, Permission.VIEW);
+        const allowed = await hasAccess(
+          client,
+          ctx,
+          GrantResourceType.FOLDER,
+          folder.id,
+          Permission.VIEW,
+        );
         if (!allowed) return { ok: false as const };
 
         const manifest = await traverseFolderSubtree(client, ctx, folder.id);
@@ -385,7 +403,13 @@ export function foldersRouter(ports: Ports): Router {
         // Dono-ou-grant `delete` ou admin da unidade (design.md D3), mesmo
         // 403 fail-closed sem vazar existência dos demais endpoints.
         if (!folder) return { ok: false as const };
-        const allowed = await hasAccess(client, ctx, GrantResourceType.FOLDER, folder.id, Permission.DELETE);
+        const allowed = await hasAccess(
+          client,
+          ctx,
+          GrantResourceType.FOLDER,
+          folder.id,
+          Permission.DELETE,
+        );
         if (!allowed) return { ok: false as const };
 
         const folderIds = await collectSubtreeFolderIds(client, folder.id);
@@ -442,9 +466,16 @@ export function foldersRouter(ports: Ports): Router {
         // (design.md D5).
         if (folder.trash_root_id !== folder.id) return { ok: false as const };
 
-        const allowed = await hasAccess(client, ctx, GrantResourceType.FOLDER, folder.id, Permission.DELETE, {
-          includeTrash: true,
-        });
+        const allowed = await hasAccess(
+          client,
+          ctx,
+          GrantResourceType.FOLDER,
+          folder.id,
+          Permission.DELETE,
+          {
+            includeTrash: true,
+          },
+        );
         if (!allowed) return { ok: false as const };
 
         // `trash_root_id = raiz` agrupa a pasta e toda a subárvore excluída
@@ -460,7 +491,10 @@ export function foldersRouter(ports: Ports): Router {
           [folder.id],
         );
 
-        const { rows: refreshed } = await client.query<FolderRow>('SELECT * FROM folders WHERE id = $1', [folder.id]);
+        const { rows: refreshed } = await client.query<FolderRow>(
+          'SELECT * FROM folders WHERE id = $1',
+          [folder.id],
+        );
         return { ok: true as const, folder: refreshed[0]!, restoredFiles };
       });
 

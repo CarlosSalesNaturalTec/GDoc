@@ -45,7 +45,12 @@ describe('Download de pasta: manifesto de URLs assinadas', () => {
     await pool.end();
   });
 
-  async function insertFolder(unitId: string, ownerId: string, name: string, parentId: string | null = null) {
+  async function insertFolder(
+    unitId: string,
+    ownerId: string,
+    name: string,
+    parentId: string | null = null,
+  ) {
     const { rows } = await withSystemBypass(pool, (client) =>
       client.query<{ id: string }>(
         `INSERT INTO folders (unit_id, owner_id, parent_id, name) VALUES ($1, $2, $3, $4) RETURNING id`,
@@ -83,7 +88,13 @@ describe('Download de pasta: manifesto de URLs assinadas', () => {
     return rows[0]!.id;
   }
 
-  async function grant(unitId: string, userId: string, resourceType: 'file' | 'folder', resourceId: string, permission: string) {
+  async function grant(
+    unitId: string,
+    userId: string,
+    resourceType: 'file' | 'folder',
+    resourceId: string,
+    permission: string,
+  ) {
     await withSystemBypass(pool, (client) =>
       client.query(
         `INSERT INTO grants (unit_id, subject_user_id, resource_type, resource_id, permission, granted_by)
@@ -95,7 +106,9 @@ describe('Download de pasta: manifesto de URLs assinadas', () => {
 
   async function auditActionsFor(fileId: string) {
     const { rows } = await withSystemBypass(pool, (client) =>
-      client.query<{ action: string }>('SELECT action FROM audit_events WHERE file_id = $1', [fileId]),
+      client.query<{ action: string }>('SELECT action FROM audit_events WHERE file_id = $1', [
+        fileId,
+      ]),
     );
     return rows.map((r) => r.action);
   }
@@ -113,7 +126,9 @@ describe('Download de pasta: manifesto de URLs assinadas', () => {
     expect(res.status).toBe(200);
     expect(res.body.totalFiles).toBe(2);
     expect(res.body.allowedFiles).toBe(2);
-    const paths = (res.body.entries as { relativePath: string }[]).map((e) => e.relativePath).sort();
+    const paths = (res.body.entries as { relativePath: string }[])
+      .map((e) => e.relativePath)
+      .sort();
     expect(paths).toEqual(['2024/aninhado.txt', 'raiz.txt']);
   });
 
@@ -130,7 +145,9 @@ describe('Download de pasta: manifesto de URLs assinadas', () => {
     expect(res.status).toBe(200);
     expect(res.body.totalFiles).toBe(2);
     expect(res.body.allowedFiles).toBe(1);
-    expect((res.body.entries as { fileName: string }[]).map((e) => e.fileName)).toEqual(['meu.txt']);
+    expect((res.body.entries as { fileName: string }[]).map((e) => e.fileName)).toEqual([
+      'meu.txt',
+    ]);
   });
 
   it('5.3 sem herança: grant apenas na pasta não libera os arquivos internos (allowedFiles === 0)', async () => {
@@ -169,14 +186,18 @@ describe('Download de pasta: manifesto de URLs assinadas', () => {
     const folderInB = await insertFolder(ids.unitB, ids.userB, 'Pasta B 5.5');
 
     // Sem view: dono de outra unidade nem enxerga a pasta (RLS) — mesmo 403.
-    const crossUnit = await request(app).post(`/folders/${folderInB}/download-manifest`).set('Cookie', cookieA);
+    const crossUnit = await request(app)
+      .post(`/folders/${folderInB}/download-manifest`)
+      .set('Cookie', cookieA);
     expect(crossUnit.status).toBe(403);
 
     // Mesma unidade, mas sem posse nem grant `view`.
     const noGrantUser = await insertUser(ids.unitA, 'sem-view-5.5@test.dev');
     const folderInA = await insertFolder(ids.unitA, ids.userA, 'Pasta A 5.5');
     const noGrantCookie = await sessionCookieFor(ports, noGrantUser);
-    const denied = await request(app).post(`/folders/${folderInA}/download-manifest`).set('Cookie', noGrantCookie);
+    const denied = await request(app)
+      .post(`/folders/${folderInA}/download-manifest`)
+      .set('Cookie', noGrantCookie);
     expect(denied.status).toBe(403);
   });
 
@@ -199,7 +220,9 @@ describe('Download de pasta: manifesto de URLs assinadas', () => {
     expect(res.status).toBe(200);
     expect(res.body.totalFiles).toBe(1);
     expect(res.body.allowedFiles).toBe(1);
-    expect((res.body.entries as { relativePath: string }[])[0]!.relativePath).toBe('Visivel/visivel.txt');
+    expect((res.body.entries as { relativePath: string }[])[0]!.relativePath).toBe(
+      'Visivel/visivel.txt',
+    );
   });
 
   it('5.7 auditoria: N arquivos incluídos geram N eventos download; arquivo omitido não gera evento', async () => {
@@ -278,13 +301,17 @@ describe('Download de pasta: manifesto de URLs assinadas', () => {
     await insertFile(ids.unitA, ids.userA, 'ativo.txt', root);
     const trashed = await insertFile(ids.unitA, ids.userA, 'excluido.txt', root);
     await withSystemBypass(pool, (client) =>
-      client.query(`UPDATE files SET deleted_at = now(), trash_root_id = $1 WHERE id = $1`, [trashed.id]),
+      client.query(`UPDATE files SET deleted_at = now(), trash_root_id = $1 WHERE id = $1`, [
+        trashed.id,
+      ]),
     );
 
     const res = await request(app).post(`/folders/${root}/download-manifest`).set('Cookie', cookie);
     expect(res.status).toBe(200);
     expect(res.body.totalFiles).toBe(1);
-    expect((res.body.entries as { fileName: string }[]).map((e) => e.fileName)).toEqual(['ativo.txt']);
+    expect((res.body.entries as { fileName: string }[]).map((e) => e.fileName)).toEqual([
+      'ativo.txt',
+    ]);
   });
 
   it('5.10a pasta de outra unidade é negada sem revelar existência', async () => {
@@ -292,7 +319,9 @@ describe('Download de pasta: manifesto de URLs assinadas', () => {
     const cookieA = await sessionCookieFor(ports, ids.userA);
     const folderInB = await insertFolder(ids.unitB, ids.userB, 'Pasta B Isolada 5.10');
 
-    const res = await request(app).post(`/folders/${folderInB}/download-manifest`).set('Cookie', cookieA);
+    const res = await request(app)
+      .post(`/folders/${folderInB}/download-manifest`)
+      .set('Cookie', cookieA);
     expect(res.status).toBe(403);
   });
 
@@ -302,7 +331,9 @@ describe('Download de pasta: manifesto de URLs assinadas', () => {
     const folderInB = await insertFolder(ids.unitB, ids.userB, 'Pasta B Admin 5.10');
     await insertFile(ids.unitB, ids.userB, 'y.txt', folderInB);
 
-    const res = await request(app).post(`/folders/${folderInB}/download-manifest`).set('Cookie', cookieAdmin);
+    const res = await request(app)
+      .post(`/folders/${folderInB}/download-manifest`)
+      .set('Cookie', cookieAdmin);
     expect(res.status).toBe(403);
   });
 

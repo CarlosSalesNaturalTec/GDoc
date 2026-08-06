@@ -21,9 +21,7 @@ export const SYSTEM_UNIT = '00000000-0000-0000-0000-000000000000';
  *
  * Retorna `null` para payload realmente inválido (que o chamador traduz em 400).
  */
-export function normalizeFinalizeNotification(
-  body: unknown,
-): StorageFinalizeNotification | null {
+export function normalizeFinalizeNotification(body: unknown): StorageFinalizeNotification | null {
   if (!body || typeof body !== 'object') return null;
 
   const envelope = body as Partial<PubSubPushEnvelope>;

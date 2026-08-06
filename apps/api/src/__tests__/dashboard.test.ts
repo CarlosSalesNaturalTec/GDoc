@@ -22,7 +22,9 @@ function monthKey(offsetMonthsAgo: number): string {
 
 function monthTimestamp(offsetMonthsAgo: number): string {
   const now = new Date();
-  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - offsetMonthsAgo, 15)).toISOString();
+  return new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - offsetMonthsAgo, 15),
+  ).toISOString();
 }
 
 describe('Painel gerencial agregado de uso (Épico 8, US 8.2)', () => {
@@ -39,7 +41,11 @@ describe('Painel gerencial agregado de uso (Épico 8, US 8.2)', () => {
     deleted?: boolean;
   }
 
-  async function insertFile(unitId: string, ownerId: string, opts: InsertFileOptions): Promise<void> {
+  async function insertFile(
+    unitId: string,
+    ownerId: string,
+    opts: InsertFileOptions,
+  ): Promise<void> {
     await withSystemBypass(pool, (client) =>
       client.query(
         `INSERT INTO files (unit_id, owner_id, object_path, file_name, content_type, size_bytes, status, created_at, deleted_at)
@@ -90,8 +96,16 @@ describe('Painel gerencial agregado de uso (Épico 8, US 8.2)', () => {
     };
 
     // Unit A — arquivos ativos contáveis (image, pdf, office, MIME desconhecido → other).
-    await insertFile(ids.unitA, ids.userA, { contentType: 'image/png', sizeBytes: 1000, createdAt: monthTimestamp(0) });
-    await insertFile(ids.unitA, ids.userA, { contentType: 'application/pdf', sizeBytes: 2000, createdAt: monthTimestamp(0) });
+    await insertFile(ids.unitA, ids.userA, {
+      contentType: 'image/png',
+      sizeBytes: 1000,
+      createdAt: monthTimestamp(0),
+    });
+    await insertFile(ids.unitA, ids.userA, {
+      contentType: 'application/pdf',
+      sizeBytes: 2000,
+      createdAt: monthTimestamp(0),
+    });
     await insertFile(ids.unitA, ids.userA, {
       contentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       sizeBytes: 500,
@@ -103,13 +117,33 @@ describe('Painel gerencial agregado de uso (Épico 8, US 8.2)', () => {
       createdAt: monthTimestamp(13), // fora da janela de 12 meses do gráfico, mas conta em filesByType/cards
     });
     // Itens que NÃO devem entrar em nenhuma métrica (task 4.5).
-    await insertFile(ids.unitA, ids.userA, { contentType: 'text/csv', sizeBytes: 999_999, status: 'pending' });
-    await insertFile(ids.unitA, ids.userA, { contentType: 'image/jpeg', sizeBytes: 999_999, status: 'over_quota' });
-    await insertFile(ids.unitA, ids.userA, { contentType: 'video/mp4', sizeBytes: 999_999, deleted: true });
+    await insertFile(ids.unitA, ids.userA, {
+      contentType: 'text/csv',
+      sizeBytes: 999_999,
+      status: 'pending',
+    });
+    await insertFile(ids.unitA, ids.userA, {
+      contentType: 'image/jpeg',
+      sizeBytes: 999_999,
+      status: 'over_quota',
+    });
+    await insertFile(ids.unitA, ids.userA, {
+      contentType: 'video/mp4',
+      sizeBytes: 999_999,
+      deleted: true,
+    });
 
     // Unit B — categoria exclusiva (audio) para provar isolamento de unidade.
-    await insertFile(ids.unitB, ids.userB, { contentType: 'audio/mpeg', sizeBytes: 700, createdAt: monthTimestamp(0) });
-    await insertFile(ids.unitB, ids.userB, { contentType: 'image/png', sizeBytes: 1300, createdAt: monthTimestamp(0) });
+    await insertFile(ids.unitB, ids.userB, {
+      contentType: 'audio/mpeg',
+      sizeBytes: 700,
+      createdAt: monthTimestamp(0),
+    });
+    await insertFile(ids.unitB, ids.userB, {
+      contentType: 'image/png',
+      sizeBytes: 1300,
+      createdAt: monthTimestamp(0),
+    });
 
     await setStorageUsed(ids.userA, 4000);
     await setStorageUsed(unitAdminAId, 1000);
@@ -128,14 +162,18 @@ describe('Painel gerencial agregado de uso (Épico 8, US 8.2)', () => {
 
   it('collaborator recebe 403 e nenhum agregado (task 4.4)', async () => {
     const app = createApp(ports);
-    const res = await request(app).get('/dashboard').set('Cookie', await sessionCookieFor(ports, ids.userA));
+    const res = await request(app)
+      .get('/dashboard')
+      .set('Cookie', await sessionCookieFor(ports, ids.userA));
     expect(res.status).toBe(403);
     expect(res.body.cards).toBeUndefined();
   });
 
   it('unit_admin vê agregados só da própria unidade, sem dados da outra (task 4.2)', async () => {
     const app = createApp(ports);
-    const res = await request(app).get('/dashboard').set('Cookie', await sessionCookieFor(ports, unitAdminAId));
+    const res = await request(app)
+      .get('/dashboard')
+      .set('Cookie', await sessionCookieFor(ports, unitAdminAId));
     expect(res.status).toBe(200);
     const body = res.body as DashboardResponse;
 
@@ -156,7 +194,9 @@ describe('Painel gerencial agregado de uso (Épico 8, US 8.2)', () => {
 
   it('global_admin vê o consolidado das duas unidades (task 4.3)', async () => {
     const app = createApp(ports);
-    const res = await request(app).get('/dashboard').set('Cookie', await sessionCookieFor(ports, ids.globalAdmin));
+    const res = await request(app)
+      .get('/dashboard')
+      .set('Cookie', await sessionCookieFor(ports, ids.globalAdmin));
     expect(res.status).toBe(200);
     const body = res.body as DashboardResponse;
 
@@ -173,7 +213,9 @@ describe('Painel gerencial agregado de uso (Épico 8, US 8.2)', () => {
 
   it('filesByType categoriza corretamente, incluindo MIME desconhecido → other (task 4.6)', async () => {
     const app = createApp(ports);
-    const res = await request(app).get('/dashboard').set('Cookie', await sessionCookieFor(ports, unitAdminAId));
+    const res = await request(app)
+      .get('/dashboard')
+      .set('Cookie', await sessionCookieFor(ports, unitAdminAId));
     const body = res.body as DashboardResponse;
     expect(findByCategory(body, 'other')).toBe(1);
     expect(findByCategory(body, 'image')).toBe(1);
@@ -183,7 +225,9 @@ describe('Painel gerencial agregado de uso (Épico 8, US 8.2)', () => {
 
   it('uploadsByMonth tem 12 entradas com zero-fill e ordem cronológica (task 4.7)', async () => {
     const app = createApp(ports);
-    const res = await request(app).get('/dashboard').set('Cookie', await sessionCookieFor(ports, unitAdminAId));
+    const res = await request(app)
+      .get('/dashboard')
+      .set('Cookie', await sessionCookieFor(ports, unitAdminAId));
     const body = res.body as DashboardResponse;
 
     expect(body.uploadsByMonth).toHaveLength(12);
@@ -202,7 +246,9 @@ describe('Painel gerencial agregado de uso (Épico 8, US 8.2)', () => {
 
   it('storage calcula usedBytes/capacityBytes/availableBytes a partir de storage_used_bytes e da cota (task 4.8)', async () => {
     const app = createApp(ports);
-    const res = await request(app).get('/dashboard').set('Cookie', await sessionCookieFor(ports, unitAdminAId));
+    const res = await request(app)
+      .get('/dashboard')
+      .set('Cookie', await sessionCookieFor(ports, unitAdminAId));
     const body = res.body as DashboardResponse;
 
     const expectedCapacity = config.storageQuotaBytesPerUser * 3;
@@ -220,7 +266,9 @@ describe('Painel gerencial agregado de uso (Épico 8, US 8.2)', () => {
     config.storageQuotaBytesPerUser = 0;
     try {
       const app = createApp(ports);
-      const res = await request(app).get('/dashboard').set('Cookie', await sessionCookieFor(ports, unitAdminAId));
+      const res = await request(app)
+        .get('/dashboard')
+        .set('Cookie', await sessionCookieFor(ports, unitAdminAId));
       expect(res.status).toBe(200);
       const body = res.body as DashboardResponse;
       expect(body.storage.capacityBytes).toBe(0);

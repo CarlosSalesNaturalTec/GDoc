@@ -15,10 +15,7 @@ export interface TenantContext {
  */
 export interface DatabasePort {
   /** Executa `fn` dentro de uma transação com o contexto de tenant aplicado via SET LOCAL. */
-  withTenantTransaction<T>(
-    ctx: TenantContext,
-    fn: (client: PoolClient) => Promise<T>,
-  ): Promise<T>;
+  withTenantTransaction<T>(ctx: TenantContext, fn: (client: PoolClient) => Promise<T>): Promise<T>;
 
   /** Executa `fn` dentro de uma transação sem contexto de tenant (uso interno/migrações). */
   withTransaction<T>(fn: (client: PoolClient) => Promise<T>): Promise<T>;

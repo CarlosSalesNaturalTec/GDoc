@@ -15,7 +15,9 @@ function inDays(days: number): string {
   return new Date(Date.now() + days * DAY_MS).toISOString();
 }
 
-function trashEntry(overrides: Partial<TrashEntryResponse> & { id: string; name: string }): TrashEntryResponse {
+function trashEntry(
+  overrides: Partial<TrashEntryResponse> & { id: string; name: string },
+): TrashEntryResponse {
   return {
     type: GrantResourceType.FILE,
     deletedAt: '2026-07-10T10:00:00.000Z',
@@ -25,7 +27,11 @@ function trashEntry(overrides: Partial<TrashEntryResponse> & { id: string; name:
 }
 
 function fileRestoreResponse(
-  overrides: Partial<FileSummaryResponse> & { id: string; fileName: string; redirectedToRoot: boolean },
+  overrides: Partial<FileSummaryResponse> & {
+    id: string;
+    fileName: string;
+    redirectedToRoot: boolean;
+  },
 ) {
   return {
     ownerId: 'user-1',
@@ -88,10 +94,17 @@ describe('Lixeira da SPA (web-lixeira)', () => {
 
     mockFetch({
       'GET /auth/me': { status: 200, body: IDENTITY },
-      'GET /trash': [{ status: 200, body: { items: [entry] } }, { status: 200, body: { items: [] } }],
+      'GET /trash': [
+        { status: 200, body: { items: [entry] } },
+        { status: 200, body: { items: [] } },
+      ],
       'POST /files/file-1/restore': {
         status: 200,
-        body: fileRestoreResponse({ id: 'file-1', fileName: 'relatorio.pdf', redirectedToRoot: false }),
+        body: fileRestoreResponse({
+          id: 'file-1',
+          fileName: 'relatorio.pdf',
+          redirectedToRoot: false,
+        }),
       },
     });
 
@@ -110,10 +123,20 @@ describe('Lixeira da SPA (web-lixeira)', () => {
 
     mockFetch({
       'GET /auth/me': { status: 200, body: IDENTITY },
-      'GET /trash': [{ status: 200, body: { items: [entry] } }, { status: 200, body: { items: [] } }],
+      'GET /trash': [
+        { status: 200, body: { items: [entry] } },
+        { status: 200, body: { items: [] } },
+      ],
       'POST /folders/folder-1/restore': {
         status: 200,
-        body: { id: 'folder-1', unitId: 'unit-1', ownerId: 'user-1', parentId: null, name: 'Pasta A', createdAt: '2026-07-01T10:00:00.000Z' },
+        body: {
+          id: 'folder-1',
+          unitId: 'unit-1',
+          ownerId: 'user-1',
+          parentId: null,
+          name: 'Pasta A',
+          createdAt: '2026-07-01T10:00:00.000Z',
+        },
       },
     });
 
@@ -132,7 +155,10 @@ describe('Lixeira da SPA (web-lixeira)', () => {
 
     mockFetch({
       'GET /auth/me': { status: 200, body: IDENTITY },
-      'GET /trash': [{ status: 200, body: { items: [entry] } }, { status: 200, body: { items: [] } }],
+      'GET /trash': [
+        { status: 200, body: { items: [entry] } },
+        { status: 200, body: { items: [] } },
+      ],
       'POST /files/file-2/restore': {
         status: 200,
         body: fileRestoreResponse({ id: 'file-2', fileName: 'orfao.pdf', redirectedToRoot: true }),
@@ -155,7 +181,10 @@ describe('Lixeira da SPA (web-lixeira)', () => {
 
     mockFetch({
       'GET /auth/me': { status: 200, body: IDENTITY },
-      'GET /trash': [{ status: 200, body: { items: [entry] } }, { status: 200, body: { items: [] } }],
+      'GET /trash': [
+        { status: 200, body: { items: [entry] } },
+        { status: 200, body: { items: [] } },
+      ],
       'POST /files/file-3/restore': { status: 403, body: { error: 'forbidden' } },
     });
 

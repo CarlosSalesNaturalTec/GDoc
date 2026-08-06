@@ -1,5 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { CreatePersonRequest, PersonResponse, ResetPasswordResponse, UpdatePersonRequest } from '@gdoc/shared';
+import type {
+  CreatePersonRequest,
+  PersonResponse,
+  ResetPasswordResponse,
+  UpdatePersonRequest,
+} from '@gdoc/shared';
 import { apiClient } from '../lib/api-client';
 import { personListSchema, resetPasswordResponseSchema } from '../lib/schemas';
 

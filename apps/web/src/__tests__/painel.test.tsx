@@ -84,7 +84,9 @@ describe('Painel gerencial da SPA (web-painel)', () => {
     await screen.findByText('Total de arquivos');
     expect(screen.getByText('Total de arquivos').closest('.ant-statistic')).toHaveTextContent('10');
     expect(screen.getByText('Total de pessoas').closest('.ant-statistic')).toHaveTextContent('3');
-    expect(screen.getByText('Espaço utilizado').closest('.ant-statistic')).toHaveTextContent('50.0 MB');
+    expect(screen.getByText('Espaço utilizado').closest('.ant-statistic')).toHaveTextContent(
+      '50.0 MB',
+    );
     expect(screen.getByText('Cota utilizada').closest('.ant-statistic')).toHaveTextContent('25.0');
 
     expect(screen.getByText('Arquivos por tipo')).toBeInTheDocument();
@@ -181,8 +183,12 @@ describe('Painel gerencial da SPA (web-painel)', () => {
     renderApp(['/admin/painel']);
     await screen.findByText('Espaço utilizado × disponível');
 
-    const card = screen.getByText('Espaço utilizado × disponível').closest('.ant-card') as HTMLElement;
-    expect(within(card).getByText('10.0 GB usados de 40.0 GB — 30.0 GB disponíveis')).toBeInTheDocument();
+    const card = screen
+      .getByText('Espaço utilizado × disponível')
+      .closest('.ant-card') as HTMLElement;
+    expect(
+      within(card).getByText('10.0 GB usados de 40.0 GB — 30.0 GB disponíveis'),
+    ).toBeInTheDocument();
     expect(within(card).getByText('25%')).toBeInTheDocument();
   });
 
@@ -191,7 +197,13 @@ describe('Painel gerencial da SPA (web-painel)', () => {
       cards: { totalFiles: 0, totalPeople: 0, usedBytes: 0, quotaUsedPct: 0 },
       filesByType: [],
       uploadsByMonth: MONTHS.map((month) => ({ month, count: 0 })),
-      storage: { usedBytes: 0, quotaBytesPerUser: 10 * 1024 ** 3, userCount: 0, capacityBytes: 0, availableBytes: 0 },
+      storage: {
+        usedBytes: 0,
+        quotaBytesPerUser: 10 * 1024 ** 3,
+        userCount: 0,
+        capacityBytes: 0,
+        availableBytes: 0,
+      },
     });
     mockFetch({
       'GET /auth/me': { status: 200, body: UNIT_ADMIN },

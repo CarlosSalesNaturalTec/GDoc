@@ -55,7 +55,8 @@ describe('RLS: isolamento por unidade', () => {
   it('admin global agrega todas as unidades', async () => {
     const rows = await database.withTenantTransaction(
       { unitId: ids.unitA, userId: ids.globalAdmin, role: 'global_admin' },
-      (client) => client.query('SELECT object_path FROM files ORDER BY object_path').then((r) => r.rows),
+      (client) =>
+        client.query('SELECT object_path FROM files ORDER BY object_path').then((r) => r.rows),
     );
     expect(rows.map((r) => r.object_path)).toEqual(['unitA/f1', 'unitB/f1']);
   });

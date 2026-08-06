@@ -13,7 +13,13 @@ import { config } from '../config.js';
 
 async function createActiveFile(
   pool: Pool,
-  opts: { unitId: string; ownerId: string; objectPath: string; fileName: string; sizeBytes: number },
+  opts: {
+    unitId: string;
+    ownerId: string;
+    objectPath: string;
+    fileName: string;
+    sizeBytes: number;
+  },
 ): Promise<string> {
   const { rows } = await withSystemBypass(pool, (client) =>
     client.query<{ id: string }>(
@@ -135,7 +141,10 @@ describe('Gestão de arquivo: renomear e substituir (US 2.2)', () => {
     expect(newObjectPath).not.toBe('unitA/replace-1-old');
 
     const pending = await withSystemBypass(pool, (client) =>
-      client.query('SELECT object_path, pending_object_path, status, file_name FROM files WHERE id = $1', [fileId]),
+      client.query(
+        'SELECT object_path, pending_object_path, status, file_name FROM files WHERE id = $1',
+        [fileId],
+      ),
     );
     // Antes do finalize o ponteiro vivo continua na versão vigente; o path
     // novo fica reservado em pending_object_path.
@@ -150,7 +159,10 @@ describe('Gestão de arquivo: renomear e substituir (US 2.2)', () => {
     expect(finalize.status).toBe(200);
 
     const after = await withSystemBypass(pool, (client) =>
-      client.query('SELECT object_path, pending_object_path, status, size_bytes FROM files WHERE id = $1', [fileId]),
+      client.query(
+        'SELECT object_path, pending_object_path, status, size_bytes FROM files WHERE id = $1',
+        [fileId],
+      ),
     );
     // Só após o finalize o ponteiro vivo é promovido para o objeto novo.
     expect(after.rows[0]?.object_path).toBe(newObjectPath);
@@ -253,7 +265,10 @@ describe('Gestão de arquivo: renomear e substituir (US 2.2)', () => {
     });
     const nearQuotaUsage = config.storageQuotaBytesPerUser - 50;
     await withSystemBypass(pool, (client) =>
-      client.query('UPDATE users SET storage_used_bytes = $1 WHERE id = $2', [nearQuotaUsage, ids.userA]),
+      client.query('UPDATE users SET storage_used_bytes = $1 WHERE id = $2', [
+        nearQuotaUsage,
+        ids.userA,
+      ]),
     );
 
     // uso atual - tamanho antigo + tamanho novo > cota

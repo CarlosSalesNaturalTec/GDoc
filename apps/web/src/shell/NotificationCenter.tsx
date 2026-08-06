@@ -4,7 +4,11 @@ import type { NotificationResponse } from '@gdoc/shared';
 import { GrantResourceType, NotificationKind } from '@gdoc/shared';
 import { VERB_LABEL } from '../permissoes/PermissoesModal';
 import { formatDate } from '../navegacao/format';
-import { useMarkNotificationAsRead, useNotifications, useUnreadNotificationCount } from '../notificacoes/queries';
+import {
+  useMarkNotificationAsRead,
+  useNotifications,
+  useUnreadNotificationCount,
+} from '../notificacoes/queries';
 
 const RESOURCE_LABEL: Record<GrantResourceType, string> = {
   [GrantResourceType.FOLDER]: 'pasta',
@@ -54,7 +58,16 @@ export function NotificationCenter() {
   }
 
   const dropdownRender = () => (
-    <div style={{ width: 360, maxHeight: 420, overflowY: 'auto', background: '#fff', borderRadius: 8, boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}>
+    <div
+      style={{
+        width: 360,
+        maxHeight: 420,
+        overflowY: 'auto',
+        background: '#fff',
+        borderRadius: 8,
+        boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+      }}
+    >
       {notifications.length === 0 ? (
         <Empty description="Nenhuma notificação" style={{ padding: 24 }} />
       ) : (
@@ -62,12 +75,20 @@ export function NotificationCenter() {
           dataSource={notifications}
           renderItem={(notification) => (
             <List.Item
-              style={{ padding: '12px 16px', background: notification.readAt ? undefined : '#e6f4ff' }}
+              style={{
+                padding: '12px 16px',
+                background: notification.readAt ? undefined : '#e6f4ff',
+              }}
               actions={
                 notification.readAt
                   ? undefined
                   : [
-                      <Button key="read" size="small" type="link" onClick={() => handleMarkAsRead(notification.id)}>
+                      <Button
+                        key="read"
+                        size="small"
+                        type="link"
+                        onClick={() => handleMarkAsRead(notification.id)}
+                      >
                         Marcar como lida
                       </Button>,
                     ]

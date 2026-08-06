@@ -13,17 +13,26 @@ export class InMemoryStoragePort implements StoragePort {
 
   async getViewUrl(objectPath: string): Promise<SignedUrlResult> {
     this.calls.push({ method: 'view', objectPath });
-    return { url: `https://storage.test/${objectPath}?view`, expiresAt: new Date(Date.now() + 300_000) };
+    return {
+      url: `https://storage.test/${objectPath}?view`,
+      expiresAt: new Date(Date.now() + 300_000),
+    };
   }
 
   async getDownloadUrl(objectPath: string): Promise<SignedUrlResult> {
     this.calls.push({ method: 'download', objectPath });
-    return { url: `https://storage.test/${objectPath}?download`, expiresAt: new Date(Date.now() + 1_800_000) };
+    return {
+      url: `https://storage.test/${objectPath}?download`,
+      expiresAt: new Date(Date.now() + 1_800_000),
+    };
   }
 
   async getUploadUrl(objectPath: string): Promise<SignedUrlResult> {
     this.calls.push({ method: 'upload', objectPath });
-    return { url: `https://storage.test/${objectPath}?upload`, expiresAt: new Date(Date.now() + 1_800_000) };
+    return {
+      url: `https://storage.test/${objectPath}?upload`,
+      expiresAt: new Date(Date.now() + 1_800_000),
+    };
   }
 
   async assertObjectNotPubliclyReadable(): Promise<boolean> {

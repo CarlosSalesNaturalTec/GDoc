@@ -24,7 +24,13 @@ import { PreviewModal } from '../visualizacao/PreviewModal';
 import { useDownloadFile } from '../visualizacao/useDownloadFile';
 import { UploadArea } from '../upload/UploadArea';
 import { DownloadFolderModal } from './DownloadFolderModal';
-import { useCreateFolder, useDeleteFile, useDeleteFolder, useFolderContents, useRenameFile } from './queries';
+import {
+  useCreateFolder,
+  useDeleteFile,
+  useDeleteFolder,
+  useFolderContents,
+  useRenameFile,
+} from './queries';
 import { NewFolderModal } from './NewFolderModal';
 import { RenameFileModal } from './RenameFileModal';
 import { formatDate, formatFileSize } from './format';
@@ -57,7 +63,8 @@ export function ExplorerPage() {
   const { identity } = useSession();
   // US 4.1 / design.md D2 (`web-permissoes`): ação "Permissões" só para admin,
   // espelhando o admin-only das rotas de `grants` no backend.
-  const isAdmin = identity?.role === UserRole.UNIT_ADMIN || identity?.role === UserRole.GLOBAL_ADMIN;
+  const isAdmin =
+    identity?.role === UserRole.UNIT_ADMIN || identity?.role === UserRole.GLOBAL_ADMIN;
 
   const { data, isLoading, isError, error } = useFolderContents(currentFolderId);
   const createFolder = useCreateFolder();
@@ -169,7 +176,11 @@ export function ExplorerPage() {
           <Link to={`/pastas/${row.folder.id}`}>{row.folder.name}</Link>
         ) : (
           <Space>
-            <Button type="link" style={{ padding: 0, height: 'auto' }} onClick={() => setPreviewingFile(row.file)}>
+            <Button
+              type="link"
+              style={{ padding: 0, height: 'auto' }}
+              onClick={() => setPreviewingFile(row.file)}
+            >
               {row.file.fileName}
             </Button>
             {row.file.status !== 'active' && <Tag>{row.file.status}</Tag>}
@@ -184,7 +195,8 @@ export function ExplorerPage() {
     {
       title: 'Data',
       key: 'createdAt',
-      render: (_, row) => formatDate(row.kind === 'folder' ? row.folder.createdAt : row.file.createdAt),
+      render: (_, row) =>
+        formatDate(row.kind === 'folder' ? row.folder.createdAt : row.file.createdAt),
     },
     {
       title: 'Ações',
@@ -195,7 +207,9 @@ export function ExplorerPage() {
             <Button
               size="small"
               icon={<DownloadOutlined />}
-              onClick={() => setDownloadingFolder({ folderId: row.folder.id, folderName: row.folder.name })}
+              onClick={() =>
+                setDownloadingFolder({ folderId: row.folder.id, folderName: row.folder.name })
+              }
             >
               Baixar pasta
             </Button>
@@ -261,7 +275,11 @@ export function ExplorerPage() {
                 gate de admin ao dono do arquivo — visibilidade é UX, o 403
                 fail-closed do servidor (`canReadAudit`) é a defesa real. */}
             {(isAdmin || row.file.ownerId === identity?.id) && (
-              <Button size="small" icon={<AuditOutlined />} onClick={() => setAuditingFile(row.file)}>
+              <Button
+                size="small"
+                icon={<AuditOutlined />}
+                onClick={() => setAuditingFile(row.file)}
+              >
                 Auditoria
               </Button>
             )}
@@ -321,7 +339,10 @@ export function ExplorerPage() {
         <Button
           icon={<DownloadOutlined />}
           onClick={() =>
-            setDownloadingFolder({ folderId: currentFolderId, folderName: data.folder?.name ?? 'Arquivos' })
+            setDownloadingFolder({
+              folderId: currentFolderId,
+              folderName: data.folder?.name ?? 'Arquivos',
+            })
           }
         >
           Baixar esta pasta

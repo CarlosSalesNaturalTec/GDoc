@@ -50,7 +50,9 @@ export function notificationsRouter(ports: Ports): Router {
         return rows;
       });
 
-      const response: NotificationListResponse = { notifications: rows.map(toNotificationResponse) };
+      const response: NotificationListResponse = {
+        notifications: rows.map(toNotificationResponse),
+      };
       res.json(response);
     } catch (err) {
       next(err);

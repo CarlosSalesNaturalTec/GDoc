@@ -28,7 +28,9 @@ export function useSearchFiles(params: SearchFilesQuery | undefined) {
     queryKey: [SEARCH_FILES_KEY, params],
     enabled: params !== undefined,
     queryFn: async () => {
-      const raw = await apiClient.get<SearchFilesResponse>(`/files/search${toQueryString(params!)}`);
+      const raw = await apiClient.get<SearchFilesResponse>(
+        `/files/search${toQueryString(params!)}`,
+      );
       return searchFilesResponseSchema.parse(raw);
     },
   });

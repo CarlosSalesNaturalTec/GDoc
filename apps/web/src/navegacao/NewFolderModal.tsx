@@ -36,7 +36,11 @@ export function NewFolderModal({ open, submitting, onCancel, onSubmit }: NewFold
         layout="vertical"
         onFinish={(values) => onSubmit(values.name)}
       >
-        <Form.Item name="name" label="Nome" rules={[{ required: true, message: 'Informe um nome' }]}>
+        <Form.Item
+          name="name"
+          label="Nome"
+          rules={[{ required: true, message: 'Informe um nome' }]}
+        >
           <Input autoFocus />
         </Form.Item>
       </Form>

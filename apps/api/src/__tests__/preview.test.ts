@@ -84,7 +84,9 @@ describe('US 9.2 cenário 2: pré-visualização indisponível + oferta de downl
     const fileId = await insertFile('application/pdf', 'unitA/preview-pdf');
     const callsBefore = storage.calls.length;
 
-    const res = await request(app).post(`/files/${fileId}/view-url`).set('Cookie', await sessionCookieFor(ports, ids.userA));
+    const res = await request(app)
+      .post(`/files/${fileId}/view-url`)
+      .set('Cookie', await sessionCookieFor(ports, ids.userA));
 
     expect(res.status).toBe(200);
     expect(res.body).toEqual({
@@ -93,7 +95,9 @@ describe('US 9.2 cenário 2: pré-visualização indisponível + oferta de downl
       expiresAt: expect.any(String),
       action: 'view',
     });
-    expect(storage.calls.slice(callsBefore)).toEqual([{ method: 'view', objectPath: 'unitA/preview-pdf' }]);
+    expect(storage.calls.slice(callsBefore)).toEqual([
+      { method: 'view', objectPath: 'unitA/preview-pdf' },
+    ]);
     expect(await viewAudit(fileId)).toEqual([{ action: 'view' }]);
   });
 
@@ -106,7 +110,9 @@ describe('US 9.2 cenário 2: pré-visualização indisponível + oferta de downl
     await grant(fileId, ['view', 'download']);
     const callsBefore = storage.calls.length;
 
-    const res = await request(app).post(`/files/${fileId}/view-url`).set('Cookie', await sessionCookieFor(ports, userA2Id));
+    const res = await request(app)
+      .post(`/files/${fileId}/view-url`)
+      .set('Cookie', await sessionCookieFor(ports, userA2Id));
 
     expect(res.status).toBe(200);
     expect(res.body).toEqual({
@@ -127,7 +133,9 @@ describe('US 9.2 cenário 2: pré-visualização indisponível + oferta de downl
     await grant(fileId, ['view']);
     const callsBefore = storage.calls.length;
 
-    const res = await request(app).post(`/files/${fileId}/view-url`).set('Cookie', await sessionCookieFor(ports, userA2Id));
+    const res = await request(app)
+      .post(`/files/${fileId}/view-url`)
+      .set('Cookie', await sessionCookieFor(ports, userA2Id));
 
     expect(res.status).toBe(200);
     expect(res.body).toEqual({
@@ -142,7 +150,10 @@ describe('US 9.2 cenário 2: pré-visualização indisponível + oferta de downl
   it('3.4: content_type ausente/desconhecido cai no ramo indisponível, nunca URL inline', async () => {
     const app = createApp(ports);
     const semTipo = await insertFile(null, 'unitA/preview-sem-tipo');
-    const desconhecido = await insertFile('application/x-proprietary-blob', 'unitA/preview-desconhecido');
+    const desconhecido = await insertFile(
+      'application/x-proprietary-blob',
+      'unitA/preview-desconhecido',
+    );
     const cookieA = await sessionCookieFor(ports, ids.userA);
 
     const resSemTipo = await request(app).post(`/files/${semTipo}/view-url`).set('Cookie', cookieA);
@@ -150,7 +161,9 @@ describe('US 9.2 cenário 2: pré-visualização indisponível + oferta de downl
     expect(resSemTipo.body.previewAvailable).toBe(false);
     expect(resSemTipo.body.url).toBeUndefined();
 
-    const resDesconhecido = await request(app).post(`/files/${desconhecido}/view-url`).set('Cookie', cookieA);
+    const resDesconhecido = await request(app)
+      .post(`/files/${desconhecido}/view-url`)
+      .set('Cookie', cookieA);
     expect(resDesconhecido.status).toBe(200);
     expect(resDesconhecido.body.previewAvailable).toBe(false);
     expect(resDesconhecido.body.url).toBeUndefined();
@@ -164,7 +177,9 @@ describe('US 9.2 cenário 2: pré-visualização indisponível + oferta de downl
     );
     const callsBefore = storage.calls.length;
 
-    const res = await request(app).post(`/files/${fileId}/view-url`).set('Cookie', await sessionCookieFor(ports, userA2Id));
+    const res = await request(app)
+      .post(`/files/${fileId}/view-url`)
+      .set('Cookie', await sessionCookieFor(ports, userA2Id));
 
     expect(res.status).toBe(403);
     expect(res.body).toEqual({ error: 'forbidden' });

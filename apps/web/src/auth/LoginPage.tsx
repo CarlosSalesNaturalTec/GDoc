@@ -78,10 +78,7 @@ export function LoginPage() {
             {publicConfig.clientName}
           </Typography.Text>
         )}
-        <Typography.Paragraph
-          type="secondary"
-          style={{ textAlign: 'center', marginBottom: 24 }}
-        >
+        <Typography.Paragraph type="secondary" style={{ textAlign: 'center', marginBottom: 24 }}>
           Acesse sua conta
         </Typography.Paragraph>
         <Form<LoginRequest> layout="vertical" onFinish={handleSubmit} disabled={submitting}>

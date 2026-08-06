@@ -28,7 +28,10 @@ async function findDialogByTitle(title: string): Promise<HTMLElement> {
 
 function requestBodies(method: string, path: string): unknown[] {
   return (global.fetch as ReturnType<typeof vi.fn>).mock.calls
-    .filter((call) => String(call[0]).includes(path) && (call[1] as RequestInit | undefined)?.method === method)
+    .filter(
+      (call) =>
+        String(call[0]).includes(path) && (call[1] as RequestInit | undefined)?.method === method,
+    )
     .map((call) => JSON.parse(String((call[1] as RequestInit).body)));
 }
 
@@ -199,7 +202,9 @@ describe('Gestão de unidades da SPA (web-unidades)', () => {
 
     await screen.findByText(/ainda tem pessoas vinculadas/i);
     // status permanece "Ativa" na listagem
-    expect(within(screen.getByText('Unidade Cheia').closest('tr')!).getByText('Ativa')).toBeInTheDocument();
+    expect(
+      within(screen.getByText('Unidade Cheia').closest('tr')!).getByText('Ativa'),
+    ).toBeInTheDocument();
   });
 
   it('reativar unidade desativada chama PATCH com status active (spec: reativar unidade)', async () => {

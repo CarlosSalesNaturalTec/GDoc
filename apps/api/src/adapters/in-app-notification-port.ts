@@ -26,7 +26,13 @@ export class InAppNotificationPort implements NotificationPort {
           `INSERT INTO notifications (unit_id, recipient_user_id, kind, payload, source_ref)
            VALUES ($1, $2, $3, $4, $5)
            ON CONFLICT (recipient_user_id, kind, source_ref) DO NOTHING`,
-          [input.unitId, input.recipientUserId, input.kind, JSON.stringify(input.payload), input.sourceRef],
+          [
+            input.unitId,
+            input.recipientUserId,
+            input.kind,
+            JSON.stringify(input.payload),
+            input.sourceRef,
+          ],
         );
       },
     );

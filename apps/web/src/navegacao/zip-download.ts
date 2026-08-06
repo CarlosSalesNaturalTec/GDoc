@@ -15,7 +15,10 @@ export interface BuildFolderZipOptions {
 }
 
 /** Encaixa um contador de bytes no meio do `ReadableStream` de resposta, sem bufferizar. */
-function countingStream(stream: ReadableStream<Uint8Array>, onChunk: (length: number) => void): ReadableStream<Uint8Array> {
+function countingStream(
+  stream: ReadableStream<Uint8Array>,
+  onChunk: (length: number) => void,
+): ReadableStream<Uint8Array> {
   return stream.pipeThrough(
     new TransformStream<Uint8Array, Uint8Array>({
       transform(chunk, controller) {
@@ -43,7 +46,13 @@ export async function buildFolderZip(
   let completedFiles = 0;
 
   function reportProgress(currentFileName: string | null) {
-    onProgress?.({ completedFiles, totalFiles: entries.length, downloadedBytes, totalBytes, currentFileName });
+    onProgress?.({
+      completedFiles,
+      totalFiles: entries.length,
+      downloadedBytes,
+      totalBytes,
+      currentFileName,
+    });
   }
 
   async function* files() {

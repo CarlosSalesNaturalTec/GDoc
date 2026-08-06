@@ -125,7 +125,12 @@ describe('Épico 4: grants por pessoa — imposição dono-ou-grant', () => {
     await pool.end();
   });
 
-  async function insertFile(ownerId: string, objectPath: string, fileName: string, folderId: string | null = null) {
+  async function insertFile(
+    ownerId: string,
+    objectPath: string,
+    fileName: string,
+    folderId: string | null = null,
+  ) {
     const { rows } = await withSystemBypass(pool, (client) =>
       client.query<{ id: string }>(
         `INSERT INTO files (unit_id, owner_id, folder_id, object_path, file_name, content_type, status)
@@ -163,7 +168,9 @@ describe('Épico 4: grants por pessoa — imposição dono-ou-grant', () => {
     const view = await request(app).post(`/files/${fileId}/view-url`).set('Cookie', cookieA2);
     expect(view.status).toBe(403);
 
-    const download = await request(app).post(`/files/${fileId}/download-url`).set('Cookie', cookieA2);
+    const download = await request(app)
+      .post(`/files/${fileId}/download-url`)
+      .set('Cookie', cookieA2);
     expect(download.status).toBe(403);
 
     expect(await grantAudit(fileId)).toHaveLength(0);
@@ -178,11 +185,15 @@ describe('Épico 4: grants por pessoa — imposição dono-ou-grant', () => {
     const view = await request(app).post(`/files/${fileId}/view-url`).set('Cookie', cookieA2);
     expect(view.status).toBe(200);
 
-    const downloadBefore = await request(app).post(`/files/${fileId}/download-url`).set('Cookie', cookieA2);
+    const downloadBefore = await request(app)
+      .post(`/files/${fileId}/download-url`)
+      .set('Cookie', cookieA2);
     expect(downloadBefore.status).toBe(403);
 
     await grant('file', fileId, ['download']);
-    const downloadAfter = await request(app).post(`/files/${fileId}/download-url`).set('Cookie', cookieA2);
+    const downloadAfter = await request(app)
+      .post(`/files/${fileId}/download-url`)
+      .set('Cookie', cookieA2);
     expect(downloadAfter.status).toBe(200);
 
     expect((await grantAudit(fileId)).map((r) => (r as { action: string }).action).sort()).toEqual([
@@ -251,7 +262,9 @@ describe('Épico 4: grants por pessoa — imposição dono-ou-grant', () => {
 
     await grant('folder', folderId, ['view']);
 
-    const contents = await request(app).get(`/folders/${folderId}/contents`).set('Cookie', cookieA2);
+    const contents = await request(app)
+      .get(`/folders/${folderId}/contents`)
+      .set('Cookie', cookieA2);
     expect(contents.status).toBe(200);
     expect(contents.body.files).toEqual([]);
 
@@ -261,10 +274,16 @@ describe('Épico 4: grants por pessoa — imposição dono-ou-grant', () => {
     // Liberação explícita do item interno: só ele passa a ser acessível.
     await grant('file', innerFileId, ['view']);
 
-    const contentsAfter = await request(app).get(`/folders/${folderId}/contents`).set('Cookie', cookieA2);
-    expect(contentsAfter.body.files.map((f: { fileName: string }) => f.fileName)).toEqual(['interno.txt']);
+    const contentsAfter = await request(app)
+      .get(`/folders/${folderId}/contents`)
+      .set('Cookie', cookieA2);
+    expect(contentsAfter.body.files.map((f: { fileName: string }) => f.fileName)).toEqual([
+      'interno.txt',
+    ]);
 
-    const viewAfter = await request(app).post(`/files/${innerFileId}/view-url`).set('Cookie', cookieA2);
+    const viewAfter = await request(app)
+      .post(`/files/${innerFileId}/view-url`)
+      .set('Cookie', cookieA2);
     expect(viewAfter.status).toBe(200);
   });
 
@@ -275,11 +294,16 @@ describe('Épico 4: grants por pessoa — imposição dono-ou-grant', () => {
     const cookieA2 = await sessionCookieFor(ports, userA2Id);
 
     // Sem posse nem grant: abrir a pasta é negado.
-    const deniedBefore = await request(app).get(`/folders/${folderId}/contents`).set('Cookie', cookieA2);
+    const deniedBefore = await request(app)
+      .get(`/folders/${folderId}/contents`)
+      .set('Cookie', cookieA2);
     expect(deniedBefore.status).toBe(403);
 
     // Subpasta própria de userA2 na raiz: liberada a ela, oculta a userA.
-    const ownFolder = await request(app).post('/folders').set('Cookie', cookieA2).send({ name: 'Pasta A2' });
+    const ownFolder = await request(app)
+      .post('/folders')
+      .set('Cookie', cookieA2)
+      .send({ name: 'Pasta A2' });
     expect(ownFolder.status).toBe(201);
 
     await grant('folder', folderId, ['view']);

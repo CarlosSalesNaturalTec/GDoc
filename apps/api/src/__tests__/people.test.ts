@@ -125,7 +125,12 @@ describe('Gestão de pessoas: POST/GET/PATCH /users', () => {
     const res = await request(app)
       .post('/users')
       .set('Cookie', await sessionCookieFor(ports, unitAdminAId))
-      .send({ fullName: 'Cross Unit', email: 'cross-unit@test.dev', password: 'whatever-password', unitId: unitB });
+      .send({
+        fullName: 'Cross Unit',
+        email: 'cross-unit@test.dev',
+        password: 'whatever-password',
+        unitId: unitB,
+      });
 
     expect(res.status).toBe(201);
     expect(res.body.unitId).toBe(unitA);
@@ -148,7 +153,9 @@ describe('Gestão de pessoas: POST/GET/PATCH /users', () => {
 
   it('unit_admin lista apenas pessoas da própria unidade', async () => {
     const app = createApp(ports);
-    const res = await request(app).get('/users').set('Cookie', await sessionCookieFor(ports, unitAdminAId));
+    const res = await request(app)
+      .get('/users')
+      .set('Cookie', await sessionCookieFor(ports, unitAdminAId));
 
     expect(res.status).toBe(200);
     expect(res.body.every((p: { unitId: string }) => p.unitId === unitA)).toBe(true);
@@ -157,7 +164,9 @@ describe('Gestão de pessoas: POST/GET/PATCH /users', () => {
 
   it('global_admin agrega pessoas de todas as unidades', async () => {
     const app = createApp(ports);
-    const res = await request(app).get('/users').set('Cookie', await sessionCookieFor(ports, globalAdminId));
+    const res = await request(app)
+      .get('/users')
+      .set('Cookie', await sessionCookieFor(ports, globalAdminId));
 
     expect(res.status).toBe(200);
     expect(res.body.some((p: { unitId: string }) => p.unitId === unitA)).toBe(true);
@@ -166,7 +175,9 @@ describe('Gestão de pessoas: POST/GET/PATCH /users', () => {
 
   it('collaborator recebe 403 em GET /users', async () => {
     const app = createApp(ports);
-    const res = await request(app).get('/users').set('Cookie', await sessionCookieFor(ports, collaboratorAId));
+    const res = await request(app)
+      .get('/users')
+      .set('Cookie', await sessionCookieFor(ports, collaboratorAId));
     expect(res.status).toBe(403);
   });
 
@@ -221,7 +232,9 @@ describe('Gestão de pessoas: POST/GET/PATCH /users', () => {
 
     expect(res.status).toBe(400);
 
-    const login = await request(app).post('/auth/login').send({ email: 'senha-curta@test.dev', password: 'ab' });
+    const login = await request(app)
+      .post('/auth/login')
+      .send({ email: 'senha-curta@test.dev', password: 'ab' });
     expect(login.status).toBe(401);
   });
 
@@ -312,7 +325,11 @@ describe('Gestão de pessoas: POST/GET/PATCH /users', () => {
 
     it('nenhum global_admin tem a senha redefinida por outrem, nem por outro global_admin', async () => {
       const app = createApp(ports);
-      const otherGlobalAdminId = await createPerson(unitA, 'global_admin', 'outro-global-admin@test.dev');
+      const otherGlobalAdminId = await createPerson(
+        unitA,
+        'global_admin',
+        'outro-global-admin@test.dev',
+      );
       const res = await request(app)
         .post(`/users/${otherGlobalAdminId}/password`)
         .set('Cookie', await sessionCookieFor(ports, globalAdminId))
@@ -323,7 +340,11 @@ describe('Gestão de pessoas: POST/GET/PATCH /users', () => {
 
     it('collaborator não redefine senha de ninguém', async () => {
       const app = createApp(ports);
-      const targetId = await createPerson(unitA, 'collaborator', 'reset-alvo-de-collaborator@test.dev');
+      const targetId = await createPerson(
+        unitA,
+        'collaborator',
+        'reset-alvo-de-collaborator@test.dev',
+      );
       const res = await request(app)
         .post(`/users/${targetId}/password`)
         .set('Cookie', await sessionCookieFor(ports, collaboratorA2Id))
@@ -347,7 +368,11 @@ describe('Gestão de pessoas: POST/GET/PATCH /users', () => {
     it('efeito do reset: todas as sessões do alvo são recusadas, a senha anterior deixa de autenticar e a senha devolvida autentica', async () => {
       const app = createApp(ports);
       const targetId = await createPerson(unitA, 'collaborator', 'reset-efeito@test.dev');
-      const oldCookie = await sessionCookieFor(ports, targetId, new Date(Date.now() - 60 * 60 * 1000));
+      const oldCookie = await sessionCookieFor(
+        ports,
+        targetId,
+        new Date(Date.now() - 60 * 60 * 1000),
+      );
 
       const res = await request(app)
         .post(`/users/${targetId}/password`)

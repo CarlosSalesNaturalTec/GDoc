@@ -50,7 +50,12 @@ export interface PurgeSummary {
  * depender de `ON DELETE CASCADE` nessa tabela.
  */
 export async function runPurge(ports: Pick<Ports, 'database' | 'storage'>): Promise<PurgeSummary> {
-  const summary: PurgeSummary = { purgedFiles: 0, failedFiles: 0, purgedFolders: 0, failedFolders: 0 };
+  const summary: PurgeSummary = {
+    purgedFiles: 0,
+    failedFiles: 0,
+    purgedFolders: 0,
+    failedFolders: 0,
+  };
 
   await purgeExpiredFiles(ports.database, ports.storage, summary);
   await purgeExpiredFolders(ports.database, summary);
@@ -58,7 +63,11 @@ export async function runPurge(ports: Pick<Ports, 'database' | 'storage'>): Prom
   return summary;
 }
 
-async function purgeExpiredFiles(database: DatabasePort, storage: StoragePort, summary: PurgeSummary): Promise<void> {
+async function purgeExpiredFiles(
+  database: DatabasePort,
+  storage: StoragePort,
+  summary: PurgeSummary,
+): Promise<void> {
   const expired = await database.withTenantTransaction(SYSTEM_CTX, async (client) => {
     const { rows } = await client.query<ExpiredFileRow>(
       `SELECT id, owner_id, object_path, pending_object_path, size_bytes FROM files
@@ -80,10 +89,10 @@ async function purgeExpiredFiles(database: DatabasePort, storage: StoragePort, s
 
       await database.withTenantTransaction(SYSTEM_CTX, async (client) => {
         // 2. Cota devolvida ao dono (design.md D6).
-        await client.query('UPDATE users SET storage_used_bytes = storage_used_bytes - $1 WHERE id = $2', [
-          Number(file.size_bytes ?? '0'),
-          file.owner_id,
-        ]);
+        await client.query(
+          'UPDATE users SET storage_used_bytes = storage_used_bytes - $1 WHERE id = $2',
+          [Number(file.size_bytes ?? '0'), file.owner_id],
+        );
         // 3. Auditoria do arquivo expurgado (design.md D10) — o FK também
         // tem ON DELETE CASCADE (migração 0008) como rede de segurança,
         // mas o passo explícito segue a ordem do design.

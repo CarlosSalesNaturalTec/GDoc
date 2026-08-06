@@ -25,7 +25,10 @@ export interface Ports {
  * `ports/*`.
  */
 export function createPorts(): Ports {
-  const secrets = config.secretsDriver === 'secret-manager' ? new SecretManagerSecretsPort() : new EnvSecretsPort();
+  const secrets =
+    config.secretsDriver === 'secret-manager'
+      ? new SecretManagerSecretsPort()
+      : new EnvSecretsPort();
   const database = new PgDatabasePort();
   return {
     storage: new GcsStoragePort(),

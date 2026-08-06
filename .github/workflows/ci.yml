@@ -45,7 +45,7 @@ jobs:
     env:
       NODE_ENV: test
       DATABASE_URL: postgres://gdoc_ci:gdoc_ci@localhost:5432/gdoc_ci
-      DATABASE_SSL: "false"
+      DATABASE_SSL: 'false'
       STORAGE_DRIVER: fake-gcs
       STORAGE_BUCKET: ci-bucket
       STORAGE_EMULATOR_HOST: http://127.0.0.1:4443
@@ -68,14 +68,20 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version-file: ".nvmrc"
-          cache: "npm"
+          node-version-file: '.nvmrc'
+          cache: 'npm'
 
       - name: Install dependencies (builds packages/shared — postinstall)
         run: npm ci
 
       - name: Lint
         run: npm run lint
+
+      # Sem este passo o `npm run format` não é exigido por ninguém e a
+      # formatação volta a derivar. O escopo do Prettier está em
+      # `.prettierignore` (prosa autoral de `openspec/` e `docs/` fica de fora).
+      - name: Format check
+        run: npm run format:check
 
       - name: Build
         run: npm run build

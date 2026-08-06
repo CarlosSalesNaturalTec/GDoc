@@ -149,13 +149,19 @@ export function PessoaFormModal({ target, open, onClose }: PessoaFormModalProps)
       destroyOnClose
     >
       <Form<PessoaFormValues> form={form} layout="vertical" onFinish={handleSubmit}>
-        <Form.Item name="fullName" label="Nome" rules={[{ required: true, message: 'Informe um nome' }]}>
+        <Form.Item
+          name="fullName"
+          label="Nome"
+          rules={[{ required: true, message: 'Informe um nome' }]}
+        >
           <Input autoFocus />
         </Form.Item>
         <Form.Item
           name="email"
           label="E-mail"
-          rules={isEdit ? [] : [{ required: true, type: 'email', message: 'Informe um e-mail válido' }]}
+          rules={
+            isEdit ? [] : [{ required: true, type: 'email', message: 'Informe um e-mail válido' }]
+          }
         >
           <Input disabled={isEdit} autoComplete="off" />
         </Form.Item>
@@ -192,7 +198,11 @@ export function PessoaFormModal({ target, open, onClose }: PessoaFormModalProps)
         <Form.Item name="notes" label="Observação">
           <Input.TextArea rows={2} />
         </Form.Item>
-        <Form.Item name="role" label="Papel" rules={[{ required: true, message: 'Selecione um papel' }]}>
+        <Form.Item
+          name="role"
+          label="Papel"
+          rules={[{ required: true, message: 'Selecione um papel' }]}
+        >
           <Select options={roleOptions} />
         </Form.Item>
       </Form>

@@ -33,7 +33,8 @@ export function useCreateGrant(resourceType: GrantResourceType, resourceId: stri
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (body: CreateGrantRequest) => apiClient.post<GrantListResponse>('/grants', body),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: grantsQueryKey(resourceType, resourceId) }),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: grantsQueryKey(resourceType, resourceId) }),
   });
 }
 
@@ -42,6 +43,7 @@ export function useRevokeGrant(resourceType: GrantResourceType, resourceId: stri
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (grantId: string) => apiClient.delete<void>(`/grants/${grantId}`),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: grantsQueryKey(resourceType, resourceId) }),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: grantsQueryKey(resourceType, resourceId) }),
   });
 }

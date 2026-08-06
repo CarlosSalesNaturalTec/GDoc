@@ -171,7 +171,10 @@ describe('Gestão de unidades: POST/GET/PATCH /units', () => {
     const cookie = await sessionCookieFor(ports, globalAdminId);
 
     // desativa a unidade vazia
-    await request(app).patch(`/units/${emptyUnit}`).set('Cookie', cookie).send({ status: 'desativado' });
+    await request(app)
+      .patch(`/units/${emptyUnit}`)
+      .set('Cookie', cookie)
+      .send({ status: 'desativado' });
 
     const res = await request(app).get('/units?status=active').set('Cookie', cookie);
     expect(res.status).toBe(200);
@@ -279,7 +282,10 @@ describe('Gestão de unidades: POST/GET/PATCH /units', () => {
     const app = createApp(ports);
     const cookie = await sessionCookieFor(ports, globalAdminId);
 
-    await request(app).patch(`/units/${emptyUnit}`).set('Cookie', cookie).send({ status: 'desativado' });
+    await request(app)
+      .patch(`/units/${emptyUnit}`)
+      .set('Cookie', cookie)
+      .send({ status: 'desativado' });
     const res = await request(app)
       .patch(`/units/${emptyUnit}`)
       .set('Cookie', cookie)
@@ -296,23 +302,25 @@ describe('Gestão de unidades: POST/GET/PATCH /units', () => {
     const cookie = await sessionCookieFor(ports, globalAdminId);
 
     // desativa a unidade vazia, depois tenta cadastrar nela
-    await request(app).patch(`/units/${emptyUnit}`).set('Cookie', cookie).send({ status: 'desativado' });
-
-    const res = await request(app)
-      .post('/users')
+    await request(app)
+      .patch(`/units/${emptyUnit}`)
       .set('Cookie', cookie)
-      .send({
-        fullName: 'Pessoa em Unidade Desativada',
-        email: 'desativada@test.dev',
-        password: 'initial-password',
-        unitId: emptyUnit,
-      });
+      .send({ status: 'desativado' });
+
+    const res = await request(app).post('/users').set('Cookie', cookie).send({
+      fullName: 'Pessoa em Unidade Desativada',
+      email: 'desativada@test.dev',
+      password: 'initial-password',
+      unitId: emptyUnit,
+    });
 
     expect(res.status).toBe(409);
     expect(res.body.error).toBe('unit is disabled');
 
     const { rows } = await withSystemBypass(pool, (client) =>
-      client.query('SELECT count(*)::int AS c FROM users WHERE email = $1', ['desativada@test.dev']),
+      client.query('SELECT count(*)::int AS c FROM users WHERE email = $1', [
+        'desativada@test.dev',
+      ]),
     );
     expect(rows[0]!.c).toBe(0);
   });

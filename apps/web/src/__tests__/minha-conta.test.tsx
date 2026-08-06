@@ -17,7 +17,10 @@ const PROFILE: MyProfileResponse = {
 
 function requestBodies(method: string, path: string): unknown[] {
   return (global.fetch as ReturnType<typeof vi.fn>).mock.calls
-    .filter((call) => String(call[0]).includes(path) && (call[1] as RequestInit | undefined)?.method === method)
+    .filter(
+      (call) =>
+        String(call[0]).includes(path) && (call[1] as RequestInit | undefined)?.method === method,
+    )
     .map((call) => JSON.parse(String((call[1] as RequestInit).body)));
 }
 
@@ -56,7 +59,9 @@ describe('Minha conta (US 1.3, web-minha-conta)', () => {
 
     await waitFor(() => {
       const bodies = requestBodies('POST', '/auth/password') as Record<string, unknown>[];
-      expect(bodies).toEqual([{ currentPassword: 'senha-atual-correta', newPassword: 'senha-nova-valida' }]);
+      expect(bodies).toEqual([
+        { currentPassword: 'senha-atual-correta', newPassword: 'senha-nova-valida' },
+      ]);
     });
 
     await screen.findByText('Senha alterada com sucesso.');

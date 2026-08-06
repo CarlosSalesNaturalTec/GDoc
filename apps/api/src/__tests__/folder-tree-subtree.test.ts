@@ -63,17 +63,26 @@ describe('lib/folder-tree: travessia da subárvore para download de pasta', () =
 
   async function trashFolder(folderId: string) {
     await withSystemBypass(pool, (client) =>
-      client.query(`UPDATE folders SET deleted_at = now(), trash_root_id = $1 WHERE id = $1`, [folderId]),
+      client.query(`UPDATE folders SET deleted_at = now(), trash_root_id = $1 WHERE id = $1`, [
+        folderId,
+      ]),
     );
   }
 
   async function trashFile(fileId: string) {
     await withSystemBypass(pool, (client) =>
-      client.query(`UPDATE files SET deleted_at = now(), trash_root_id = $1 WHERE id = $1`, [fileId]),
+      client.query(`UPDATE files SET deleted_at = now(), trash_root_id = $1 WHERE id = $1`, [
+        fileId,
+      ]),
     );
   }
 
-  async function grant(userId: string, resourceType: 'file' | 'folder', resourceId: string, permission: string) {
+  async function grant(
+    userId: string,
+    resourceType: 'file' | 'folder',
+    resourceId: string,
+    permission: string,
+  ) {
     await withSystemBypass(pool, (client) =>
       client.query(
         `INSERT INTO grants (unit_id, subject_user_id, resource_type, resource_id, permission, granted_by)
@@ -146,7 +155,12 @@ describe('lib/folder-tree: travessia da subárvore para download de pasta', () =
 
     await grant(requesterId, 'folder', root, 'view');
     await grant(requesterId, 'folder', visibleSub, 'view');
-    await grant(requesterId, 'file', (await insertFile(ownerId, 'visivel2.txt', visibleSub)), 'download');
+    await grant(
+      requesterId,
+      'file',
+      await insertFile(ownerId, 'visivel2.txt', visibleSub),
+      'download',
+    );
 
     const result = await database.withTenantTransaction(ctxFor(requesterId), (client) =>
       traverseFolderSubtree(client, ctxFor(requesterId), root),

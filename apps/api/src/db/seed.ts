@@ -70,7 +70,13 @@ export async function seedIfEmpty(pool?: Pool): Promise<boolean> {
              ($1, 'admin.a@gdoc.dev', $3, 'unit_admin', 'Admin Unidade A'),
              ($2, 'colaborador.b@gdoc.dev', $3, 'collaborator', 'Colaborador B'),
              ($1, $4, $5, 'global_admin', 'Administrador Global')`,
-          [unitA.id, unitB.id, demoPasswordHash, config.bootstrapAdmin.email, bootstrapPasswordHash],
+          [
+            unitA.id,
+            unitB.id,
+            demoPasswordHash,
+            config.bootstrapAdmin.email,
+            bootstrapPasswordHash,
+          ],
         );
       } else {
         const { rows: unitRows } = await client.query<{ id: string }>(

@@ -115,10 +115,14 @@ describe('Épico 5: alcance administrativo por unidade', () => {
     const app = createApp(ports);
     const cookieAdminA = await sessionCookieFor(ports, unitAdminAId);
 
-    const view = await request(app).post(`/files/${fileOwnedByUserAId}/view-url`).set('Cookie', cookieAdminA);
+    const view = await request(app)
+      .post(`/files/${fileOwnedByUserAId}/view-url`)
+      .set('Cookie', cookieAdminA);
     expect(view.status).toBe(200);
 
-    const download = await request(app).post(`/files/${fileOwnedByUserAId}/download-url`).set('Cookie', cookieAdminA);
+    const download = await request(app)
+      .post(`/files/${fileOwnedByUserAId}/download-url`)
+      .set('Cookie', cookieAdminA);
     expect(download.status).toBe(200);
 
     const rename = await request(app)
@@ -135,10 +139,14 @@ describe('Épico 5: alcance administrativo por unidade', () => {
     expect(replace.status).toBe(200);
 
     // Segundo dono, sem grant: também acessível pelo ramo admin.
-    const viewA2 = await request(app).post(`/files/${fileOwnedByUserA2Id}/view-url`).set('Cookie', cookieAdminA);
+    const viewA2 = await request(app)
+      .post(`/files/${fileOwnedByUserA2Id}/view-url`)
+      .set('Cookie', cookieAdminA);
     expect(viewA2.status).toBe(200);
 
-    const contents = await request(app).get(`/folders/${folderOwnedByUserAId}/contents`).set('Cookie', cookieAdminA);
+    const contents = await request(app)
+      .get(`/folders/${folderOwnedByUserAId}/contents`)
+      .set('Cookie', cookieAdminA);
     expect(contents.status).toBe(200);
     const fileNames = contents.body.files.map((f: { fileName: string }) => f.fileName);
     expect(fileNames).toContain('renomeado-pelo-admin.txt');
@@ -173,7 +181,9 @@ describe('Épico 5: alcance administrativo por unidade', () => {
     const callsBefore = storage.calls.length;
     const cookieGlobalAdmin = await sessionCookieFor(ports, ids.globalAdmin);
 
-    const crossUnit = await request(app).post(`/files/${fileInUnitBId}/view-url`).set('Cookie', cookieGlobalAdmin);
+    const crossUnit = await request(app)
+      .post(`/files/${fileInUnitBId}/view-url`)
+      .set('Cookie', cookieGlobalAdmin);
     expect(crossUnit.status).toBe(403);
     expect(storage.calls).toHaveLength(callsBefore);
 

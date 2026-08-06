@@ -57,9 +57,7 @@ export function createApp(ports: Ports, options: CreateAppOptions = {}): Express
     // gritar no arranque, não degradar silenciosamente para uma API sem
     // frontend (design.md D3).
     if (!existsSync(webDistDir) || !existsSync(join(webDistDir, 'index.html'))) {
-      throw new Error(
-        `WEB_DIST_DIR inválido: "${webDistDir}" não existe ou não contém index.html`,
-      );
+      throw new Error(`WEB_DIST_DIR inválido: "${webDistDir}" não existe ou não contém index.html`);
     }
 
     app.use(
@@ -94,7 +92,16 @@ export function createApp(ports: Ports, options: CreateAppOptions = {}): Express
   // SPA configurada, no fallback de index.html acima). `auditRouter` e
   // `searchRouter` vivem sob `/files` (`/files/:id/audit`, `/files/search`),
   // por isso não têm prefixo próprio na lista.
-  const tenantScopedPrefixes = ['/files', '/folders', '/users', '/units', '/grants', '/trash', '/dashboard', '/notifications'];
+  const tenantScopedPrefixes = [
+    '/files',
+    '/folders',
+    '/users',
+    '/units',
+    '/grants',
+    '/trash',
+    '/dashboard',
+    '/notifications',
+  ];
   app.use(tenantScopedPrefixes, attachTenantContext(ports));
   app.use(filesRouter(ports));
   app.use(foldersRouter(ports));

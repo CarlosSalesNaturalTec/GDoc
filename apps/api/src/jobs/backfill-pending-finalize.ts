@@ -51,8 +51,7 @@ export async function runBackfill(ports: Ports): Promise<BackfillSummary> {
   });
 
   for (const file of stuck) {
-    const objectPath =
-      file.status === 'replacing' ? file.pending_object_path : file.object_path;
+    const objectPath = file.status === 'replacing' ? file.pending_object_path : file.object_path;
     if (!objectPath) {
       // 'replacing' sem pending_object_path é estado inconsistente — pula.
       summary.failed += 1;

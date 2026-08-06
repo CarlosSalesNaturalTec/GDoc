@@ -27,7 +27,11 @@ export function mockXhr(table: XhrRouteTable): void {
     send(): void {
       const entry = table[this.url];
       queueMicrotask(() => {
-        this.upload.onprogress?.({ lengthComputable: true, loaded: 50, total: 100 } as ProgressEvent);
+        this.upload.onprogress?.({
+          lengthComputable: true,
+          loaded: 50,
+          total: 100,
+        } as ProgressEvent);
         queueMicrotask(() => {
           if (!entry || 'networkError' in entry) {
             this.onerror?.();

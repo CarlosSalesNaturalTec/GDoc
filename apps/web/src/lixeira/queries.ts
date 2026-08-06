@@ -46,7 +46,8 @@ export function useRestoreFile() {
 export function useRestoreFolder() {
   const invalidate = useInvalidateAfterRestore();
   return useMutation({
-    mutationFn: (folderId: string) => apiClient.post<FolderRestoreResponse>(`/folders/${folderId}/restore`),
+    mutationFn: (folderId: string) =>
+      apiClient.post<FolderRestoreResponse>(`/folders/${folderId}/restore`),
     onSuccess: invalidate,
   });
 }
