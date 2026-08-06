@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { GrantResourceType, Permission, UserRole } from '@gdoc/shared';
+import { GrantResourceType, NotificationKind, Permission, UserRole } from '@gdoc/shared';
 import type { CreateGrantRequest, GrantListResponse, GrantResponse } from '@gdoc/shared';
 import type { Ports } from '../ports/index.js';
 import type { TenantContext } from '../ports/database-port.js';
@@ -14,6 +14,8 @@ interface GrantRow {
   permission: string;
   granted_by: string;
   created_at: string;
+  expires_at: string | null;
+  expired: boolean;
 }
 
 function toGrantResponse(row: GrantRow): GrantResponse {
@@ -26,6 +28,8 @@ function toGrantResponse(row: GrantRow): GrantResponse {
     permission: row.permission as Permission,
     grantedBy: row.granted_by,
     createdAt: new Date(row.created_at).toISOString(),
+    expiresAt: row.expires_at ? new Date(row.expires_at).toISOString() : null,
+    expired: row.expired,
   };
 }
 
@@ -35,6 +39,20 @@ function isAdmin(ctx: TenantContext): boolean {
 
 const RESOURCE_TYPES: string[] = Object.values(GrantResourceType);
 const PERMISSIONS: string[] = Object.values(Permission);
+
+/** Coluna computada de vigência, mesmo predicado de `lib/access.ts` D1 — `now()` do banco. */
+const EXPIRED_COLUMN = `(expires_at IS NOT NULL AND expires_at <= now()) AS expired`;
+
+/**
+ * `source_ref` do aviso de concessão (design.md D5): ancorado em **(recurso,
+ * vencimento)**, nunca no id do grant nem no instante da execução. Uma
+ * requisição com vários verbos sobre o mesmo recurso e prazo produz o mesmo
+ * `source_ref`, logo uma única notificação (design.md D5/D8); mudar o prazo
+ * muda o `source_ref`, logo notifica de novo.
+ */
+function grantSourceRef(resourceType: GrantResourceType, resourceId: string, expiresAt: Date): string {
+  return `grant:${resourceType}:${resourceId}:${expiresAt.toISOString()}`;
+}
 
 /**
  * `routes/grants.ts` — conceder/listar/revogar permissão granular por
@@ -68,6 +86,19 @@ export function grantsRouter(ports: Ports): Router {
         return;
       }
 
+      // Prazo opcional (design.md D1, tasks.md 4.1): ausente/nulo = permanente.
+      // Quando informado, precisa ser uma data futura — validação de entrada,
+      // distinta do relógio do banco usado depois na resolução de acesso.
+      let expiresAt: Date | null = null;
+      if (body.expiresAt !== undefined && body.expiresAt !== null) {
+        const parsed = new Date(body.expiresAt);
+        if (Number.isNaN(parsed.getTime()) || parsed.getTime() <= Date.now()) {
+          res.status(400).json({ error: 'invalid request body' });
+          return;
+        }
+        expiresAt = parsed;
+      }
+
       const outcome = await ports.database.withTenantTransaction(ctx, async (client) => {
         // RLS já restringe a leitura à unidade do admin (ou bypass de
         // global_admin) — recurso ou pessoa de outra unidade simplesmente
@@ -87,25 +118,20 @@ export function grantsRouter(ports: Ports): Router {
 
         const rows: GrantRow[] = [];
         for (const permission of body.permissions) {
-          const { rows: inserted } = await client.query<GrantRow>(
-            `INSERT INTO grants (unit_id, subject_user_id, resource_type, resource_id, permission, granted_by)
-             VALUES ($1, $2, $3, $4, $5, $6)
-             ON CONFLICT (unit_id, subject_user_id, resource_type, resource_id, permission) DO NOTHING
-             RETURNING *`,
-            [resource.unit_id, body.subjectUserId, body.resourceType, body.resourceId, permission, ctx.userId],
+          // Reconceder atualiza o prazo (design.md D3): o `ON CONFLICT` deixa
+          // de ser `DO NOTHING` e passa a convergir para o estado pedido —
+          // com prazo, estende ou encurta; sem prazo, torna permanente. Também
+          // atualiza `granted_by`/`created_at` para a trilha refletir quem e
+          // quando estendeu.
+          const { rows: upserted } = await client.query<GrantRow>(
+            `INSERT INTO grants (unit_id, subject_user_id, resource_type, resource_id, permission, granted_by, expires_at)
+             VALUES ($1, $2, $3, $4, $5, $6, $7)
+             ON CONFLICT (unit_id, subject_user_id, resource_type, resource_id, permission)
+             DO UPDATE SET expires_at = EXCLUDED.expires_at, granted_by = EXCLUDED.granted_by, created_at = now()
+             RETURNING *, ${EXPIRED_COLUMN}`,
+            [resource.unit_id, body.subjectUserId, body.resourceType, body.resourceId, permission, ctx.userId, expiresAt],
           );
-          if (inserted[0]) {
-            rows.push(inserted[0]);
-            continue;
-          }
-          // Já concedido (idempotência, design.md D1): devolve a linha
-          // existente, sem duplicar nem falhar.
-          const { rows: existing } = await client.query<GrantRow>(
-            `SELECT * FROM grants
-             WHERE unit_id = $1 AND subject_user_id = $2 AND resource_type = $3 AND resource_id = $4 AND permission = $5`,
-            [resource.unit_id, body.subjectUserId, body.resourceType, body.resourceId, permission],
-          );
-          rows.push(existing[0]!);
+          rows.push(upserted[0]!);
         }
         return { status: 201 as const, rows };
       });
@@ -113,6 +139,31 @@ export function grantsRouter(ports: Ports): Router {
       if (outcome.status !== 201) {
         res.status(404).json({ error: 'not found' });
         return;
+      }
+
+      // Aviso de concessão (design.md D8): só quando a operação envolve
+      // prazo, emitido **após** o commit acima, fora da transação — falha ao
+      // notificar é registrada e descartada, jamais propagada ao chamador.
+      // Agrupado por (recurso, vencimento): uma requisição com vários verbos
+      // sobre o mesmo recurso e prazo emite um único aviso (design.md D5).
+      if (expiresAt) {
+        const unitId = outcome.rows[0]!.unit_id;
+        try {
+          await ports.notifications.notify({
+            unitId,
+            recipientUserId: body.subjectUserId,
+            kind: NotificationKind.GRANT_CREATED,
+            payload: {
+              resourceType: body.resourceType,
+              resourceId: body.resourceId,
+              permissions: body.permissions,
+              expiresAt: expiresAt.toISOString(),
+            },
+            sourceRef: grantSourceRef(body.resourceType, body.resourceId, expiresAt),
+          });
+        } catch (err) {
+          console.error('grants: falha ao emitir aviso grant_created', err);
+        }
       }
 
       const response: GrantListResponse = { grants: outcome.rows.map(toGrantResponse) };
@@ -139,10 +190,11 @@ export function grantsRouter(ports: Ports): Router {
 
       // Nenhum filtro de unidade aqui: a RLS já restringe unit_admin à
       // própria unidade e dá bypass a global_admin (mesmo padrão de
-      // routes/users.ts).
+      // routes/users.ts). Expiradas permanecem na resposta, marcadas
+      // (design.md D2) — sem ocultar, distinguindo pelo campo `expired`.
       const rows = await ports.database.withTenantTransaction(ctx, async (client) => {
         const { rows } = await client.query<GrantRow>(
-          'SELECT * FROM grants WHERE resource_type = $1 AND resource_id = $2 ORDER BY created_at',
+          `SELECT *, ${EXPIRED_COLUMN} FROM grants WHERE resource_type = $1 AND resource_id = $2 ORDER BY created_at`,
           [resourceType, resourceId],
         );
         return rows;
@@ -164,7 +216,8 @@ export function grantsRouter(ports: Ports): Router {
       }
 
       // RLS filtra a linha visível para DELETE antes do WHERE por id rodar:
-      // grant de outra unidade não aparece, 0 linhas removidas.
+      // grant de outra unidade não aparece, 0 linhas removidas. Revogar
+      // permanece removendo a linha mesmo se já expirada (design.md D2).
       const deleted = await ports.database.withTenantTransaction(ctx, async (client) => {
         const { rows } = await client.query('DELETE FROM grants WHERE id = $1 RETURNING id', [req.params.id]);
         return rows[0] ?? null;

@@ -25,6 +25,8 @@ export interface CreateGrantRequest {
   resourceType: GrantResourceType;
   resourceId: string;
   permissions: Permission[];
+  /** Prazo de expiração opcional (change `expiracao-permissoes`, design.md D1) — ausente/nulo = permanente. */
+  expiresAt?: string | null;
 }
 
 export interface GrantResponse {
@@ -36,6 +38,10 @@ export interface GrantResponse {
   permission: Permission;
   grantedBy: string;
   createdAt: string;
+  /** Nulo = permanente (design.md D1 do change `expiracao-permissoes`). */
+  expiresAt: string | null;
+  /** Vigente vs. expirada, resolvido pelo servidor contra `now()` do banco (design.md D2). */
+  expired: boolean;
 }
 
 export interface GrantListResponse {

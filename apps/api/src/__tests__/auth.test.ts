@@ -6,6 +6,7 @@ import { createHmac } from 'node:crypto';
 import { createApp } from '../app.js';
 import { config } from '../config.js';
 import { PgDatabasePort } from '../adapters/pg-database-port.js';
+import { InAppNotificationPort } from '../adapters/in-app-notification-port.js';
 import { EnvSecretsPort } from '../adapters/env-secrets-port.js';
 import { Argon2AuthPort } from '../adapters/argon2-auth-port.js';
 import { InMemoryStoragePort } from './in-memory-storage-port.js';
@@ -48,8 +49,10 @@ describe('Autenticação: /auth/login, /auth/logout, /auth/me', () => {
     disabledUserId = ids.users.find((u) => u.status === 'disabled')!.id;
 
     const secrets = new EnvSecretsPort();
+    const database = new PgDatabasePort();
     ports = {
-      database: new PgDatabasePort(),
+      database,
+      notifications: new InAppNotificationPort(database),
       storage: new InMemoryStoragePort(),
       secrets,
       auth: new Argon2AuthPort(secrets),

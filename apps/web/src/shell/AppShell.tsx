@@ -15,6 +15,7 @@ import {
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { UserRole } from '@gdoc/shared';
 import { useSession } from '../auth/session-context';
+import { NotificationCenter } from './NotificationCenter';
 
 const { Header, Sider, Content } = Layout;
 
@@ -116,6 +117,7 @@ export function AppShell() {
             padding: '0 24px',
           }}
         >
+          <NotificationCenter />
           <Dropdown menu={{ items: identityMenuItems }} trigger={['click']}>
             <Space style={{ cursor: 'pointer' }}>
               <Avatar>{identity.id.slice(0, 2).toUpperCase()}</Avatar>

@@ -24,6 +24,7 @@ export const API_PROXY_PREFIXES = [
   '/audit',
   '/dashboard',
   '/search',
+  '/notifications',
   '/health',
 ];
 

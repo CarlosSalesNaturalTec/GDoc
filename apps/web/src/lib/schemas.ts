@@ -12,8 +12,11 @@ import type {
   FolderDownloadManifestResponse,
   FolderResponse,
   GrantListResponse,
+  GrantNotificationPayload,
   GrantResponse,
   MyProfileResponse,
+  NotificationListResponse,
+  NotificationResponse,
   PersonResponse,
   PublicConfigResponse,
   ResetPasswordResponse,
@@ -21,9 +24,19 @@ import type {
   SignedUrlResponse,
   TrashListResponse,
   UnitResponse,
+  UnreadNotificationCountResponse,
   ViewUrlResponse,
 } from '@gdoc/shared';
-import { FileAccessAction, FileCategory, GrantResourceType, Permission, PersonStatus, UnitStatus, UserRole } from '@gdoc/shared';
+import {
+  FileAccessAction,
+  FileCategory,
+  GrantResourceType,
+  NotificationKind,
+  Permission,
+  PersonStatus,
+  UnitStatus,
+  UserRole,
+} from '@gdoc/shared';
 
 /**
  * Valida a fronteira com a API, espelhando `@gdoc/shared` (fonte única de
@@ -145,6 +158,10 @@ export const grantResponseSchema: z.ZodType<GrantResponse> = z.object({
   ]),
   grantedBy: z.string(),
   createdAt: z.string(),
+  // Change `expiracao-permissoes`, design.md D1/D2: nulo = permanente;
+  // `expired` é resolvido pelo servidor contra o relógio do banco.
+  expiresAt: z.string().nullable(),
+  expired: z.boolean(),
 });
 
 /** Espelha `GrantListResponse` (design.md D6, `web-permissoes`). */
@@ -289,4 +306,34 @@ export const auditQueryResponseSchema: z.ZodType<AuditQueryResponse> = z.object(
       createdAt: z.string(),
     }),
   ),
+});
+
+/** Espelha `GrantNotificationPayload` (change `expiracao-permissoes`, design.md D5). */
+export const grantNotificationPayloadSchema: z.ZodType<GrantNotificationPayload> = z.object({
+  resourceType: z.enum([GrantResourceType.FOLDER, GrantResourceType.FILE]),
+  resourceId: z.string(),
+  permissions: z.array(
+    z.enum([Permission.VIEW, Permission.DOWNLOAD, Permission.UPLOAD, Permission.RENAME, Permission.DELETE]),
+  ),
+  expiresAt: z.string(),
+  subjectUserId: z.string().optional(),
+});
+
+/** Espelha `NotificationResponse` (design.md D4, capability `notificacoes`). */
+export const notificationResponseSchema: z.ZodType<NotificationResponse> = z.object({
+  id: z.string(),
+  kind: z.enum([NotificationKind.GRANT_CREATED, NotificationKind.GRANT_EXPIRING, NotificationKind.GRANT_EXPIRED]),
+  payload: grantNotificationPayloadSchema,
+  createdAt: z.string(),
+  readAt: z.string().nullable(),
+});
+
+/** Espelha `NotificationListResponse`. */
+export const notificationListResponseSchema: z.ZodType<NotificationListResponse> = z.object({
+  notifications: z.array(notificationResponseSchema),
+});
+
+/** Espelha `UnreadNotificationCountResponse`. */
+export const unreadNotificationCountResponseSchema: z.ZodType<UnreadNotificationCountResponse> = z.object({
+  count: z.number(),
 });
