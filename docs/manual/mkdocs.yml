@@ -1,0 +1,48 @@
+site_name: Manual do Usuário — Doc7
+site_description: Manual funcional do Doc7 — como usar o sistema no dia a dia.
+site_url: https://carlossalesnaturaltec.github.io/gdoc/
+docs_dir: docs
+strict: true
+
+theme:
+  name: material
+  language: pt-BR
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      toggle:
+        icon: material/brightness-7
+        name: Modo escuro
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle:
+        icon: material/brightness-4
+        name: Modo claro
+  features:
+    - navigation.sections
+    - navigation.top
+    - search.suggest
+    - content.action.edit
+
+nav:
+  - Início: index.md
+  - Primeiro acesso: primeiro-acesso.md
+  - A tela: a-tela.md
+  - Colaborador:
+      - Navegar e criar pastas: colaborador/navegar-e-criar.md
+      - Enviar arquivos: colaborador/enviar.md
+      - Visualizar e baixar: colaborador/visualizar-e-baixar.md
+      - Renomear e excluir: colaborador/renomear-e-excluir.md
+      - Buscar e filtrar: colaborador/buscar.md
+      - Auditoria: colaborador/auditoria.md
+      - Minha conta: colaborador/minha-conta.md
+  - Administrador:
+      - Pessoas: administrador/pessoas.md
+      - Permissões: administrador/permissoes.md
+      - Auditoria da unidade: administrador/auditoria.md
+      - Painel gerencial: administrador/painel.md
+      - Unidades (admin. global): administrador/unidades.md
+  - Referência:
+      - Tarefas rápidas: referencia/tarefas-rapidas.md
+      - Limites: referencia/limites.md
+      - Perguntas frequentes: referencia/faq.md

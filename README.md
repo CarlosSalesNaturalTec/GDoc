@@ -148,6 +148,23 @@ superfície da API, não o modelo de autorização do Google. A garantia de
 produção (uniform bucket-level access, sem binding público) e só é
 verificável contra o GCS real, após o Terraform ser aplicado.
 
+## Manual do usuário (`docs/manual/`)
+
+O manual do usuário é um site [MkDocs](https://www.mkdocs.org/) (tema Material,
+`docs/manual/docs/*.md`), publicado no GitHub Pages em
+<https://carlossalesnaturaltec.github.io/gdoc/>. Para buildar e servir localmente
+(requer Python 3):
+
+```bash
+pip install -r docs/manual/requirements.txt
+mkdocs serve -f docs/manual/mkdocs.yml
+```
+
+`.github/workflows/docs.yml` builda o site (`--strict`, link quebrado reprova o
+build) em todo push/PR que toque `docs/manual/**`, e publica apenas em push na
+`main`. **Passo manual, uma vez:** o GitHub Pages precisa estar habilitado em
+Settings → Pages com origem **GitHub Actions** — sem isso o job de publicação falha.
+
 ## Produção (GCP)
 
 IaC em `infra/terraform/` (ver o README dessa pasta para como aplicar e as

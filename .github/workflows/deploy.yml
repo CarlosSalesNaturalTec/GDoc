@@ -15,11 +15,11 @@ concurrency:
 
 jobs:
   changes:
-    name: Detect docs-only merge
+    name: Detect merge with no effect on production
     if: github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     outputs:
-      docs_only: ${{ steps.classify.outputs.docs_only }}
+      no_prod_effect: ${{ steps.classify.outputs.no_prod_effect }}
 
     steps:
       - uses: actions/checkout@v4
@@ -27,20 +27,24 @@ jobs:
           ref: ${{ github.event.workflow_run.head_sha }}
           fetch-depth: 0
 
-      # Gate docs-only (design.md D3): workflow_run não aceita filtro de
-      # `paths`, então classificamos aqui o diff trazido pelo merge (o repo
-      # usa merge commit, nunca squash, então SHA^1 é a main anterior). Docs-only
-      # só quando TODO arquivo casa com o allowlist de documentação — qualquer
-      # arquivo fora, ou ausência de pai único (histórico raso/commit inicial),
-      # é fail-safe: não docs-only, o pipeline implanta.
-      - name: Classify merge as docs-only or not
+      # Gate "sem efeito em produção" (design.md D10 do change
+      # manual-usuario-mkdocs): workflow_run não aceita filtro de `paths`,
+      # então classificamos aqui o diff trazido pelo merge (o repo usa merge
+      # commit, nunca squash, então SHA^1 é a main anterior). O allowlist
+      # cobre documentação, definições de workflow do GitHub Actions e o
+      # arquivo de exclusões do controle de versão — nenhum deles compõe a
+      # imagem do container, altera o schema ou afeta a revisão implantada.
+      # Sem efeito em produção só quando TODO arquivo casa com o allowlist —
+      # qualquer arquivo fora, ou ausência de pai único (histórico raso/commit
+      # inicial), é fail-safe: implanta normalmente.
+      - name: Classify merge as having no effect on production, or not
         id: classify
         run: |
           SHA="${{ github.event.workflow_run.head_sha }}"
 
           if ! git rev-parse "${SHA}^1" >/dev/null 2>&1; then
-            echo "Sem pai único para $SHA (commit inicial ou histórico insuficiente) — tratando como NÃO docs-only (fail-safe)."
-            echo "docs_only=false" >> "$GITHUB_OUTPUT"
+            echo "Sem pai único para $SHA (commit inicial ou histórico insuficiente) — tratando como COM efeito em produção (fail-safe)."
+            echo "no_prod_effect=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
@@ -49,31 +53,31 @@ jobs:
           echo "$CHANGED_FILES"
 
           if [ -z "$CHANGED_FILES" ]; then
-            echo "Diff vazio — tratando como NÃO docs-only (fail-safe)."
-            echo "docs_only=false" >> "$GITHUB_OUTPUT"
+            echo "Diff vazio — tratando como COM efeito em produção (fail-safe)."
+            echo "no_prod_effect=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
-          DOCS_ONLY=true
+          NO_PROD_EFFECT=true
           while IFS= read -r FILE; do
             case "$FILE" in
-              *.md|docs/*|openspec/*|LICENSE) ;;
-              *) DOCS_ONLY=false ;;
+              *.md|docs/*|openspec/*|LICENSE|.github/workflows/*|.gitignore) ;;
+              *) NO_PROD_EFFECT=false ;;
             esac
           done <<< "$CHANGED_FILES"
 
-          if [ "$DOCS_ONLY" = true ]; then
-            echo "Merge docs-only detectado — pulando build/push/migração/deploy."
-            echo "docs_only=true" >> "$GITHUB_OUTPUT"
+          if [ "$NO_PROD_EFFECT" = true ]; then
+            echo "Merge sem efeito em produção detectado — pulando build/push/migração/deploy."
+            echo "no_prod_effect=true" >> "$GITHUB_OUTPUT"
           else
-            echo "Merge inclui arquivo fora do allowlist de documentação — build/push/migração/deploy prosseguem."
-            echo "docs_only=false" >> "$GITHUB_OUTPUT"
+            echo "Merge inclui arquivo fora do allowlist sem efeito em produção — build/push/migração/deploy prosseguem."
+            echo "no_prod_effect=false" >> "$GITHUB_OUTPUT"
           fi
 
   build-push-deploy:
     name: Build, push and deploy
     needs: changes
-    if: github.event.workflow_run.conclusion == 'success' && needs.changes.outputs.docs_only == 'false'
+    if: github.event.workflow_run.conclusion == 'success' && needs.changes.outputs.no_prod_effect == 'false'
     runs-on: ubuntu-latest
 
     # Sem chave de service account: autenticação por Workload Identity
