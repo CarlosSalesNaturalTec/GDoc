@@ -43,6 +43,12 @@ export function isAdminOfUnit(ctx: TenantContext, resourceUnitId: string): boole
  * outra unidade) resolve para `false`, sem distinguir os dois casos. Roda na
  * transação tenant já aberta pela rota chamadora, então a RLS por `unit_id`
  * já filtra por baixo.
+ *
+ * O ramo de grant exige vigência (`expires_at IS NULL OR expires_at > now()`,
+ * change `expiracao-permissoes`, design.md D1): `now()` é o relógio **do
+ * banco**, não do processo, para o corte ser consistente entre instâncias.
+ * Os ramos de posse e de admin da unidade não têm prazo — só concessão
+ * expira.
  */
 export async function hasAccess(
   client: PoolClient,
@@ -68,7 +74,8 @@ export async function hasAccess(
 
   const { rows: grantRows } = await client.query(
     `SELECT 1 FROM grants
-     WHERE subject_user_id = $1 AND resource_type = $2 AND resource_id = $3 AND permission = $4`,
+     WHERE subject_user_id = $1 AND resource_type = $2 AND resource_id = $3 AND permission = $4
+       AND (expires_at IS NULL OR expires_at > now())`,
     [ctx.userId, resourceType, resourceId, permission],
   );
   return grantRows.length > 0;
@@ -128,6 +135,7 @@ export function resourceScopeClause(
   return `(owner_id = ${ownerIdParam} OR id IN (
     SELECT resource_id FROM grants
     WHERE subject_user_id = ${ownerIdParam} AND resource_type = '${resourceType}' AND permission = '${permission}'
+      AND (expires_at IS NULL OR expires_at > now())
   ))`;
 }
 

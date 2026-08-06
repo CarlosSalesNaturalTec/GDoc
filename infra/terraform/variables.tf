@@ -169,6 +169,27 @@ variable "scheduler_time_zone" {
   default     = "America/Sao_Paulo"
 }
 
+variable "notify_expiring_grants_schedule" {
+  description = <<-EOT
+    Expressão cron (fuso do Cloud Scheduler) da rotina diária de avisos de
+    expiração de permissão (change expiracao-permissoes, design.md D7).
+    Horário deliberadamente separado das 03:00 do expurgo da lixeira — os
+    dois jobs têm domínios e falhas independentes, e não devem concorrer por
+    conexões de banco no mesmo instante.
+  EOT
+  type        = string
+  default     = "30 3 * * *"
+}
+
+variable "grant_expiring_notice_window_days" {
+  description = <<-EOT
+    Janela de antecedência (dias) do aviso prévio de vencimento de permissão
+    (design.md D6) — default de 7 dias confirmado pelo cliente.
+  EOT
+  type        = number
+  default     = 7
+}
+
 variable "bootstrap_admin_email" {
   description = <<-EOT
     E-mail do administrador global criado pelo Job de bootstrap

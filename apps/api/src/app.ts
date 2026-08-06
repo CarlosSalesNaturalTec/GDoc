@@ -15,6 +15,7 @@ import { trashRouter } from './routes/trash.js';
 import { auditRouter } from './routes/audit.js';
 import { dashboardRouter } from './routes/dashboard.js';
 import { searchRouter } from './routes/search.js';
+import { notificationsRouter } from './routes/notifications.js';
 import { attachTenantContext } from './middleware/tenant-context.js';
 import { config } from './config.js';
 import { isApiPath } from './lib/api-prefixes.js';
@@ -93,7 +94,7 @@ export function createApp(ports: Ports, options: CreateAppOptions = {}): Express
   // SPA configurada, no fallback de index.html acima). `auditRouter` e
   // `searchRouter` vivem sob `/files` (`/files/:id/audit`, `/files/search`),
   // por isso não têm prefixo próprio na lista.
-  const tenantScopedPrefixes = ['/files', '/folders', '/users', '/units', '/grants', '/trash', '/dashboard'];
+  const tenantScopedPrefixes = ['/files', '/folders', '/users', '/units', '/grants', '/trash', '/dashboard', '/notifications'];
   app.use(tenantScopedPrefixes, attachTenantContext(ports));
   app.use(filesRouter(ports));
   app.use(foldersRouter(ports));
@@ -104,6 +105,7 @@ export function createApp(ports: Ports, options: CreateAppOptions = {}): Express
   app.use(auditRouter(ports));
   app.use(dashboardRouter(ports));
   app.use(searchRouter(ports));
+  app.use(notificationsRouter(ports));
 
   const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
     console.error(err);

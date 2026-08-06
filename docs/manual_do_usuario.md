@@ -102,8 +102,14 @@ dependem do seu perfil:
 | **Painel**   | Administradores      | Ver estatísticas e gráficos de uso.                                  |
 | **Unidades** | Administrador global | Criar, renomear e ativar/desativar unidades.                         |
 
-No canto superior direito fica o **menu do seu perfil** (avatar e nome do papel).
-Clicando nele, você acessa **Minha conta** e **Sair**.
+No canto superior direito, ao lado do menu do seu perfil, fica o **sino de
+notificações**. Um número sobre o sino indica quantas notificações você ainda não
+leu. Clique nele para ver a lista — por exemplo, avisos de que você recebeu um
+acesso temporário ou de que ele está prestes a vencer. Abrir uma notificação a
+marca como lida, mas ela continua disponível na lista.
+
+No canto superior direito fica também o **menu do seu perfil** (avatar e nome do
+papel). Clicando nele, você acessa **Minha conta** e **Sair**.
 
 ---
 
@@ -301,10 +307,29 @@ As permissões são geridas **por recurso** (pasta ou arquivo), na própria pág
 
 1. Escolha a **pessoa**.
 2. Marque os **verbos** desejados: **Visualizar, Baixar, Enviar, Renomear, Excluir**.
-3. Clique em **Conceder**.
+3. Opcionalmente, informe um **prazo de expiração**. Deixe em branco para uma
+   concessão **permanente**, que vale até ser revogada manualmente.
+4. Clique em **Conceder**.
 
-As concessões ativas aparecem em **Concessões vigentes**, onde você pode **Revogar**
-cada uma individualmente.
+As concessões aparecem em **Concessões**, cada uma marcada como **vigente** (com a
+data do vencimento, se houver) ou **expirada**. Você pode **Revogar** qualquer uma
+individualmente, vigente ou expirada.
+
+> **Expirar não é revogar.** Quando o prazo é atingido, o acesso é encerrado
+> automaticamente, mas a concessão **permanece registrada** na lista, marcada como
+> expirada — isso preserva o histórico de quem teve acesso e até quando. Só
+> **Revogar** remove a concessão da lista.
+
+> **Reconceder atualiza o prazo.** Conceder de novo o mesmo verbo para a mesma
+> pessoa sobre o mesmo recurso substitui o prazo anterior pelo novo — estendendo ou
+> encurtando o acesso. Reconceder **sem** informar prazo torna a concessão
+> **permanente**, mesmo que ela tivesse um prazo antes.
+
+> **Avisos automáticos.** Quando você concede um acesso **com prazo**, a pessoa é
+> avisada na hora, pela central de notificações. Conforme o vencimento se aproxima,
+> ela recebe um novo aviso. Quando o prazo é atingido e o acesso é encerrado, a
+> **administração da unidade** (você) recebe um aviso identificando a pessoa, o
+> recurso e o verbo cortado.
 
 > **Sem herança automática:** conceder permissão sobre uma **pasta** libera **apenas
 > aquela pasta** — não os arquivos e subpastas internos, que precisam de concessão
@@ -427,16 +452,6 @@ você fez a troca.
 "Pessoas" e "Painel" são exclusivos de administradores, e "Unidades" é exclusivo do
 administrador global. Se você precisa deles, converse com a área administrativa sobre
 o seu perfil.
-
----
-
-## 10. Recursos previstos (ainda não disponíveis)
-
-Estes recursos constam do planejamento do produto e **ainda não estão nesta versão**:
-
-- **Prazo de expiração para permissões**, com aviso prévio à pessoa e à administração
-  no momento do corte — hoje as permissões valem até serem **revogadas manualmente**
-  em **Permissões → Revogar**.
 
 ---
 

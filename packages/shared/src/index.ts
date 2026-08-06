@@ -9,3 +9,4 @@ export * from './permissions.js';
 export * from './trash.js';
 export * from './dashboard.js';
 export * from './search.js';
+export * from './notifications.js';

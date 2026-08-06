@@ -11,6 +11,7 @@
     "seed": "tsx src/db/seed.ts",
     "bootstrap": "tsx src/db/bootstrap.ts",
     "purge:trash": "tsx src/jobs/purge-trash.ts",
+    "notify:grants": "tsx src/jobs/notify-expiring-grants.ts",
     "backfill:pending": "tsx src/jobs/backfill-pending-finalize.ts",
     "test": "vitest run",
     "lint": "eslint ."

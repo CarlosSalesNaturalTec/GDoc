@@ -30,6 +30,13 @@ function stubFetch(handler: (path: string, method: string, init?: RequestInit) =
       const url = typeof input === 'string' ? input : input.toString();
       const path = new URL(url, 'http://localhost').pathname;
       const method = (init?.method ?? 'GET').toUpperCase();
+      // A central de notificações do shell (change `expiracao-permissoes`)
+      // consulta `/notifications/unread-count` em qualquer página — resposta
+      // neutra aqui para não cair no fallback "não deveria ser chamado" dos
+      // handlers desta suíte, que é sobre URLs de bytes, não sobre o shell.
+      if (path === '/notifications/unread-count') {
+        return new Response(JSON.stringify({ count: 0 }), { status: 200 });
+      }
       return handler(path, method, init);
     }),
   );

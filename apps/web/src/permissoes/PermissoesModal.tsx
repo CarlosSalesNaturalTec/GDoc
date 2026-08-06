@@ -1,10 +1,12 @@
 import { useMemo } from 'react';
-import { Alert, App, Button, Checkbox, Divider, Empty, Form, Modal, Popconfirm, Select, Space, Tag } from 'antd';
+import { Alert, App, Button, Checkbox, DatePicker, Divider, Empty, Form, Modal, Popconfirm, Select, Space, Tag, Typography } from 'antd';
+import type { Dayjs } from 'dayjs';
 import type { GrantResponse } from '@gdoc/shared';
 import { GrantResourceType, Permission } from '@gdoc/shared';
 import { ApiError } from '../lib/api-client';
 import { useSession } from '../auth/session-context';
 import { useAuthorOptions } from '../busca/queries';
+import { formatDate } from '../navegacao/format';
 import { useCreateGrant, useGrants, useRevokeGrant } from './queries';
 
 interface PermissoesModalProps {
@@ -18,10 +20,15 @@ interface PermissoesModalProps {
 interface GrantFormValues {
   subjectUserId: string;
   permissions: Permission[];
+  expiresAt?: Dayjs | null;
 }
 
-/** Rótulo pt-BR por verbo (design.md D6) — fonte única é o enum `Permission` de `@gdoc/shared`. */
-const VERB_LABEL: Record<Permission, string> = {
+/**
+ * Rótulo pt-BR por verbo (design.md D6) — fonte única é o enum `Permission`
+ * de `@gdoc/shared`. Exportado para reuso pela central de notificações
+ * (change `expiracao-permissoes`), que também precisa nomear verbos.
+ */
+export const VERB_LABEL: Record<Permission, string> = {
   [Permission.VIEW]: 'Visualizar',
   [Permission.DOWNLOAD]: 'Baixar',
   [Permission.UPLOAD]: 'Enviar',
@@ -34,6 +41,12 @@ const VERB_OPTIONS = Object.values(Permission).map((permission) => ({
   label: VERB_LABEL[permission],
 }));
 
+/** Rótulo do prazo de uma concessão (change `expiracao-permissoes`, design.md D2). */
+function expiryLabel(grant: GrantResponse): string {
+  if (!grant.expiresAt) return 'Permanente';
+  return grant.expired ? `Expirada em ${formatDate(grant.expiresAt)}` : `Até ${formatDate(grant.expiresAt)}`;
+}
+
 /**
  * Diálogo de gestão de permissões de um recurso (US 4.1, `web-permissoes`,
  * design.md D1). Ponto de entrada é a ação "Permissões" por-linha do
@@ -44,6 +57,7 @@ export function PermissoesModal({ resourceType, resourceId, resourceName, open, 
   const { message } = App.useApp();
   const { identity } = useSession();
   const [form] = Form.useForm<GrantFormValues>();
+  const selectedSubjectId = Form.useWatch('subjectUserId', form);
 
   const { data: grantsData } = useGrants(resourceType, resourceId, open);
   const authorOptions = useAuthorOptions(identity?.role);
@@ -70,6 +84,11 @@ export function PermissoesModal({ resourceType, resourceId, resourceName, open, 
     return map;
   }, [grantsData]);
 
+  // design.md D3: reconceder faz o prazo informado prevalecer — sem
+  // oferecer o campo em branco como se fosse neutro, a pessoa que concede
+  // precisa ver o que a pessoa já tem antes de decidir deixar em branco.
+  const selectedPersonGrants = selectedSubjectId ? grantsByPerson.get(selectedSubjectId) ?? [] : [];
+
   // design.md Risks: 404 (recurso/pessoa inexistente ou de outra unidade) e
   // 403 não são distinguidos — mensagem neutra, preservando o fail-closed do servidor.
   function handleMutationError(err: unknown) {
@@ -87,6 +106,7 @@ export function PermissoesModal({ resourceType, resourceId, resourceName, open, 
         resourceType,
         resourceId,
         permissions: values.permissions,
+        expiresAt: values.expiresAt ? values.expiresAt.toISOString() : undefined,
       });
       form.resetFields();
     } catch (err) {
@@ -153,6 +173,23 @@ export function PermissoesModal({ resourceType, resourceId, resourceName, open, 
         >
           <Checkbox.Group options={VERB_OPTIONS} />
         </Form.Item>
+        {selectedPersonGrants.length > 0 && (
+          <Typography.Paragraph type="secondary" style={{ fontSize: 12, marginTop: -8 }}>
+            Prazo atual desta pessoa neste recurso:{' '}
+            {selectedPersonGrants.map((grant) => `${VERB_LABEL[grant.permission]} (${expiryLabel(grant)})`).join(', ')}.
+          </Typography.Paragraph>
+        )}
+        <Form.Item
+          name="expiresAt"
+          label="Prazo de expiração (opcional)"
+          extra="Em branco = concessão permanente. Reconceder em branco um verbo que tinha prazo o torna permanente; reconceder com novo prazo o substitui."
+        >
+          <DatePicker
+            style={{ width: '100%' }}
+            format="DD/MM/YYYY"
+            disabledDate={(date) => date.isBefore(new Date(), 'day')}
+          />
+        </Form.Item>
         <Form.Item>
           <Button type="primary" htmlType="submit" loading={createGrant.isPending}>
             Conceder
@@ -162,7 +199,7 @@ export function PermissoesModal({ resourceType, resourceId, resourceName, open, 
 
       <Divider />
 
-      <h4>Concessões vigentes</h4>
+      <h4>Concessões</h4>
       <div>
         {grantsByPerson.size === 0 ? (
           <Empty description="Nenhuma concessão" />
@@ -174,6 +211,7 @@ export function PermissoesModal({ resourceType, resourceId, resourceName, open, 
                 {grants.map((grant) => (
                   <Space key={grant.id}>
                     <Tag>{VERB_LABEL[grant.permission]}</Tag>
+                    <Tag color={grant.expired ? 'red' : grant.expiresAt ? 'orange' : 'default'}>{expiryLabel(grant)}</Tag>
                     <Popconfirm
                       title="Revogar permissão"
                       description={`Remover "${VERB_LABEL[grant.permission]}" desta pessoa sobre este recurso?`}

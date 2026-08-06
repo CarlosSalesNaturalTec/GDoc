@@ -65,6 +65,8 @@ function grant(
     resourceId: 'file-1',
     grantedBy: 'admin-1',
     createdAt: '2026-07-10T10:00:00.000Z',
+    expiresAt: null,
+    expired: false,
     ...overrides,
   };
 }
@@ -86,11 +88,13 @@ function postBodies(path: string): unknown[] {
 
 /**
  * Rótulos de verbo aparecem tanto no `Checkbox.Group` do formulário quanto nas
- * `Tag` da lista de vigentes — escopa à seção "Concessões vigentes" (o
- * elemento logo após o `<h4>`) para evitar ambiguidade entre os dois.
+ * `Tag` da lista de concessões — escopa à seção "Concessões" (o elemento logo
+ * após o `<h4>`) para evitar ambiguidade entre os dois. O título deixou de
+ * ser "Concessões vigentes" (change `expiracao-permissoes`, design.md D2):
+ * a seção agora mistura vigentes e expiradas.
  */
 function vigentesSection(dialog: HTMLElement): HTMLElement {
-  const heading = within(dialog).getByText('Concessões vigentes');
+  const heading = within(dialog).getByText('Concessões');
   return heading.nextElementSibling as HTMLElement;
 }
 
@@ -269,6 +273,83 @@ describe('Gestão de permissões da SPA (web-permissoes)', () => {
 
     const dialog = await findDialogByTitle('Permissões — relatorio.pdf');
     await within(dialog).findByText('Nenhuma concessão');
+  });
+
+  it('10.1: campo de prazo é opcional — conceder com prazo envia expiresAt; sem prazo o omite (change expiracao-permissoes)', async () => {
+    const fileX = file({ id: 'file-1', fileName: 'relatorio.pdf' });
+    const fulano = person({ id: 'person-1', fullName: 'Fulano' });
+    const viewGrantWithDeadline = grant({
+      id: 'grant-1',
+      subjectUserId: 'person-1',
+      permission: Permission.VIEW,
+      expiresAt: '2099-12-31T00:00:00.000Z',
+    });
+
+    mockFetch({
+      'GET /auth/me': { status: 200, body: ADMIN },
+      'GET /folders/root/contents': { status: 200, body: contents({ files: [fileX] }) },
+      'GET /users': { status: 200, body: [fulano] },
+      'GET /grants': [
+        { status: 200, body: { grants: [] } },
+        { status: 200, body: { grants: [viewGrantWithDeadline] } },
+      ],
+      'POST /grants': { status: 201, body: { grants: [viewGrantWithDeadline] } },
+    });
+
+    renderApp(['/pastas']);
+    await screen.findByText('relatorio.pdf');
+    await userEvent.click(screen.getByRole('button', { name: /permissões/i }));
+
+    const dialog = await findDialogByTitle('Permissões — relatorio.pdf');
+    await selectPerson(dialog, 'Fulano');
+    await userEvent.click(within(dialog).getByRole('checkbox', { name: 'Visualizar' }));
+
+    const dateInput = within(dialog).getByLabelText('Prazo de expiração (opcional)');
+    await userEvent.type(dateInput, '31/12/2099{enter}');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Conceder' }));
+
+    await waitFor(() => {
+      const bodies = postBodies('/grants') as { expiresAt?: string }[];
+      expect(bodies.some((body) => typeof body.expiresAt === 'string' && body.expiresAt.startsWith('2099-12-31'))).toBe(
+        true,
+      );
+    });
+  }, 10000);
+
+  it('10.2: listagem distingue vigente de expirada (change expiracao-permissoes, design.md D2)', async () => {
+    const fileX = file({ id: 'file-1', fileName: 'relatorio.pdf' });
+    const fulano = person({ id: 'person-1', fullName: 'Fulano' });
+    const vigente = grant({
+      id: 'grant-1',
+      subjectUserId: 'person-1',
+      permission: Permission.VIEW,
+      expiresAt: '2099-01-01T00:00:00.000Z',
+      expired: false,
+    });
+    const expirada = grant({
+      id: 'grant-2',
+      subjectUserId: 'person-1',
+      permission: Permission.DOWNLOAD,
+      expiresAt: '2020-01-01T00:00:00.000Z',
+      expired: true,
+    });
+
+    mockFetch({
+      'GET /auth/me': { status: 200, body: ADMIN },
+      'GET /folders/root/contents': { status: 200, body: contents({ files: [fileX] }) },
+      'GET /users': { status: 200, body: [fulano] },
+      'GET /grants': { status: 200, body: { grants: [vigente, expirada] } },
+    });
+
+    renderApp(['/pastas']);
+    await screen.findByText('relatorio.pdf');
+    await userEvent.click(screen.getByRole('button', { name: /permissões/i }));
+
+    const dialog = await findDialogByTitle('Permissões — relatorio.pdf');
+    const section = await waitFor(() => vigentesSection(dialog));
+
+    within(section).getByText(/Até/);
+    within(section).getByText(/^Expirada em/);
   });
 
   it('o aviso de não-herança está visível ao abrir o modal de uma pasta e ausente para arquivo (US 4.1 cenário 2)', async () => {

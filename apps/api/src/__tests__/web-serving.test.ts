@@ -6,6 +6,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createApp } from '../app.js';
 import { PgDatabasePort } from '../adapters/pg-database-port.js';
+import { InAppNotificationPort } from '../adapters/in-app-notification-port.js';
 import { EnvSecretsPort } from '../adapters/env-secrets-port.js';
 import { Argon2AuthPort } from '../adapters/argon2-auth-port.js';
 import { InMemoryStoragePort } from './in-memory-storage-port.js';
@@ -22,8 +23,10 @@ describe('Serving da SPA (apps/web/dist) pela API — deploy-frontend-gcp', () =
     pool = setup.pool;
 
     const secrets = new EnvSecretsPort();
+    const database = new PgDatabasePort();
     ports = {
-      database: new PgDatabasePort(),
+      database,
+      notifications: new InAppNotificationPort(database),
       storage: new InMemoryStoragePort(),
       secrets,
       auth: new Argon2AuthPort(secrets),
@@ -79,6 +82,13 @@ describe('Serving da SPA (apps/web/dist) pela API — deploy-frontend-gcp', () =
       const res = await request(app).get('/auth/me');
       expect(res.status).toBe(401);
       expect(res.body).toEqual({ error: 'not authenticated' });
+    });
+
+    it('GET /notifications sem sessão mantém o contrato da API (401), não HTML (change expiracao-permissoes)', async () => {
+      const app = createApp(ports, { webDistDir });
+      const res = await request(app).get('/notifications');
+      expect(res.status).toBe(401);
+      expect(res.text).not.toContain('SPA');
     });
 
     it('POST /caminho-desconhecido devolve 404 sem HTML da SPA', async () => {

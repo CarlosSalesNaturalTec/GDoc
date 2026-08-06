@@ -22,7 +22,20 @@ A concessão SHALL ser registrada como uma linha por `(pessoa, recurso, verbo)`,
 de forma **idempotente**: reconceder um verbo já concedido não SHALL criar
 duplicata nem falhar. A concessão SHALL registrar quem concedeu. Conceder apenas um
 verbo (ex.: `view`) NÃO SHALL implicar os demais verbos nem acesso a outros itens.
-Referência: PRD US 4.1, cenário 1.
+
+A concessão SHALL admitir um **prazo de expiração opcional**. Ausência de prazo
+SHALL significar concessão **permanente**, que vale até ser revogada manualmente —
+preservando o comportamento de toda concessão anterior a esta mudança, sem
+necessidade de conversão de dados. O prazo SHALL ser informado por concessão, e
+verbos distintos concedidos numa mesma operação SHALL poder receber o mesmo prazo.
+
+Reconceder um verbo já concedido SHALL fazer o **prazo informado passar a valer**,
+seja ele mais distante ou mais próximo que o vigente — o último ato administrativo
+prevalece. Reconceder **sem informar prazo** um verbo que possuía prazo SHALL
+torná-lo permanente. Em nenhum desses casos a reconcessão SHALL duplicar a linha
+ou falhar, e ela SHALL atualizar o registro de quem concedeu, de modo que a trilha
+reflita quem alterou o prazo. Referência: PRD US 4.1, cenário 1; US 4.3;
+design.md D3 do change `expiracao-permissoes`.
 
 #### Scenario: Concessão de um único verbo sobre arquivos selecionados
 - **WHEN** um administrador concede apenas `view` a uma pessoa sobre um ou mais
@@ -40,6 +53,30 @@ Referência: PRD US 4.1, cenário 1.
   uma pessoa sobre um recurso
 - **THEN** cada verbo do conjunto é registrado para aquela pessoa e recurso, e
   qualquer verbo já existente é preservado sem duplicação
+
+#### Scenario: Concessão sem prazo é permanente
+- **WHEN** um administrador concede um verbo sem informar prazo de expiração
+- **THEN** a concessão vale até ser revogada manualmente
+
+#### Scenario: Concessão com prazo registra o vencimento
+- **WHEN** um administrador concede um verbo informando um prazo de expiração
+- **THEN** a concessão é registrada com esse vencimento e vale até que ele seja
+  atingido
+
+#### Scenario: Reconceder com novo prazo estende o acesso
+- **WHEN** um administrador reconcede, com prazo mais distante, um verbo que a
+  pessoa já possuía com prazo
+- **THEN** o novo prazo passa a valer, sem duplicar a concessão
+
+#### Scenario: Reconceder com prazo mais próximo encurta o acesso
+- **WHEN** um administrador reconcede, com prazo mais próximo, um verbo que a
+  pessoa já possuía
+- **THEN** o novo prazo passa a valer, encurtando o acesso
+
+#### Scenario: Reconceder sem prazo torna a concessão permanente
+- **WHEN** um administrador reconcede, sem informar prazo, um verbo que a pessoa
+  possuía com prazo de expiração
+- **THEN** a concessão passa a ser permanente
 
 ### Requirement: Ausência de herança para o conteúdo interno de pastas
 
@@ -71,7 +108,17 @@ por `unit_id` é a garantia final, mesmo que a checagem de papel falhasse), enqu
 inexistente ou de outra unidade, ou a uma pessoa inexistente ou de outra unidade,
 SHALL ser recusado sem vazar a existência do recurso/pessoa. Revogar um verbo SHALL
 remover a linha correspondente, sem afetar os demais verbos nem os registros de
-auditoria de acessos já ocorridos. Referência: PRD US 4.1; Épico 5 (isolamento).
+auditoria de acessos já ocorridos.
+
+A listagem de concessões de um recurso SHALL informar, para cada concessão, o seu
+**prazo de expiração** quando houver, e SHALL **distinguir concessões vigentes de
+concessões expiradas**. Uma concessão expirada SHALL permanecer registrada e
+visível na listagem, marcada como expirada — **expirar não é revogar**: o
+vencimento torna a concessão inerte para efeito de acesso, mas preserva a trilha
+de que aquela pessoa teve aquele acesso e até quando, de modo que registros de
+auditoria anteriores permaneçam interpretáveis. Apenas a revogação SHALL remover a
+concessão do registro. Referência: PRD US 4.1; US 4.3; Épico 5 (isolamento);
+design.md D2 do change `expiracao-permissoes`.
 
 #### Scenario: Colaborador não pode conceder
 - **WHEN** um `collaborator` tenta conceder uma permissão
@@ -88,3 +135,18 @@ auditoria de acessos já ocorridos. Referência: PRD US 4.1; Épico 5 (isolament
 - **THEN** aquele verbo deixa de valer para a pessoa, os outros verbos que ela
   possuía sobre o mesmo recurso permanecem, e a auditoria de acessos anteriores é
   preservada
+
+#### Scenario: Listagem informa o vencimento e o estado da concessão
+- **WHEN** um administrador lista as concessões de um recurso que tem concessões
+  permanentes, com prazo futuro e já vencidas
+- **THEN** vê o prazo de cada uma que o possui e distingue as vigentes das
+  expiradas
+
+#### Scenario: Concessão expirada permanece registrada
+- **WHEN** o prazo de uma concessão é atingido
+- **THEN** a concessão continua aparecendo na listagem, marcada como expirada, em
+  vez de desaparecer do registro
+
+#### Scenario: Revogar remove o registro, ao contrário de expirar
+- **WHEN** um administrador revoga uma concessão expirada
+- **THEN** a concessão deixa de constar da listagem

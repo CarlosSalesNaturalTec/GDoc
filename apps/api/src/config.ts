@@ -58,6 +58,11 @@ export const config = {
   // Retenção da lixeira em dias (design.md D6/D7) — corte do expurgo diário.
   trashRetentionDays: Number(optional('TRASH_RETENTION_DAYS', '30')),
 
+  // Janela de antecedência do aviso prévio de expiração de permissão (change
+  // `expiracao-permissoes`, design.md D6) — default de 7 dias confirmado
+  // pelo cliente, configurável por ambiente e nunca fixo no código.
+  grantExpiringNoticeWindowDays: Number(optional('GRANT_EXPIRING_NOTICE_WINDOW_DAYS', '7')),
+
   // Tetos do manifesto de download de pasta (change download-pasta-zip,
   // design.md D5): compactação acontece no navegador, então o limite
   // protege a memória do cliente, não o servidor. Configuráveis por

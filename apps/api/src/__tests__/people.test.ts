@@ -5,6 +5,7 @@ import * as argon2 from 'argon2';
 import { UserRole } from '@gdoc/shared';
 import { createApp } from '../app.js';
 import { PgDatabasePort } from '../adapters/pg-database-port.js';
+import { InAppNotificationPort } from '../adapters/in-app-notification-port.js';
 import { EnvSecretsPort } from '../adapters/env-secrets-port.js';
 import { Argon2AuthPort } from '../adapters/argon2-auth-port.js';
 import { InMemoryStoragePort } from './in-memory-storage-port.js';
@@ -57,8 +58,10 @@ describe('Gestão de pessoas: POST/GET/PATCH /users', () => {
     collaboratorA2Id = ids.users[4]!.id;
 
     const secrets = new EnvSecretsPort();
+    const database = new PgDatabasePort();
     ports = {
-      database: new PgDatabasePort(),
+      database,
+      notifications: new InAppNotificationPort(database),
       storage: new InMemoryStoragePort(),
       secrets,
       auth: new Argon2AuthPort(secrets),

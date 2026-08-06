@@ -45,6 +45,7 @@ locals {
     "/audit",
     "/dashboard",
     "/search",
+    "/notifications",
     "/health",
   ]
 }
