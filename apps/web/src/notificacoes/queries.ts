@@ -1,7 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { NotificationListResponse, UnreadNotificationCountResponse } from '@gdoc/shared';
 import { apiClient } from '../lib/api-client';
-import { notificationListResponseSchema, unreadNotificationCountResponseSchema } from '../lib/schemas';
+import {
+  notificationListResponseSchema,
+  unreadNotificationCountResponseSchema,
+} from '../lib/schemas';
 
 const NOTIFICATIONS_KEY = 'notifications';
 const UNREAD_COUNT_KEY = 'notifications-unread-count';
@@ -23,7 +26,9 @@ export function useUnreadNotificationCount() {
   return useQuery({
     queryKey: [UNREAD_COUNT_KEY],
     queryFn: async () => {
-      const raw = await apiClient.get<UnreadNotificationCountResponse>('/notifications/unread-count');
+      const raw = await apiClient.get<UnreadNotificationCountResponse>(
+        '/notifications/unread-count',
+      );
       return unreadNotificationCountResponseSchema.parse(raw).count;
     },
   });

@@ -25,7 +25,9 @@ function folder(overrides: Partial<FolderResponse> & { id: string; name: string 
   };
 }
 
-function file(overrides: Partial<FileSummaryResponse> & { id: string; fileName: string }): FileSummaryResponse {
+function file(
+  overrides: Partial<FileSummaryResponse> & { id: string; fileName: string },
+): FileSummaryResponse {
   return {
     ownerId: 'user-1',
     folderId: null,
@@ -41,7 +43,9 @@ function contents(overrides: Partial<FolderContentsResponse> = {}): FolderConten
   return { folder: null, breadcrumb: [], folders: [], files: [], ...overrides };
 }
 
-function person(overrides: Partial<PersonResponse> & { id: string; fullName: string }): PersonResponse {
+function person(
+  overrides: Partial<PersonResponse> & { id: string; fullName: string },
+): PersonResponse {
   return {
     unitId: 'unit-1',
     email: `${overrides.id}@example.com`,
@@ -82,7 +86,10 @@ async function findDialogByTitle(title: string): Promise<HTMLElement> {
 
 function postBodies(path: string): unknown[] {
   return (global.fetch as ReturnType<typeof vi.fn>).mock.calls
-    .filter((call) => String(call[0]).includes(path) && (call[1] as RequestInit | undefined)?.method === 'POST')
+    .filter(
+      (call) =>
+        String(call[0]).includes(path) && (call[1] as RequestInit | undefined)?.method === 'POST',
+    )
     .map((call) => JSON.parse(String((call[1] as RequestInit).body)));
 }
 
@@ -147,13 +154,20 @@ describe('Gestão de permissões da SPA (web-permissoes)', () => {
   it('conceder só view envia POST /grants com permissions:["view"] e os vigentes recarregam mostrando só view (US 4.1 cenário 1)', async () => {
     const fileX = file({ id: 'file-1', fileName: 'relatorio.pdf' });
     const fulano = person({ id: 'person-1', fullName: 'Fulano' });
-    const viewGrant = grant({ id: 'grant-1', subjectUserId: 'person-1', permission: Permission.VIEW });
+    const viewGrant = grant({
+      id: 'grant-1',
+      subjectUserId: 'person-1',
+      permission: Permission.VIEW,
+    });
 
     mockFetch({
       'GET /auth/me': { status: 200, body: ADMIN },
       'GET /folders/root/contents': { status: 200, body: contents({ files: [fileX] }) },
       'GET /users': { status: 200, body: [fulano] },
-      'GET /grants': [{ status: 200, body: { grants: [] } }, { status: 200, body: { grants: [viewGrant] } }],
+      'GET /grants': [
+        { status: 200, body: { grants: [] } },
+        { status: 200, body: { grants: [viewGrant] } },
+      ],
       'POST /grants': { status: 201, body: { grants: [viewGrant] } },
     });
 
@@ -170,7 +184,9 @@ describe('Gestão de permissões da SPA (web-permissoes)', () => {
 
     await waitFor(() => {
       const bodies = postBodies('/grants') as { permissions: string[] }[];
-      expect(bodies.some((body) => JSON.stringify(body.permissions) === JSON.stringify(['view']))).toBe(true);
+      expect(
+        bodies.some((body) => JSON.stringify(body.permissions) === JSON.stringify(['view'])),
+      ).toBe(true);
     });
 
     await waitFor(() => within(vigentesSection(dialog)).getByText('Visualizar'));
@@ -228,8 +244,16 @@ describe('Gestão de permissões da SPA (web-permissoes)', () => {
   it('revogar um verbo chama DELETE /grants/:id e remove só aquele verbo, preservando os demais (US 4.1)', async () => {
     const fileX = file({ id: 'file-1', fileName: 'relatorio.pdf' });
     const fulano = person({ id: 'person-1', fullName: 'Fulano' });
-    const viewGrant = grant({ id: 'grant-1', subjectUserId: 'person-1', permission: Permission.VIEW });
-    const downloadGrant = grant({ id: 'grant-2', subjectUserId: 'person-1', permission: Permission.DOWNLOAD });
+    const viewGrant = grant({
+      id: 'grant-1',
+      subjectUserId: 'person-1',
+      permission: Permission.VIEW,
+    });
+    const downloadGrant = grant({
+      id: 'grant-2',
+      subjectUserId: 'person-1',
+      permission: Permission.DOWNLOAD,
+    });
 
     mockFetch({
       'GET /auth/me': { status: 200, body: ADMIN },
@@ -249,11 +273,15 @@ describe('Gestão de permissões da SPA (web-permissoes)', () => {
     const dialog = await findDialogByTitle('Permissões — relatorio.pdf');
     await waitFor(() => within(vigentesSection(dialog)).getByText('Baixar'));
 
-    const downloadTag = within(vigentesSection(dialog)).getByText('Baixar').closest('.ant-space') as HTMLElement;
+    const downloadTag = within(vigentesSection(dialog))
+      .getByText('Baixar')
+      .closest('.ant-space') as HTMLElement;
     await userEvent.click(within(downloadTag).getByRole('button', { name: 'Revogar' }));
     await userEvent.click(await screen.findByRole('button', { name: 'Sim, revogar' }));
 
-    await waitFor(() => expect(within(vigentesSection(dialog)).queryByText('Baixar')).not.toBeInTheDocument());
+    await waitFor(() =>
+      expect(within(vigentesSection(dialog)).queryByText('Baixar')).not.toBeInTheDocument(),
+    );
     expect(within(vigentesSection(dialog)).getByText('Visualizar')).toBeInTheDocument();
   }, 10000);
 
@@ -310,9 +338,11 @@ describe('Gestão de permissões da SPA (web-permissoes)', () => {
 
     await waitFor(() => {
       const bodies = postBodies('/grants') as { expiresAt?: string }[];
-      expect(bodies.some((body) => typeof body.expiresAt === 'string' && body.expiresAt.startsWith('2099-12-31'))).toBe(
-        true,
-      );
+      expect(
+        bodies.some(
+          (body) => typeof body.expiresAt === 'string' && body.expiresAt.startsWith('2099-12-31'),
+        ),
+      ).toBe(true);
     });
   }, 10000);
 
@@ -358,7 +388,10 @@ describe('Gestão de permissões da SPA (web-permissoes)', () => {
 
     mockFetch({
       'GET /auth/me': { status: 200, body: ADMIN },
-      'GET /folders/root/contents': { status: 200, body: contents({ folders: [folderX], files: [fileX] }) },
+      'GET /folders/root/contents': {
+        status: 200,
+        body: contents({ folders: [folderX], files: [fileX] }),
+      },
       'GET /users': { status: 200, body: [] },
       'GET /grants': { status: 200, body: { grants: [] } },
     });

@@ -20,7 +20,20 @@ const CATEGORY_LABEL: Record<FileCategory, string> = {
 
 const CATEGORY_ORDER = Object.values(FileCategoryEnum) as FileCategory[];
 
-const MONTH_LABELS = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+const MONTH_LABELS = [
+  'jan',
+  'fev',
+  'mar',
+  'abr',
+  'mai',
+  'jun',
+  'jul',
+  'ago',
+  'set',
+  'out',
+  'nov',
+  'dez',
+];
 
 /** `YYYY-MM` → rótulo curto pt-BR "mmm/aa" (design.md D3), sem depender de locale global de `dayjs`. */
 function formatMonthLabel(month: string): string {
@@ -110,7 +123,12 @@ export function PainelPage() {
         </Col>
         <Col span={6}>
           <Card>
-            <Statistic title="Cota utilizada" value={data.cards.quotaUsedPct * 100} precision={1} suffix="%" />
+            <Statistic
+              title="Cota utilizada"
+              value={data.cards.quotaUsedPct * 100}
+              precision={1}
+              suffix="%"
+            />
           </Card>
         </Col>
       </Row>

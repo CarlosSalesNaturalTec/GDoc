@@ -44,7 +44,10 @@ export class Argon2AuthPort implements AuthPort {
     return argon2.verify(hash, plainTextPassword);
   }
 
-  async issueSession(claims: Pick<SessionClaims, 'sub'>, issuedAt: Date = new Date()): Promise<string> {
+  async issueSession(
+    claims: Pick<SessionClaims, 'sub'>,
+    issuedAt: Date = new Date(),
+  ): Promise<string> {
     const secret = await this.getSecret();
     const header = base64UrlEncode(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
     const iat = Math.floor(issuedAt.getTime() / 1000);
@@ -78,7 +81,11 @@ export class Argon2AuthPort implements AuthPort {
     // emitido antes deste deploy, não deve ser aceito por reencontrar o mesmo
     // efeito prático do backfill de `password_changed_at` por um caminho não
     // testado.
-    if (typeof parsed.sub !== 'string' || typeof parsed.iat !== 'number' || typeof parsed.exp !== 'number') {
+    if (
+      typeof parsed.sub !== 'string' ||
+      typeof parsed.iat !== 'number' ||
+      typeof parsed.exp !== 'number'
+    ) {
       return null;
     }
     if (parsed.exp < Math.floor(Date.now() / 1000)) return null;

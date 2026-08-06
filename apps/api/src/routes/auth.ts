@@ -110,28 +110,32 @@ export function authRouter(ports: Ports): Router {
         return;
       }
 
-      type ChangeOutcome = { kind: 'ok'; passwordChangedAt: string } | { kind: 'wrong_current_password' };
+      type ChangeOutcome =
+        { kind: 'ok'; passwordChangedAt: string } | { kind: 'wrong_current_password' };
 
-      const outcome = await ports.database.withTenantTransaction<ChangeOutcome>(ctx, async (client) => {
-        const { rows } = await client.query<{ password_hash: string }>(
-          'SELECT password_hash FROM users WHERE id = $1',
-          [ctx.userId],
-        );
-        const currentHash = rows[0]!.password_hash;
+      const outcome = await ports.database.withTenantTransaction<ChangeOutcome>(
+        ctx,
+        async (client) => {
+          const { rows } = await client.query<{ password_hash: string }>(
+            'SELECT password_hash FROM users WHERE id = $1',
+            [ctx.userId],
+          );
+          const currentHash = rows[0]!.password_hash;
 
-        // Prova de posse (US 1.3): sem isso, uma sessão sequestrada poderia
-        // trocar a senha sem nunca ter conhecido a original.
-        if (!(await ports.auth.verifyPassword(currentHash, body.currentPassword))) {
-          return { kind: 'wrong_current_password' };
-        }
+          // Prova de posse (US 1.3): sem isso, uma sessão sequestrada poderia
+          // trocar a senha sem nunca ter conhecido a original.
+          if (!(await ports.auth.verifyPassword(currentHash, body.currentPassword))) {
+            return { kind: 'wrong_current_password' };
+          }
 
-        const newHash = await ports.auth.hashPassword(body.newPassword);
-        const { rows: updated } = await client.query<{ password_changed_at: string }>(
-          'UPDATE users SET password_hash = $1, password_changed_at = now() WHERE id = $2 RETURNING password_changed_at',
-          [newHash, ctx.userId],
-        );
-        return { kind: 'ok', passwordChangedAt: updated[0]!.password_changed_at };
-      });
+          const newHash = await ports.auth.hashPassword(body.newPassword);
+          const { rows: updated } = await client.query<{ password_changed_at: string }>(
+            'UPDATE users SET password_hash = $1, password_changed_at = now() WHERE id = $2 RETURNING password_changed_at',
+            [newHash, ctx.userId],
+          );
+          return { kind: 'ok', passwordChangedAt: updated[0]!.password_changed_at };
+        },
+      );
 
       // Erro específico (design.md D9): diferente da resposta genérica do
       // login — quem chama já está autenticado como a própria pessoa, então
@@ -144,7 +148,10 @@ export function authRouter(ports: Ports): Router {
       // O `iat` da sessão reemitida vem do instante gravado no Postgres, não
       // do relógio do Node (design.md D2) — fonte única de tempo, para a
       // própria troca de senha não derrubar a sessão que deveria sobreviver.
-      const token = await ports.auth.issueSession({ sub: ctx.userId }, new Date(outcome.passwordChangedAt));
+      const token = await ports.auth.issueSession(
+        { sub: ctx.userId },
+        new Date(outcome.passwordChangedAt),
+      );
       res.cookie(SESSION_COOKIE_NAME, token, {
         ...sessionCookieOptions(),
         maxAge: config.authSessionTtlSeconds * 1000,

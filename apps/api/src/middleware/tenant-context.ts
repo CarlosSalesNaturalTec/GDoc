@@ -51,7 +51,9 @@ export function attachTenantContext(ports: Ports) {
             role: string;
             status: string;
             password_changed_at: string;
-          }>('SELECT id, unit_id, role, status, password_changed_at FROM users WHERE id = $1', [claims.sub]);
+          }>('SELECT id, unit_id, role, status, password_changed_at FROM users WHERE id = $1', [
+            claims.sub,
+          ]);
           return rows[0];
         },
       );
@@ -65,7 +67,9 @@ export function attachTenantContext(ports: Ports) {
       // `troca-de-senha`, design.md D1) — mesmo ponto em que se recusa a
       // sessão de conta desativada, sem depender de expirar o token nem
       // consultar tabela de sessões.
-      const passwordChangedAtSeconds = Math.floor(new Date(identity.password_changed_at).getTime() / 1000);
+      const passwordChangedAtSeconds = Math.floor(
+        new Date(identity.password_changed_at).getTime() / 1000,
+      );
       if (claims.iat < passwordChangedAtSeconds) {
         res.status(401).json({ error: 'not authenticated' });
         return;

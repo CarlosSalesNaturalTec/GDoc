@@ -3,7 +3,12 @@ import type { Ports } from '../ports/index.js';
 import { GrantResourceType } from '@gdoc/shared';
 import type { SearchFilesResponse, FileSummaryResponse } from '@gdoc/shared';
 import { isAdminOfUnit, visibleResourceClause } from '../lib/access.js';
-import { categoryContentTypeClause, isValidFileCategory, parseDateBoundary, exclusiveDayAfter } from '../lib/search-filters.js';
+import {
+  categoryContentTypeClause,
+  isValidFileCategory,
+  parseDateBoundary,
+  exclusiveDayAfter,
+} from '../lib/search-filters.js';
 
 interface FileSummaryRow {
   id: string;

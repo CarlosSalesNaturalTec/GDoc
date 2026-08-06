@@ -105,21 +105,24 @@ export const viewUrlResponseSchema: z.ZodType<ViewUrlResponse> = z.discriminated
 );
 
 /** Espelha `BatchUploadItemResult` (união discriminada em `ok`, design.md D8, `web-upload`). */
-export const batchUploadItemResultSchema: z.ZodType<BatchUploadItemResult> = z.discriminatedUnion('ok', [
-  z.object({
-    fileName: z.string(),
-    ok: z.literal(true),
-    uploadUrl: z.string(),
-    objectPath: z.string(),
-    folderId: z.string().nullable(),
-    expiresAt: z.string(),
-  }),
-  z.object({
-    fileName: z.string(),
-    ok: z.literal(false),
-    error: z.string(),
-  }),
-]);
+export const batchUploadItemResultSchema: z.ZodType<BatchUploadItemResult> = z.discriminatedUnion(
+  'ok',
+  [
+    z.object({
+      fileName: z.string(),
+      ok: z.literal(true),
+      uploadUrl: z.string(),
+      objectPath: z.string(),
+      folderId: z.string().nullable(),
+      expiresAt: z.string(),
+    }),
+    z.object({
+      fileName: z.string(),
+      ok: z.literal(false),
+      error: z.string(),
+    }),
+  ],
+);
 
 /** Espelha `BatchUploadUrlResponse` (design.md D8, `web-upload`). */
 export const batchUploadUrlResponseSchema: z.ZodType<BatchUploadUrlResponse> = z.object({
@@ -187,9 +190,8 @@ export const trashListResponseSchema: z.ZodType<TrashListResponse> = z.object({
  * (`redirectedToRoot`, design.md D7, `web-lixeira`) — reusa
  * `fileSummaryResponseSchema` por interseção em vez de repetir os campos.
  */
-export const fileRestoreResponseSchema: z.ZodType<FileRestoreResponse> = fileSummaryResponseSchema.and(
-  z.object({ redirectedToRoot: z.boolean() }),
-);
+export const fileRestoreResponseSchema: z.ZodType<FileRestoreResponse> =
+  fileSummaryResponseSchema.and(z.object({ redirectedToRoot: z.boolean() }));
 
 /** Espelha `PersonResponse` (design.md D7, `web-pessoas`) — fronteira de `GET/POST/PATCH /users`. */
 export const personResponseSchema: z.ZodType<PersonResponse> = z.object({
@@ -286,12 +288,13 @@ export const folderDownloadManifestEntrySchema: z.ZodType<FolderDownloadManifest
 });
 
 /** Espelha `FolderDownloadManifestResponse` (design.md D3, `download-pasta-zip`). */
-export const folderDownloadManifestResponseSchema: z.ZodType<FolderDownloadManifestResponse> = z.object({
-  entries: z.array(folderDownloadManifestEntrySchema),
-  totalFiles: z.number(),
-  allowedFiles: z.number(),
-  totalBytes: z.number(),
-});
+export const folderDownloadManifestResponseSchema: z.ZodType<FolderDownloadManifestResponse> =
+  z.object({
+    entries: z.array(folderDownloadManifestEntrySchema),
+    totalFiles: z.number(),
+    allowedFiles: z.number(),
+    totalBytes: z.number(),
+  });
 
 /** Espelha `AuditQueryResponse` (design.md D6, `web-auditoria`): acessos (`view`/`download`) de um arquivo. */
 export const auditQueryResponseSchema: z.ZodType<AuditQueryResponse> = z.object({
@@ -313,7 +316,13 @@ export const grantNotificationPayloadSchema: z.ZodType<GrantNotificationPayload>
   resourceType: z.enum([GrantResourceType.FOLDER, GrantResourceType.FILE]),
   resourceId: z.string(),
   permissions: z.array(
-    z.enum([Permission.VIEW, Permission.DOWNLOAD, Permission.UPLOAD, Permission.RENAME, Permission.DELETE]),
+    z.enum([
+      Permission.VIEW,
+      Permission.DOWNLOAD,
+      Permission.UPLOAD,
+      Permission.RENAME,
+      Permission.DELETE,
+    ]),
   ),
   expiresAt: z.string(),
   subjectUserId: z.string().optional(),
@@ -322,7 +331,11 @@ export const grantNotificationPayloadSchema: z.ZodType<GrantNotificationPayload>
 /** Espelha `NotificationResponse` (design.md D4, capability `notificacoes`). */
 export const notificationResponseSchema: z.ZodType<NotificationResponse> = z.object({
   id: z.string(),
-  kind: z.enum([NotificationKind.GRANT_CREATED, NotificationKind.GRANT_EXPIRING, NotificationKind.GRANT_EXPIRED]),
+  kind: z.enum([
+    NotificationKind.GRANT_CREATED,
+    NotificationKind.GRANT_EXPIRING,
+    NotificationKind.GRANT_EXPIRED,
+  ]),
   payload: grantNotificationPayloadSchema,
   createdAt: z.string(),
   readAt: z.string().nullable(),
@@ -334,6 +347,7 @@ export const notificationListResponseSchema: z.ZodType<NotificationListResponse>
 });
 
 /** Espelha `UnreadNotificationCountResponse`. */
-export const unreadNotificationCountResponseSchema: z.ZodType<UnreadNotificationCountResponse> = z.object({
-  count: z.number(),
-});
+export const unreadNotificationCountResponseSchema: z.ZodType<UnreadNotificationCountResponse> =
+  z.object({
+    count: z.number(),
+  });

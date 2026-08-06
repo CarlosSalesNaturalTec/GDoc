@@ -82,7 +82,11 @@ export function AppShell() {
   // conta" é oferecida a qualquer papel, inclusive `collaborator` — não é
   // item de administração.
   const identityMenuItems: MenuProps['items'] = [
-    { key: 'minha-conta', icon: <UserOutlined />, label: <Link to="/minha-conta">Minha conta</Link> },
+    {
+      key: 'minha-conta',
+      icon: <UserOutlined />,
+      label: <Link to="/minha-conta">Minha conta</Link>,
+    },
     { type: 'divider' },
     { key: 'sair', icon: <LogoutOutlined />, label: 'Sair', onClick: handleLogout },
   ];

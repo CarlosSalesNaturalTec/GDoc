@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { Alert, Button, Modal, Progress, Space, Spin, Typography } from 'antd';
-import type { FolderDownloadManifestLimitExceededResponse, FolderDownloadManifestResponse } from '@gdoc/shared';
+import type {
+  FolderDownloadManifestLimitExceededResponse,
+  FolderDownloadManifestResponse,
+} from '@gdoc/shared';
 import { ApiError } from '../lib/api-client';
 import { formatFileSize } from './format';
 import { useDownloadFolderManifest } from './queries';
@@ -27,7 +30,9 @@ interface DownloadFolderModalProps {
   onClose: () => void;
 }
 
-function isLimitExceededDetails(details: unknown): details is FolderDownloadManifestLimitExceededResponse {
+function isLimitExceededDetails(
+  details: unknown,
+): details is FolderDownloadManifestLimitExceededResponse {
   return (
     typeof details === 'object' &&
     details !== null &&
@@ -48,7 +53,12 @@ function limitMessage(limit: FolderDownloadManifestLimitExceededResponse): strin
  * compacta em streaming no cliente com progresso e cancelamento, e trata a
  * recusa por limite com a orientação da API.
  */
-export function DownloadFolderModal({ open, folderId, folderName, onClose }: DownloadFolderModalProps) {
+export function DownloadFolderModal({
+  open,
+  folderId,
+  folderName,
+  onClose,
+}: DownloadFolderModalProps) {
   const [phase, setPhase] = useState<Phase>({ kind: 'loading-manifest' });
   const [manifestSummary, setManifestSummary] = useState<ManifestSummary | null>(null);
   const manifestMutation = useDownloadFolderManifest();
@@ -78,7 +88,10 @@ export function DownloadFolderModal({ open, folderId, folderName, onClose }: Dow
           return;
         }
 
-        setManifestSummary({ totalFiles: manifest.totalFiles, allowedFiles: manifest.allowedFiles });
+        setManifestSummary({
+          totalFiles: manifest.totalFiles,
+          allowedFiles: manifest.allowedFiles,
+        });
         setPhase({
           kind: 'downloading',
           progress: {
@@ -94,7 +107,9 @@ export function DownloadFolderModal({ open, folderId, folderName, onClose }: Dow
           signal: controller.signal,
           onProgress: (progress) => {
             if (cancelled) return;
-            setPhase((current) => (current.kind === 'downloading' ? { ...current, progress } : current));
+            setPhase((current) =>
+              current.kind === 'downloading' ? { ...current, progress } : current,
+            );
           },
         })
           .then((blob) => {
@@ -108,7 +123,10 @@ export function DownloadFolderModal({ open, folderId, folderName, onClose }: Dow
               setPhase({ kind: 'cancelled' });
               return;
             }
-            setPhase({ kind: 'error', message: 'Não foi possível gerar o arquivo compactado. Tente novamente.' });
+            setPhase({
+              kind: 'error',
+              message: 'Não foi possível gerar o arquivo compactado. Tente novamente.',
+            });
           });
       })
       .catch((err: unknown) => {
@@ -121,7 +139,10 @@ export function DownloadFolderModal({ open, folderId, folderName, onClose }: Dow
           setPhase({ kind: 'error', message: 'Permissão insuficiente para baixar esta pasta.' });
           return;
         }
-        setPhase({ kind: 'error', message: 'Não foi possível preparar o download. Tente novamente.' });
+        setPhase({
+          kind: 'error',
+          message: 'Não foi possível preparar o download. Tente novamente.',
+        });
       });
 
     return () => {
@@ -152,7 +173,13 @@ export function DownloadFolderModal({ open, folderId, folderName, onClose }: Dow
     ) : null;
 
   return (
-    <Modal title={`Baixar pasta: ${folderName}`} open={open} onCancel={handleClose} footer={null} destroyOnClose>
+    <Modal
+      title={`Baixar pasta: ${folderName}`}
+      open={open}
+      onCancel={handleClose}
+      footer={null}
+      destroyOnClose
+    >
       {partialWarning}
       {phase.kind === 'loading-manifest' && (
         <Space direction="vertical" align="center" style={{ width: '100%', padding: '24px 0' }}>
@@ -204,7 +231,10 @@ export function DownloadFolderModal({ open, folderId, folderName, onClose }: Dow
             percent={
               phase.progress.totalBytes === 0
                 ? 0
-                : Math.min(100, Math.round((phase.progress.downloadedBytes / phase.progress.totalBytes) * 100))
+                : Math.min(
+                    100,
+                    Math.round((phase.progress.downloadedBytes / phase.progress.totalBytes) * 100),
+                  )
             }
           />
           <Typography.Text type="secondary">

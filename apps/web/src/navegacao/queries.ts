@@ -91,7 +91,10 @@ export function useDeleteFolder() {
 export function useDownloadFolderManifest() {
   return useMutation({
     mutationFn: async ({ folderId, signal }: { folderId: string | null; signal?: AbortSignal }) => {
-      const path = folderId === null ? '/folders/root/download-manifest' : `/folders/${folderId}/download-manifest`;
+      const path =
+        folderId === null
+          ? '/folders/root/download-manifest'
+          : `/folders/${folderId}/download-manifest`;
       const raw = await apiClient.post<FolderDownloadManifestResponse>(path, undefined, signal);
       return folderDownloadManifestResponseSchema.parse(raw);
     },

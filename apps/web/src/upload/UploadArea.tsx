@@ -74,7 +74,8 @@ export function UploadArea({ destinationFolderId }: UploadAreaProps) {
   function notifyQuota() {
     notification.warning({
       message: 'Cota de armazenamento atingida',
-      description: 'Este arquivo não pôde ser enviado: o limite de armazenamento por usuário foi atingido.',
+      description:
+        'Este arquivo não pôde ser enviado: o limite de armazenamento por usuário foi atingido.',
     });
   }
 
@@ -137,7 +138,12 @@ export function UploadArea({ destinationFolderId }: UploadAreaProps) {
       if (result?.ok) {
         return { ...base, status: 'uploading' as const, percent: 0, uploadUrl: result.uploadUrl };
       }
-      return { ...base, status: 'error' as const, percent: 0, error: result?.error ?? 'invalid item' };
+      return {
+        ...base,
+        status: 'error' as const,
+        percent: 0,
+        error: result?.error ?? 'invalid item',
+      };
     });
 
     setItems((prev) => [...prev, ...newItems]);
@@ -215,7 +221,12 @@ export function UploadArea({ destinationFolderId }: UploadAreaProps) {
               actions={
                 item.status === 'error'
                   ? [
-                      <Button key="retry" size="small" icon={<ReloadOutlined />} onClick={() => retryItem(item.uid)}>
+                      <Button
+                        key="retry"
+                        size="small"
+                        icon={<ReloadOutlined />}
+                        onClick={() => retryItem(item.uid)}
+                      >
                         Repetir
                       </Button>,
                     ]
@@ -228,7 +239,11 @@ export function UploadArea({ destinationFolderId }: UploadAreaProps) {
                   item.status === 'error' ? (
                     <Typography.Text type="danger">{describeError(item.error)}</Typography.Text>
                   ) : (
-                    <Progress percent={item.percent} size="small" status={item.status === 'done' ? 'success' : 'active'} />
+                    <Progress
+                      percent={item.percent}
+                      size="small"
+                      status={item.status === 'done' ? 'success' : 'active'}
+                    />
                   )
                 }
               />

@@ -56,7 +56,9 @@ describe('Consulta de auditoria de acesso a arquivo (Épico 7, US 7.1/US 7.2)', 
       .send({ fileName, contentType: 'text/plain', declaredSizeBytes: 5 });
     expect(res.status).toBe(200);
     const { rows } = await withSystemBypass(pool, (client) =>
-      client.query<{ id: string }>('SELECT id FROM files WHERE object_path = $1', [res.body.objectPath]),
+      client.query<{ id: string }>('SELECT id FROM files WHERE object_path = $1', [
+        res.body.objectPath,
+      ]),
     );
     return rows[0]!.id;
   }
@@ -77,7 +79,9 @@ describe('Consulta de auditoria de acesso a arquivo (Épico 7, US 7.1/US 7.2)', 
     const [mostRecent, oldest] = res.body.events;
     expect(mostRecent.action).toBe('download');
     expect(oldest.action).toBe('view');
-    expect(new Date(mostRecent.createdAt).getTime()).toBeGreaterThanOrEqual(new Date(oldest.createdAt).getTime());
+    expect(new Date(mostRecent.createdAt).getTime()).toBeGreaterThanOrEqual(
+      new Date(oldest.createdAt).getTime(),
+    );
     expect(mostRecent.actor).toEqual({ id: ids.userA, name: null, email: 'collab-a@test.dev' });
   });
 
@@ -102,12 +106,15 @@ describe('Consulta de auditoria de acesso a arquivo (Épico 7, US 7.1/US 7.2)', 
     const cookieAdmin = await sessionCookieFor(ports, ids.globalAdmin);
     const fileId = await uploadFile(cookieA, 'grant-nao-concede.txt');
 
-    const grant = await request(app).post('/grants').set('Cookie', cookieAdmin).send({
-      subjectUserId: userA2Id,
-      resourceType: 'file',
-      resourceId: fileId,
-      permissions: ['view'],
-    });
+    const grant = await request(app)
+      .post('/grants')
+      .set('Cookie', cookieAdmin)
+      .send({
+        subjectUserId: userA2Id,
+        resourceType: 'file',
+        resourceId: fileId,
+        permissions: ['view'],
+      });
     expect(grant.status).toBe(201);
 
     const res = await request(app)
@@ -153,7 +160,11 @@ describe('Consulta de auditoria de acesso a arquivo (Épico 7, US 7.1/US 7.2)', 
     expect(empty.status).toBe(200);
     expect(empty.body.events).toEqual([]);
 
-    await request(app).patch(`/files/${fileId}`).set('Cookie', cookieA).send({ fileName: 'renomeado.txt' }).expect(200);
+    await request(app)
+      .patch(`/files/${fileId}`)
+      .set('Cookie', cookieA)
+      .send({ fileName: 'renomeado.txt' })
+      .expect(200);
 
     const afterRename = await request(app).get(`/files/${fileId}/audit`).set('Cookie', cookieA);
     expect(afterRename.status).toBe(200);

@@ -1,7 +1,12 @@
 import { Router } from 'express';
 import type { PoolClient } from 'pg';
 import { UserRole, UnitStatus } from '@gdoc/shared';
-import type { CreatePersonRequest, UpdatePersonRequest, PersonResponse, ResetPasswordResponse } from '@gdoc/shared';
+import type {
+  CreatePersonRequest,
+  UpdatePersonRequest,
+  PersonResponse,
+  ResetPasswordResponse,
+} from '@gdoc/shared';
 import type { Ports } from '../ports/index.js';
 import type { TenantContext } from '../ports/database-port.js';
 import { isPasswordValid, generatePassword } from '../lib/password-policy.js';
@@ -20,7 +25,8 @@ interface PersonRow {
   created_at: string;
 }
 
-const PERSON_COLUMNS = 'id, unit_id, full_name, email, phone, job_title, work_area, notes, role, status, created_at';
+const PERSON_COLUMNS =
+  'id, unit_id, full_name, email, phone, job_title, work_area, notes, role, status, created_at';
 
 function toPersonResponse(row: PersonRow): PersonResponse {
   return {
@@ -57,8 +63,14 @@ function isUniqueViolation(err: unknown): boolean {
  * escondido pela RLS (outra unidade) cai no mesmo `false` de alvo fora do
  * alcance por papel — sem distinguir os dois casos.
  */
-async function canActOnTarget(client: PoolClient, ctx: TenantContext, targetId: string): Promise<boolean> {
-  const { rows } = await client.query<{ role: string }>('SELECT role FROM users WHERE id = $1', [targetId]);
+async function canActOnTarget(
+  client: PoolClient,
+  ctx: TenantContext,
+  targetId: string,
+): Promise<boolean> {
+  const { rows } = await client.query<{ role: string }>('SELECT role FROM users WHERE id = $1', [
+    targetId,
+  ]);
   const targetRole = rows[0]?.role;
   if (!targetRole || targetRole === UserRole.GLOBAL_ADMIN) return false;
   if (ctx.role === UserRole.GLOBAL_ADMIN) return true;
@@ -272,18 +284,21 @@ export function usersRouter(ports: Ports): Router {
 
       type ResetOutcome = { kind: 'ok'; generatedPassword: string } | { kind: 'forbidden' };
 
-      const outcome = await ports.database.withTenantTransaction<ResetOutcome>(ctx, async (client) => {
-        const allowed = await canActOnTarget(client, ctx, req.params.id!);
-        if (!allowed) return { kind: 'forbidden' };
+      const outcome = await ports.database.withTenantTransaction<ResetOutcome>(
+        ctx,
+        async (client) => {
+          const allowed = await canActOnTarget(client, ctx, req.params.id!);
+          if (!allowed) return { kind: 'forbidden' };
 
-        const generatedPassword = generatePassword();
-        const passwordHash = await ports.auth.hashPassword(generatedPassword);
-        await client.query('UPDATE users SET password_hash = $1, password_changed_at = now() WHERE id = $2', [
-          passwordHash,
-          req.params.id,
-        ]);
-        return { kind: 'ok', generatedPassword };
-      });
+          const generatedPassword = generatePassword();
+          const passwordHash = await ports.auth.hashPassword(generatedPassword);
+          await client.query(
+            'UPDATE users SET password_hash = $1, password_changed_at = now() WHERE id = $2',
+            [passwordHash, req.params.id],
+          );
+          return { kind: 'ok', generatedPassword };
+        },
+      );
 
       if (outcome.kind === 'forbidden') {
         res.status(403).json({ error: 'forbidden' });

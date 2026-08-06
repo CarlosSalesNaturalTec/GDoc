@@ -2,14 +2,20 @@ import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { UserRole } from '@gdoc/shared';
-import type { BatchUploadUrlResponse, FileSummaryResponse, FolderContentsResponse } from '@gdoc/shared';
+import type {
+  BatchUploadUrlResponse,
+  FileSummaryResponse,
+  FolderContentsResponse,
+} from '@gdoc/shared';
 import { mockFetch } from './mock-fetch';
 import { mockXhr } from './mock-xhr';
 import { renderApp } from './render-app';
 
 const IDENTITY = { id: 'user-1', unitId: 'unit-1', role: UserRole.COLLABORATOR };
 
-function file(overrides: Partial<FileSummaryResponse> & { id: string; fileName: string }): FileSummaryResponse {
+function file(
+  overrides: Partial<FileSummaryResponse> & { id: string; fileName: string },
+): FileSummaryResponse {
   return {
     ownerId: 'user-1',
     folderId: null,
@@ -212,7 +218,9 @@ describe('Envio de arquivos e pastas (web-upload)', () => {
     await screen.findByText('Pasta/raiz.txt');
     await screen.findByText('Pasta/Sub/nested.txt');
 
-    const call = fetchMock.mock.calls.find(([input]) => String(input).includes('/files/upload-urls'))!;
+    const call = fetchMock.mock.calls.find(([input]) =>
+      String(input).includes('/files/upload-urls'),
+    )!;
     const body = JSON.parse(call[1].body as string);
     expect(body.items).toEqual([
       expect.objectContaining({ fileName: 'raiz.txt', relativePath: 'Pasta' }),

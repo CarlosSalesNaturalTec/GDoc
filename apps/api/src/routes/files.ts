@@ -1,7 +1,13 @@
 import { randomUUID } from 'node:crypto';
 import { Router } from 'express';
 import type { Ports } from '../ports/index.js';
-import { AuditAction, FileAccessAction, GrantResourceType, Permission, isPreviewable } from '@gdoc/shared';
+import {
+  AuditAction,
+  FileAccessAction,
+  GrantResourceType,
+  Permission,
+  isPreviewable,
+} from '@gdoc/shared';
 import type {
   BatchUploadItemResult,
   BatchUploadUrlRequest,
@@ -146,13 +152,22 @@ export function filesRouter(ports: Ports): Router {
       const ctx = req.tenantContext!;
       const { fileName, contentType, declaredSizeBytes, folderId } = req.body as UploadUrlRequest;
 
-      if (!fileName || !contentType || !Number.isFinite(declaredSizeBytes) || declaredSizeBytes! < 0) {
+      if (
+        !fileName ||
+        !contentType ||
+        !Number.isFinite(declaredSizeBytes) ||
+        declaredSizeBytes! < 0
+      ) {
         res.status(400).json({ error: 'invalid request body' });
         return;
       }
 
       const objectId = randomUUID();
-      const objectPath = ports.storage.buildObjectPath(ctx.unitId, ctx.userId, `${objectId}-${fileName}`);
+      const objectPath = ports.storage.buildObjectPath(
+        ctx.unitId,
+        ctx.userId,
+        `${objectId}-${fileName}`,
+      );
 
       const outcome = await ports.database.withTenantTransaction(ctx, async (client) => {
         if (folderId) {
@@ -177,13 +192,27 @@ export function filesRouter(ports: Ports): Router {
         await client.query(
           `INSERT INTO files (id, unit_id, owner_id, folder_id, object_path, file_name, content_type, size_bytes, status)
            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'pending')`,
-          [objectId, ctx.unitId, ctx.userId, folderId ?? null, objectPath, fileName, contentType, declaredSizeBytes],
+          [
+            objectId,
+            ctx.unitId,
+            ctx.userId,
+            folderId ?? null,
+            objectPath,
+            fileName,
+            contentType,
+            declaredSizeBytes,
+          ],
         );
         return { ok: true as const };
       });
 
       if (!outcome.ok) {
-        const error = outcome.status === 404 ? 'folder not found' : outcome.status === 403 ? 'forbidden' : 'quota exceeded';
+        const error =
+          outcome.status === 404
+            ? 'folder not found'
+            : outcome.status === 403
+              ? 'forbidden'
+              : 'quota exceeded';
         res.status(outcome.status).json({ error });
         return;
       }
@@ -206,7 +235,13 @@ export function filesRouter(ports: Ports): Router {
       }
 
       type PreparedItem =
-        | { fileName: string; ok: true; objectPath: string; contentType: string; folderId: string | null }
+        | {
+            fileName: string;
+            ok: true;
+            objectPath: string;
+            contentType: string;
+            folderId: string | null;
+          }
         | { fileName: string; ok: false; error: string };
 
       const outcome = await ports.database.withTenantTransaction(ctx, async (client) => {
@@ -235,14 +270,25 @@ export function filesRouter(ports: Ports): Router {
         const prepared: PreparedItem[] = [];
 
         for (const item of items) {
-          const { fileName, contentType, declaredSizeBytes, relativePath } = item ?? ({} as (typeof items)[number]);
+          const { fileName, contentType, declaredSizeBytes, relativePath } =
+            item ?? ({} as (typeof items)[number]);
 
-          if (!fileName || !contentType || !Number.isFinite(declaredSizeBytes) || declaredSizeBytes! < 0) {
+          if (
+            !fileName ||
+            !contentType ||
+            !Number.isFinite(declaredSizeBytes) ||
+            declaredSizeBytes! < 0
+          ) {
             prepared.push({ fileName: fileName ?? '', ok: false, error: 'invalid item' });
             continue;
           }
 
-          const pathResult = await ensureFolderPath(client, ctx, anchor.anchor?.id ?? null, relativePath);
+          const pathResult = await ensureFolderPath(
+            client,
+            ctx,
+            anchor.anchor?.id ?? null,
+            relativePath,
+          );
           if (!pathResult.ok) {
             prepared.push({ fileName, ok: false, error: pathResult.error });
             continue;
@@ -255,23 +301,44 @@ export function filesRouter(ports: Ports): Router {
           }
 
           const objectId = randomUUID();
-          const objectPath = ports.storage.buildObjectPath(ctx.unitId, ctx.userId, `${objectId}-${fileName}`);
+          const objectPath = ports.storage.buildObjectPath(
+            ctx.unitId,
+            ctx.userId,
+            `${objectId}-${fileName}`,
+          );
 
           await client.query(
             `INSERT INTO files (id, unit_id, owner_id, folder_id, object_path, file_name, content_type, size_bytes, status)
              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'pending')`,
-            [objectId, ctx.unitId, ctx.userId, pathResult.folderId, objectPath, fileName, contentType, declaredSizeBytes],
+            [
+              objectId,
+              ctx.unitId,
+              ctx.userId,
+              pathResult.folderId,
+              objectPath,
+              fileName,
+              contentType,
+              declaredSizeBytes,
+            ],
           );
           reserved += declaredSizeBytes!;
 
-          prepared.push({ fileName, ok: true, objectPath, contentType, folderId: pathResult.folderId });
+          prepared.push({
+            fileName,
+            ok: true,
+            objectPath,
+            contentType,
+            folderId: pathResult.folderId,
+          });
         }
 
         return { ok: true as const, prepared };
       });
 
       if (!outcome.ok) {
-        res.status(outcome.status).json({ error: outcome.status === 404 ? 'destination not found' : 'forbidden' });
+        res
+          .status(outcome.status)
+          .json({ error: outcome.status === 404 ? 'destination not found' : 'forbidden' });
         return;
       }
 
@@ -347,7 +414,11 @@ export function filesRouter(ports: Ports): Router {
       }
 
       const objectId = randomUUID();
-      const newObjectPath = ports.storage.buildObjectPath(ctx.unitId, ctx.userId, `${objectId}-${file.file_name}`);
+      const newObjectPath = ports.storage.buildObjectPath(
+        ctx.unitId,
+        ctx.userId,
+        `${objectId}-${file.file_name}`,
+      );
 
       const outcome = await ports.database.withTenantTransaction(ctx, async (client) => {
         const { rows } = await client.query<{ storage_used_bytes: string }>(
@@ -370,10 +441,10 @@ export function filesRouter(ports: Ports): Router {
         // `status = 'replacing'` (não 'pending') preserva `size_bytes`
         // vigente na linha para o finalize calcular o delta real sem contar
         // em dobro. `folder_id` e `file_name` também são preservados.
-        await client.query(`UPDATE files SET pending_object_path = $1, status = 'replacing' WHERE id = $2`, [
-          newObjectPath,
-          file.id,
-        ]);
+        await client.query(
+          `UPDATE files SET pending_object_path = $1, status = 'replacing' WHERE id = $2`,
+          [newObjectPath, file.id],
+        );
         return { ok: true as const };
       });
 
@@ -383,7 +454,11 @@ export function filesRouter(ports: Ports): Router {
       }
 
       const signed = await ports.storage.getUploadUrl(newObjectPath, contentType);
-      res.json({ uploadUrl: signed.url, objectPath: newObjectPath, expiresAt: signed.expiresAt.toISOString() });
+      res.json({
+        uploadUrl: signed.url,
+        objectPath: newObjectPath,
+        expiresAt: signed.expiresAt.toISOString(),
+      });
     } catch (err) {
       next(err);
     }
@@ -434,9 +509,16 @@ export function filesRouter(ports: Ports): Router {
         // ao restaurar a raiz da pasta, não sozinho.
         if (file.trash_root_id !== file.id) return { ok: false as const };
 
-        const allowed = await hasAccess(client, ctx, GrantResourceType.FILE, file.id, Permission.DELETE, {
-          includeTrash: true,
-        });
+        const allowed = await hasAccess(
+          client,
+          ctx,
+          GrantResourceType.FILE,
+          file.id,
+          Permission.DELETE,
+          {
+            includeTrash: true,
+          },
+        );
         if (!allowed) return { ok: false as const };
 
         // Pai não existe mais como pasta viva (ancestral expurgado ou ainda

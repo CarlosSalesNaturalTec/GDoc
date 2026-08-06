@@ -41,7 +41,11 @@ export interface NotifySummary {
  * aqui para o aviso prévio (`grant_expiring`), à mesma pessoa: kinds
  * diferentes não colidem na unicidade `(recipient, kind, source_ref)`.
  */
-function grantSourceRef(resourceType: GrantResourceType, resourceId: string, expiresAt: string): string {
+function grantSourceRef(
+  resourceType: GrantResourceType,
+  resourceId: string,
+  expiresAt: string,
+): string {
   return `grant:${resourceType}:${resourceId}:${new Date(expiresAt).toISOString()}`;
 }
 
@@ -89,7 +93,12 @@ function toPayload(group: GrantGroupRow, subjectUserId?: string): GrantNotificat
 export async function runNotifyExpiringGrants(
   ports: Pick<Ports, 'database' | 'notifications'>,
 ): Promise<NotifySummary> {
-  const summary: NotifySummary = { expiringNotified: 0, expiringFailed: 0, cutNotified: 0, cutFailed: 0 };
+  const summary: NotifySummary = {
+    expiringNotified: 0,
+    expiringFailed: 0,
+    cutNotified: 0,
+    cutFailed: 0,
+  };
 
   await notifyExpiring(ports.database, ports.notifications, summary);
   await notifyCut(ports.database, ports.notifications, summary);
@@ -128,7 +137,10 @@ async function notifyExpiring(
       summary.expiringNotified += 1;
     } catch (err) {
       summary.expiringFailed += 1;
-      console.error(`notify-expiring-grants: falha ao avisar vencimento próximo (recurso ${group.resource_id})`, err);
+      console.error(
+        `notify-expiring-grants: falha ao avisar vencimento próximo (recurso ${group.resource_id})`,
+        err,
+      );
     }
   }
 }
@@ -169,12 +181,20 @@ async function notifyCut(
           recipientUserId: admin.id,
           kind: NotificationKind.GRANT_EXPIRED,
           payload: toPayload(group, group.subject_user_id),
-          sourceRef: grantExpiredSourceRef(group.resource_type, group.resource_id, group.expires_at, group.subject_user_id),
+          sourceRef: grantExpiredSourceRef(
+            group.resource_type,
+            group.resource_id,
+            group.expires_at,
+            group.subject_user_id,
+          ),
         });
         summary.cutNotified += 1;
       } catch (err) {
         summary.cutFailed += 1;
-        console.error(`notify-expiring-grants: falha ao avisar corte (recurso ${group.resource_id})`, err);
+        console.error(
+          `notify-expiring-grants: falha ao avisar corte (recurso ${group.resource_id})`,
+          err,
+        );
       }
     }
     // A pessoa afetada NÃO é avisada de novo no corte (design.md D6) — já

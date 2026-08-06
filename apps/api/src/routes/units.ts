@@ -148,54 +148,57 @@ export function unitsRouter(ports: Ports): Router {
         | { kind: 'cannot_deactivate' }
         | { kind: 'not_found' };
 
-      const outcome = await ports.database.withTenantTransaction<PatchOutcome>(ctx, async (client) => {
-        if (deactivating) {
-          // D3 (defesa em profundidade): recusa a própria unidade do contexto
-          // e a unidade de bootstrap (a mais antiga — o bootstrap cria a
-          // primeira unidade). Redundante com D2 no caminho feliz, mas fecha o
-          // caso de borda de uma unidade que fique vazia por acidente.
-          const { rows: bootstrapRows } = await client.query<{ id: string }>(
-            'SELECT id FROM units ORDER BY created_at ASC, id ASC LIMIT 1',
-          );
-          const bootstrapUnitId = bootstrapRows[0]?.id;
-          if (unitId === ctx.unitId || unitId === bootstrapUnitId) {
-            return { kind: 'cannot_deactivate' };
+      const outcome = await ports.database.withTenantTransaction<PatchOutcome>(
+        ctx,
+        async (client) => {
+          if (deactivating) {
+            // D3 (defesa em profundidade): recusa a própria unidade do contexto
+            // e a unidade de bootstrap (a mais antiga — o bootstrap cria a
+            // primeira unidade). Redundante com D2 no caminho feliz, mas fecha o
+            // caso de borda de uma unidade que fique vazia por acidente.
+            const { rows: bootstrapRows } = await client.query<{ id: string }>(
+              'SELECT id FROM units ORDER BY created_at ASC, id ASC LIMIT 1',
+            );
+            const bootstrapUnitId = bootstrapRows[0]?.id;
+            if (unitId === ctx.unitId || unitId === bootstrapUnitId) {
+              return { kind: 'cannot_deactivate' };
+            }
+
+            // D2: só desativa unidade vazia (zero pessoas vinculadas).
+            const { rows: countRows } = await client.query<{ count: string }>(
+              'SELECT count(*)::text FROM users WHERE unit_id = $1',
+              [unitId],
+            );
+            if (Number(countRows[0]?.count ?? '0') > 0) {
+              return { kind: 'unit_not_empty' };
+            }
           }
 
-          // D2: só desativa unidade vazia (zero pessoas vinculadas).
-          const { rows: countRows } = await client.query<{ count: string }>(
-            'SELECT count(*)::text FROM users WHERE unit_id = $1',
-            [unitId],
-          );
-          if (Number(countRows[0]?.count ?? '0') > 0) {
-            return { kind: 'unit_not_empty' };
+          const setClauses: string[] = [];
+          const values: unknown[] = [];
+          if (name !== undefined) {
+            values.push(name);
+            setClauses.push(`name = $${values.length}`);
           }
-        }
+          if (wantsStatus) {
+            values.push(body.status);
+            setClauses.push(`status = $${values.length}`);
+          }
+          values.push(unitId);
 
-        const setClauses: string[] = [];
-        const values: unknown[] = [];
-        if (name !== undefined) {
-          values.push(name);
-          setClauses.push(`name = $${values.length}`);
-        }
-        if (wantsStatus) {
-          values.push(body.status);
-          setClauses.push(`status = $${values.length}`);
-        }
-        values.push(unitId);
-
-        try {
-          const { rows } = await client.query<UnitRow>(
-            `UPDATE units SET ${setClauses.join(', ')} WHERE id = $${values.length} RETURNING ${UNIT_COLUMNS}`,
-            values,
-          );
-          const updated = rows[0];
-          return updated ? { kind: 'ok', row: updated } : { kind: 'not_found' };
-        } catch (err) {
-          if (isUniqueViolation(err)) return { kind: 'name_conflict' };
-          throw err;
-        }
-      });
+          try {
+            const { rows } = await client.query<UnitRow>(
+              `UPDATE units SET ${setClauses.join(', ')} WHERE id = $${values.length} RETURNING ${UNIT_COLUMNS}`,
+              values,
+            );
+            const updated = rows[0];
+            return updated ? { kind: 'ok', row: updated } : { kind: 'not_found' };
+          } catch (err) {
+            if (isUniqueViolation(err)) return { kind: 'name_conflict' };
+            throw err;
+          }
+        },
+      );
 
       switch (outcome.kind) {
         case 'name_conflict':

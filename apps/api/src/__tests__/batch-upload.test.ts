@@ -74,13 +74,21 @@ describe('Envio em lote e upload de pasta (US 3.1, US 3.2)', () => {
       .send({
         items: [
           { fileName: 'cabe.txt', contentType: 'text/plain', declaredSizeBytes: 100 },
-          { fileName: 'estoura.bin', contentType: 'application/octet-stream', declaredSizeBytes: quota + 1 },
+          {
+            fileName: 'estoura.bin',
+            contentType: 'application/octet-stream',
+            declaredSizeBytes: quota + 1,
+          },
         ],
       });
 
     expect(res.status).toBe(200);
     expect(res.body.results[0]).toMatchObject({ fileName: 'cabe.txt', ok: true });
-    expect(res.body.results[1]).toMatchObject({ fileName: 'estoura.bin', ok: false, error: 'quota exceeded' });
+    expect(res.body.results[1]).toMatchObject({
+      fileName: 'estoura.bin',
+      ok: false,
+      error: 'quota exceeded',
+    });
 
     const rows = await withSystemBypass(pool, (client) =>
       client.query('SELECT file_name FROM files WHERE owner_id = $1', [ids.userA]),
@@ -93,7 +101,15 @@ describe('Envio em lote e upload de pasta (US 3.1, US 3.2)', () => {
     const retry = await request(app)
       .post('/files/upload-urls')
       .set('Cookie', cookie)
-      .send({ items: [{ fileName: 'estoura.bin', contentType: 'application/octet-stream', declaredSizeBytes: 50 }] });
+      .send({
+        items: [
+          {
+            fileName: 'estoura.bin',
+            contentType: 'application/octet-stream',
+            declaredSizeBytes: 50,
+          },
+        ],
+      });
     expect(retry.status).toBe(200);
     expect(retry.body.results[0]).toMatchObject({ fileName: 'estoura.bin', ok: true });
   });
@@ -109,14 +125,26 @@ describe('Envio em lote e upload de pasta (US 3.1, US 3.2)', () => {
       .set('Cookie', cookie)
       .send({
         items: [
-          { fileName: 'metade-1.bin', contentType: 'application/octet-stream', declaredSizeBytes: each },
-          { fileName: 'metade-2.bin', contentType: 'application/octet-stream', declaredSizeBytes: each },
+          {
+            fileName: 'metade-1.bin',
+            contentType: 'application/octet-stream',
+            declaredSizeBytes: each,
+          },
+          {
+            fileName: 'metade-2.bin',
+            contentType: 'application/octet-stream',
+            declaredSizeBytes: each,
+          },
         ],
       });
 
     expect(res.status).toBe(200);
     expect(res.body.results[0]).toMatchObject({ fileName: 'metade-1.bin', ok: true });
-    expect(res.body.results[1]).toMatchObject({ fileName: 'metade-2.bin', ok: false, error: 'quota exceeded' });
+    expect(res.body.results[1]).toMatchObject({
+      fileName: 'metade-2.bin',
+      ok: false,
+      error: 'quota exceeded',
+    });
 
     const rows = await withSystemBypass(pool, (client) =>
       client.query('SELECT file_name FROM files WHERE owner_id = $1', [ids.userB]),
@@ -155,12 +183,16 @@ describe('Envio em lote e upload de pasta (US 3.1, US 3.2)', () => {
     const relatorios = root.body.folders.find((f: FolderBody) => f.name === 'Relatorios');
     expect(relatorios).toBeTruthy();
 
-    const relatoriosContents = await request(app).get(`/folders/${relatorios.id}/contents`).set('Cookie', cookie);
+    const relatoriosContents = await request(app)
+      .get(`/folders/${relatorios.id}/contents`)
+      .set('Cookie', cookie);
     const subfolderNames = relatoriosContents.body.folders.map((f: FolderBody) => f.name).sort();
     expect(subfolderNames).toEqual(['2024', '2025']);
 
     const folder2024 = relatoriosContents.body.folders.find((f: FolderBody) => f.name === '2024');
-    const contents2024 = await request(app).get(`/folders/${folder2024.id}/contents`).set('Cookie', cookie);
+    const contents2024 = await request(app)
+      .get(`/folders/${folder2024.id}/contents`)
+      .set('Cookie', cookie);
     expect(contents2024.body.files.map((f: { fileName: string }) => f.fileName)).toEqual(['a.pdf']);
   });
 
@@ -174,7 +206,12 @@ describe('Envio em lote e upload de pasta (US 3.1, US 3.2)', () => {
         .set('Cookie', cookie)
         .send({
           items: [
-            { fileName: 'x.txt', contentType: 'text/plain', declaredSizeBytes: 5, relativePath: 'Idempotente/Sub' },
+            {
+              fileName: 'x.txt',
+              contentType: 'text/plain',
+              declaredSizeBytes: 5,
+              relativePath: 'Idempotente/Sub',
+            },
           ],
         });
 
@@ -198,7 +235,10 @@ describe('Envio em lote e upload de pasta (US 3.1, US 3.2)', () => {
     const app = createApp(ports);
     const cookie = await sessionCookieFor(ports, ids.userA);
 
-    const destination = await request(app).post('/folders').set('Cookie', cookie).send({ name: 'Projeto' });
+    const destination = await request(app)
+      .post('/folders')
+      .set('Cookie', cookie)
+      .send({ name: 'Projeto' });
     const destinationId = (destination.body as FolderBody).id;
 
     const res = await request(app)
@@ -206,12 +246,21 @@ describe('Envio em lote e upload de pasta (US 3.1, US 3.2)', () => {
       .set('Cookie', cookie)
       .send({
         destinationFolderId: destinationId,
-        items: [{ fileName: 'ancorado.txt', contentType: 'text/plain', declaredSizeBytes: 5, relativePath: 'Docs' }],
+        items: [
+          {
+            fileName: 'ancorado.txt',
+            contentType: 'text/plain',
+            declaredSizeBytes: 5,
+            relativePath: 'Docs',
+          },
+        ],
       });
     expect(res.status).toBe(200);
     expect(res.body.results[0].ok).toBe(true);
 
-    const projetoContents = await request(app).get(`/folders/${destinationId}/contents`).set('Cookie', cookie);
+    const projetoContents = await request(app)
+      .get(`/folders/${destinationId}/contents`)
+      .set('Cookie', cookie);
     const docsFolder = projetoContents.body.folders.find((f: FolderBody) => f.name === 'Docs');
     expect(docsFolder).toBeTruthy();
   });
@@ -248,12 +297,21 @@ describe('Envio em lote e upload de pasta (US 3.1, US 3.2)', () => {
       .send({
         items: [
           { fileName: 'ok.txt', contentType: 'text/plain', declaredSizeBytes: 5 },
-          { fileName: 'malicioso.txt', contentType: 'text/plain', declaredSizeBytes: 5, relativePath: '../escape' },
+          {
+            fileName: 'malicioso.txt',
+            contentType: 'text/plain',
+            declaredSizeBytes: 5,
+            relativePath: '../escape',
+          },
         ],
       });
 
     expect(res.status).toBe(200);
     expect(res.body.results[0]).toMatchObject({ fileName: 'ok.txt', ok: true });
-    expect(res.body.results[1]).toMatchObject({ fileName: 'malicioso.txt', ok: false, error: 'invalid path' });
+    expect(res.body.results[1]).toMatchObject({
+      fileName: 'malicioso.txt',
+      ok: false,
+      error: 'invalid path',
+    });
   });
 });

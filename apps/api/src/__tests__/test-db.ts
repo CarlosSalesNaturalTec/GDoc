@@ -18,7 +18,10 @@ export async function setupTestDatabase() {
  * precisa rodar sob o papel global_admin, o mesmo bypass que qualquer
  * admin global usaria em produção.
  */
-export async function withSystemBypass<T>(pool: Pool, fn: (client: PoolClient) => Promise<T>): Promise<T> {
+export async function withSystemBypass<T>(
+  pool: Pool,
+  fn: (client: PoolClient) => Promise<T>,
+): Promise<T> {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -43,7 +46,11 @@ export async function withSystemBypass<T>(pool: Pool, fn: (client: PoolClient) =
  * para testar a invalidação por `password_changed_at` (change
  * `troca-de-senha`, design.md D1).
  */
-export async function sessionCookieFor(ports: Ports, userId: string, issuedAt?: Date): Promise<string> {
+export async function sessionCookieFor(
+  ports: Ports,
+  userId: string,
+  issuedAt?: Date,
+): Promise<string> {
   const token = await ports.auth.issueSession({ sub: userId }, issuedAt);
   return `${SESSION_COOKIE_NAME}=${token}`;
 }

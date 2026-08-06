@@ -71,10 +71,14 @@ async function insertFile(
 
 async function statusOf(pool: Pool, fileId: string) {
   const { rows } = await withSystemBypass(pool, (client) =>
-    client.query<{ status: string; size_bytes: string | null; object_path: string; pending_object_path: string | null }>(
-      'SELECT status, size_bytes, object_path, pending_object_path FROM files WHERE id = $1',
-      [fileId],
-    ),
+    client.query<{
+      status: string;
+      size_bytes: string | null;
+      object_path: string;
+      pending_object_path: string | null;
+    }>('SELECT status, size_bytes, object_path, pending_object_path FROM files WHERE id = $1', [
+      fileId,
+    ]),
   );
   return rows[0]!;
 }
@@ -190,9 +194,7 @@ describe('Finalize pós-upload (Pub/Sub push + OIDC + backfill)', () => {
 
   it('payload realmente inválido continua retornando 400', async () => {
     const app = createApp(ports);
-    const res = await request(app)
-      .post('/internal/storage-events')
-      .send({ bucket: 'test-bucket' }); // sem objectPath/sizeBytes
+    const res = await request(app).post('/internal/storage-events').send({ bucket: 'test-bucket' }); // sem objectPath/sizeBytes
     expect(res.status).toBe(400);
 
     const envelopeInvalido = await request(app)

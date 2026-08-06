@@ -66,7 +66,8 @@ export function PessoasPage() {
   // design.md D6: 403 (RLS escondeu a linha, ou trava de papel violada por
   // pedido forjado) exibe aviso neutro, sem distinguir os subcasos.
   async function handleToggleStatus(person: PersonResponse) {
-    const status = person.status === PersonStatus.ACTIVE ? PersonStatus.DISABLED : PersonStatus.ACTIVE;
+    const status =
+      person.status === PersonStatus.ACTIVE ? PersonStatus.DISABLED : PersonStatus.ACTIVE;
     try {
       await updatePerson.mutateAsync({ id: person.id, body: { status } });
     } catch (err) {
@@ -191,8 +192,15 @@ export function PessoasPage() {
         </Button>
       </div>
       <Table<PersonResponse> rowKey="id" columns={columns} dataSource={data ?? []} />
-      <PessoaFormModal target={editingPerson ?? undefined} open={modalOpen} onClose={() => setModalOpen(false)} />
-      <SenhaGeradaModal generatedPassword={generatedPassword} onClose={() => setGeneratedPassword(null)} />
+      <PessoaFormModal
+        target={editingPerson ?? undefined}
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+      />
+      <SenhaGeradaModal
+        generatedPassword={generatedPassword}
+        onClose={() => setGeneratedPassword(null)}
+      />
     </div>
   );
 }

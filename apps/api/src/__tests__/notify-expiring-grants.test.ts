@@ -43,10 +43,10 @@ describe('Rotina de avisos de expiração (jobs/notify-expiring-grants.ts)', () 
 
   async function notificationsOf(recipient: string, kind: string) {
     const { rows } = await withSystemBypass(pool, (client) =>
-      client.query('SELECT payload, source_ref FROM notifications WHERE recipient_user_id = $1 AND kind = $2', [
-        recipient,
-        kind,
-      ]),
+      client.query(
+        'SELECT payload, source_ref FROM notifications WHERE recipient_user_id = $1 AND kind = $2',
+        [recipient, kind],
+      ),
     );
     return rows;
   }
@@ -111,9 +111,11 @@ describe('Rotina de avisos de expiração (jobs/notify-expiring-grants.ts)', () 
     await runNotifyExpiringGrants({ database, notifications });
 
     const adminANotified = await notificationsOf(unitAdminAId, NotificationKind.GRANT_EXPIRED);
-    expect(adminANotified.some((n) => n.payload.resourceId === expiredFile && n.payload.subjectUserId === recipientId)).toBe(
-      true,
-    );
+    expect(
+      adminANotified.some(
+        (n) => n.payload.resourceId === expiredFile && n.payload.subjectUserId === recipientId,
+      ),
+    ).toBe(true);
 
     const adminBNotified = await notificationsOf(unitAdminBId, NotificationKind.GRANT_EXPIRED);
     expect(adminBNotified.some((n) => n.payload.resourceId === expiredFile)).toBe(false);

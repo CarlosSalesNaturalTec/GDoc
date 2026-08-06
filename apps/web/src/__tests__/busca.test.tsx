@@ -9,7 +9,9 @@ import { renderApp } from './render-app';
 const COLLABORATOR = { id: 'user-1', unitId: 'unit-1', role: UserRole.COLLABORATOR };
 const ADMIN = { id: 'admin-1', unitId: 'unit-1', role: UserRole.UNIT_ADMIN };
 
-function file(overrides: Partial<FileSummaryResponse> & { id: string; fileName: string }): FileSummaryResponse {
+function file(
+  overrides: Partial<FileSummaryResponse> & { id: string; fileName: string },
+): FileSummaryResponse {
   return {
     ownerId: 'user-1',
     folderId: null,
@@ -121,7 +123,9 @@ describe('Busca de arquivos (web-busca)', () => {
     await userEvent.type(screen.getByPlaceholderText('Buscar por nome'), '2');
 
     expect(screen.getByText('relatorio.pdf')).toBeInTheDocument();
-    expect(fetchedUrls().filter((url) => url.includes('/files/search')).length).toBe(callsBeforeEdit);
+    expect(fetchedUrls().filter((url) => url.includes('/files/search')).length).toBe(
+      callsBeforeEdit,
+    );
   });
 
   it('limpar filtros volta ao estado inicial sem consultar o servidor (US 9.1 cenário 2)', async () => {
@@ -148,7 +152,9 @@ describe('Busca de arquivos (web-busca)', () => {
     await screen.findByText('Informe ao menos um critério para buscar');
     expect(screen.queryByText('relatorio.pdf')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /buscar/i })).toBeDisabled();
-    expect(fetchedUrls().filter((url) => url.includes('/files/search')).length).toBe(callsBeforeClear);
+    expect(fetchedUrls().filter((url) => url.includes('/files/search')).length).toBe(
+      callsBeforeClear,
+    );
   });
 
   it('filtro de autor aparece para admin e envia author (spec: filtro de autor restrito a administrador)', async () => {
@@ -159,7 +165,21 @@ describe('Busca de arquivos (web-busca)', () => {
       'GET /files/search': { status: 200, body: results([pdf]) },
       'GET /users': {
         status: 200,
-        body: [{ id: 'author-1', unitId: 'unit-1', fullName: 'Fulano', email: 'fulano@example.com', phone: null, jobTitle: null, workArea: null, notes: null, role: UserRole.COLLABORATOR, status: 'active', createdAt: '2026-01-01T00:00:00.000Z' }],
+        body: [
+          {
+            id: 'author-1',
+            unitId: 'unit-1',
+            fullName: 'Fulano',
+            email: 'fulano@example.com',
+            phone: null,
+            jobTitle: null,
+            workArea: null,
+            notes: null,
+            role: UserRole.COLLABORATOR,
+            status: 'active',
+            createdAt: '2026-01-01T00:00:00.000Z',
+          },
+        ],
       },
     });
 

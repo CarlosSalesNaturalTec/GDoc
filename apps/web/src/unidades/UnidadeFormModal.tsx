@@ -72,7 +72,11 @@ export function UnidadeFormModal({ target, open, onClose }: UnidadeFormModalProp
       destroyOnClose
     >
       <Form<UnidadeFormValues> form={form} layout="vertical" onFinish={handleSubmit}>
-        <Form.Item name="name" label="Nome" rules={[{ required: true, message: 'Informe um nome' }]}>
+        <Form.Item
+          name="name"
+          label="Nome"
+          rules={[{ required: true, message: 'Informe um nome' }]}
+        >
           <Input autoFocus />
         </Form.Item>
       </Form>

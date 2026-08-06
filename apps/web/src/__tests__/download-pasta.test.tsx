@@ -12,7 +12,9 @@ function contents(overrides: Partial<FolderContentsResponse> = {}): FolderConten
   return { folder: null, breadcrumb: [], folders: [], files: [], ...overrides };
 }
 
-function manifest(overrides: Partial<FolderDownloadManifestResponse> = {}): FolderDownloadManifestResponse {
+function manifest(
+  overrides: Partial<FolderDownloadManifestResponse> = {},
+): FolderDownloadManifestResponse {
   return { entries: [], totalFiles: 0, allowedFiles: 0, totalBytes: 0, ...overrides };
 }
 
@@ -23,7 +25,9 @@ function manifest(overrides: Partial<FolderDownloadManifestResponse> = {}): Fold
  * precisam, no teste de cancelamento, ficar pendentes até o `AbortSignal`
  * disparar, o que uma resposta estática não expressa.
  */
-function stubFetch(handler: (path: string, method: string, init?: RequestInit) => Promise<Response> | Response): void {
+function stubFetch(
+  handler: (path: string, method: string, init?: RequestInit) => Promise<Response> | Response,
+): void {
   vi.stubGlobal(
     'fetch',
     vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -52,7 +56,8 @@ describe('Download de pasta (web-navegacao, download-pasta-zip)', () => {
   it('6.1 aviso de recorte parcial aparece quando allowedFiles < totalFiles', async () => {
     stubFetch((path, method) => {
       if (path === '/auth/me') return new Response(JSON.stringify(IDENTITY), { status: 200 });
-      if (path === '/folders/root/contents') return new Response(JSON.stringify(contents()), { status: 200 });
+      if (path === '/folders/root/contents')
+        return new Response(JSON.stringify(contents()), { status: 200 });
       if (path === '/folders/root/download-manifest' && method === 'POST') {
         return new Response(
           JSON.stringify(
@@ -94,10 +99,14 @@ describe('Download de pasta (web-navegacao, download-pasta-zip)', () => {
     let byteFetchCalled = false;
     stubFetch((path, method) => {
       if (path === '/auth/me') return new Response(JSON.stringify(IDENTITY), { status: 200 });
-      if (path === '/auth/public-config') return new Response(JSON.stringify({ appName: 'Doc7', clientName: '' }), { status: 200 });
-      if (path === '/folders/root/contents') return new Response(JSON.stringify(contents()), { status: 200 });
+      if (path === '/auth/public-config')
+        return new Response(JSON.stringify({ appName: 'Doc7', clientName: '' }), { status: 200 });
+      if (path === '/folders/root/contents')
+        return new Response(JSON.stringify(contents()), { status: 200 });
       if (path === '/folders/root/download-manifest' && method === 'POST') {
-        return new Response(JSON.stringify(manifest({ totalFiles: 3, allowedFiles: 0 })), { status: 200 });
+        return new Response(JSON.stringify(manifest({ totalFiles: 3, allowedFiles: 0 })), {
+          status: 200,
+        });
       }
       byteFetchCalled = true;
       return new Response('nao deveria ser chamado', { status: 200 });
@@ -112,7 +121,8 @@ describe('Download de pasta (web-navegacao, download-pasta-zip)', () => {
   it('6.3 cancelamento interrompe a operação', async () => {
     stubFetch((path, method, init) => {
       if (path === '/auth/me') return new Response(JSON.stringify(IDENTITY), { status: 200 });
-      if (path === '/folders/root/contents') return new Response(JSON.stringify(contents()), { status: 200 });
+      if (path === '/folders/root/contents')
+        return new Response(JSON.stringify(contents()), { status: 200 });
       if (path === '/folders/root/download-manifest' && method === 'POST') {
         return new Response(
           JSON.stringify(
@@ -138,7 +148,9 @@ describe('Download de pasta (web-navegacao, download-pasta-zip)', () => {
         // Nunca resolve por conta própria — só rejeita quando o AbortSignal dispara,
         // simulando uma transferência de bytes em andamento no momento do cancelamento.
         return new Promise<Response>((_resolve, reject) => {
-          init?.signal?.addEventListener('abort', () => reject(new DOMException('cancelado', 'AbortError')));
+          init?.signal?.addEventListener('abort', () =>
+            reject(new DOMException('cancelado', 'AbortError')),
+          );
         });
       }
       return new Response(JSON.stringify({ error: 'unmocked_route' }), { status: 404 });
@@ -155,7 +167,8 @@ describe('Download de pasta (web-navegacao, download-pasta-zip)', () => {
   it('6.4 recusa por limite exibe a orientação da API', async () => {
     stubFetch((path, method) => {
       if (path === '/auth/me') return new Response(JSON.stringify(IDENTITY), { status: 200 });
-      if (path === '/folders/root/contents') return new Response(JSON.stringify(contents()), { status: 200 });
+      if (path === '/folders/root/contents')
+        return new Response(JSON.stringify(contents()), { status: 200 });
       if (path === '/folders/root/download-manifest' && method === 'POST') {
         return new Response(
           JSON.stringify({
@@ -182,6 +195,8 @@ describe('Download de pasta (web-navegacao, download-pasta-zip)', () => {
     });
 
     renderApp(['/pastas']);
-    await waitFor(() => expect(screen.getByRole('button', { name: /baixar esta pasta/i })).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: /baixar esta pasta/i })).toBeInTheDocument(),
+    );
   });
 });

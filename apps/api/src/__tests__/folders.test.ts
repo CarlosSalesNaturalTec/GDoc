@@ -68,7 +68,10 @@ describe('Navegação: pastas aninhadas, trilha e visibilidade só-por-dono', ()
     const app = createApp(ports);
     const cookie = await sessionCookieFor(ports, ids.userA);
 
-    const parent = await request(app).post('/folders').set('Cookie', cookie).send({ name: 'Financeiro' });
+    const parent = await request(app)
+      .post('/folders')
+      .set('Cookie', cookie)
+      .send({ name: 'Financeiro' });
     expect(parent.status).toBe(201);
 
     const child = await request(app)
@@ -83,7 +86,9 @@ describe('Navegação: pastas aninhadas, trilha e visibilidade só-por-dono', ()
       .set('Cookie', cookie);
     expect(contents.status).toBe(200);
     expect(contents.body.folder.id).toBe((child.body as FolderBody).id);
-    expect(contents.body.breadcrumb.map((f: FolderBody) => f.id)).toEqual([(parent.body as FolderBody).id]);
+    expect(contents.body.breadcrumb.map((f: FolderBody) => f.id)).toEqual([
+      (parent.body as FolderBody).id,
+    ]);
   });
 
   it('raiz devolve trilha (breadcrumb) vazia', async () => {
@@ -141,31 +146,43 @@ describe('Navegação: pastas aninhadas, trilha e visibilidade só-por-dono', ()
     const cookieA2 = await sessionCookieFor(ports, userA2Id);
     const cookieAdmin = await sessionCookieFor(ports, ids.globalAdmin);
 
-    const shared = await request(app).post('/folders').set('Cookie', cookieA).send({ name: 'Pasta Compartilhada' });
+    const shared = await request(app)
+      .post('/folders')
+      .set('Cookie', cookieA)
+      .send({ name: 'Pasta Compartilhada' });
     const sharedFolderId = (shared.body as FolderBody).id;
 
-    const uploadA = await request(app)
-      .post('/files/upload-url')
-      .set('Cookie', cookieA)
-      .send({ fileName: 'meu.txt', contentType: 'text/plain', declaredSizeBytes: 5, folderId: sharedFolderId });
+    const uploadA = await request(app).post('/files/upload-url').set('Cookie', cookieA).send({
+      fileName: 'meu.txt',
+      contentType: 'text/plain',
+      declaredSizeBytes: 5,
+      folderId: sharedFolderId,
+    });
     expect(uploadA.status).toBe(200);
 
     // Épico 4: enviar para pasta de outra pessoa exige grant `upload` sobre ela.
-    const grant = await request(app).post('/grants').set('Cookie', cookieAdmin).send({
-      subjectUserId: userA2Id,
-      resourceType: 'folder',
-      resourceId: sharedFolderId,
-      permissions: ['upload'],
-    });
+    const grant = await request(app)
+      .post('/grants')
+      .set('Cookie', cookieAdmin)
+      .send({
+        subjectUserId: userA2Id,
+        resourceType: 'folder',
+        resourceId: sharedFolderId,
+        permissions: ['upload'],
+      });
     expect(grant.status).toBe(201);
 
-    const uploadA2 = await request(app)
-      .post('/files/upload-url')
-      .set('Cookie', cookieA2)
-      .send({ fileName: 'dele.txt', contentType: 'text/plain', declaredSizeBytes: 5, folderId: sharedFolderId });
+    const uploadA2 = await request(app).post('/files/upload-url').set('Cookie', cookieA2).send({
+      fileName: 'dele.txt',
+      contentType: 'text/plain',
+      declaredSizeBytes: 5,
+      folderId: sharedFolderId,
+    });
     expect(uploadA2.status).toBe(200);
 
-    const contents = await request(app).get(`/folders/${sharedFolderId}/contents`).set('Cookie', cookieA);
+    const contents = await request(app)
+      .get(`/folders/${sharedFolderId}/contents`)
+      .set('Cookie', cookieA);
     expect(contents.status).toBe(200);
     const fileNames = contents.body.files.map((f: { fileName: string }) => f.fileName);
     expect(fileNames).toContain('meu.txt');
@@ -183,7 +200,12 @@ describe('Navegação: pastas aninhadas, trilha e visibilidade só-por-dono', ()
     await request(app)
       .post('/files/upload-url')
       .set('Cookie', await sessionCookieFor(ports, ids.userB))
-      .send({ fileName: 'b.txt', contentType: 'text/plain', declaredSizeBytes: 5, folderId: folderBId });
+      .send({
+        fileName: 'b.txt',
+        contentType: 'text/plain',
+        declaredSizeBytes: 5,
+        folderId: folderBId,
+      });
 
     const root = await request(app)
       .get('/folders/root/contents')
@@ -201,24 +223,37 @@ describe('Navegação: pastas aninhadas, trilha e visibilidade só-por-dono', ()
     const app = createApp(ports);
     const cookie = await sessionCookieFor(ports, ids.userA);
 
-    const folder = await request(app).post('/folders').set('Cookie', cookie).send({ name: 'Destino' });
+    const folder = await request(app)
+      .post('/folders')
+      .set('Cookie', cookie)
+      .send({ name: 'Destino' });
     const folderId = (folder.body as FolderBody).id;
 
-    await request(app)
-      .post('/files/upload-url')
-      .set('Cookie', cookie)
-      .send({ fileName: 'na-pasta.txt', contentType: 'text/plain', declaredSizeBytes: 5, folderId });
+    await request(app).post('/files/upload-url').set('Cookie', cookie).send({
+      fileName: 'na-pasta.txt',
+      contentType: 'text/plain',
+      declaredSizeBytes: 5,
+      folderId,
+    });
 
     await request(app)
       .post('/files/upload-url')
       .set('Cookie', cookie)
       .send({ fileName: 'na-raiz.txt', contentType: 'text/plain', declaredSizeBytes: 5 });
 
-    const folderContents = await request(app).get(`/folders/${folderId}/contents`).set('Cookie', cookie);
-    expect(folderContents.body.files.map((f: { fileName: string }) => f.fileName)).toContain('na-pasta.txt');
+    const folderContents = await request(app)
+      .get(`/folders/${folderId}/contents`)
+      .set('Cookie', cookie);
+    expect(folderContents.body.files.map((f: { fileName: string }) => f.fileName)).toContain(
+      'na-pasta.txt',
+    );
 
     const rootContents = await request(app).get('/folders/root/contents').set('Cookie', cookie);
-    expect(rootContents.body.files.map((f: { fileName: string }) => f.fileName)).toContain('na-raiz.txt');
-    expect(rootContents.body.files.map((f: { fileName: string }) => f.fileName)).not.toContain('na-pasta.txt');
+    expect(rootContents.body.files.map((f: { fileName: string }) => f.fileName)).toContain(
+      'na-raiz.txt',
+    );
+    expect(rootContents.body.files.map((f: { fileName: string }) => f.fileName)).not.toContain(
+      'na-pasta.txt',
+    );
   });
 });

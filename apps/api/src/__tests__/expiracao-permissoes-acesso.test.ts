@@ -72,7 +72,12 @@ describe('Corte de acesso por grant vencido (change expiracao-permissoes)', () =
       return rows[0]!.id;
     }
 
-    async function grant(resourceType: 'file' | 'folder', resourceId: string, permission: string, expiresAt: string) {
+    async function grant(
+      resourceType: 'file' | 'folder',
+      resourceId: string,
+      permission: string,
+      expiresAt: string,
+    ) {
       await withSystemBypass(pool, (client) =>
         client.query(
           `INSERT INTO grants (unit_id, subject_user_id, resource_type, resource_id, permission, granted_by, expires_at)
@@ -154,10 +159,14 @@ describe('Corte de acesso por grant vencido (change expiracao-permissoes)', () =
     const app = createApp(ports);
     const cookie = await sessionCookieFor(ports, userA2Id);
 
-    const view = await request(app).post(`/files/${fileVerbsExpiredId}/view-url`).set('Cookie', cookie);
+    const view = await request(app)
+      .post(`/files/${fileVerbsExpiredId}/view-url`)
+      .set('Cookie', cookie);
     expect(view.status).toBe(403);
 
-    const download = await request(app).post(`/files/${fileVerbsExpiredId}/download-url`).set('Cookie', cookie);
+    const download = await request(app)
+      .post(`/files/${fileVerbsExpiredId}/download-url`)
+      .set('Cookie', cookie);
     expect(download.status).toBe(403);
 
     const rename = await request(app)
@@ -166,17 +175,21 @@ describe('Corte de acesso por grant vencido (change expiracao-permissoes)', () =
       .send({ fileName: 'novo-nome.txt' });
     expect(rename.status).toBe(403);
 
-    const upload = await request(app)
-      .post('/files/upload-url')
-      .set('Cookie', cookie)
-      .send({ fileName: 'x.txt', contentType: 'text/plain', declaredSizeBytes: 10, folderId: folderUploadExpiredId });
+    const upload = await request(app).post('/files/upload-url').set('Cookie', cookie).send({
+      fileName: 'x.txt',
+      contentType: 'text/plain',
+      declaredSizeBytes: 10,
+      folderId: folderUploadExpiredId,
+    });
     expect(upload.status).toBe(403);
 
     const del = await request(app).delete(`/files/${fileDeleteExpiredId}`).set('Cookie', cookie);
     expect(del.status).toBe(403);
 
     const audit = await withSystemBypass(pool, (client) =>
-      client.query('SELECT 1 FROM audit_events WHERE file_id = ANY($1)', [[fileVerbsExpiredId, fileDeleteExpiredId]]),
+      client.query('SELECT 1 FROM audit_events WHERE file_id = ANY($1)', [
+        [fileVerbsExpiredId, fileDeleteExpiredId],
+      ]),
     );
     expect(audit.rows).toHaveLength(0);
   });
@@ -185,10 +198,14 @@ describe('Corte de acesso por grant vencido (change expiracao-permissoes)', () =
     const app = createApp(ports);
     const cookie = await sessionCookieFor(ports, userA2Id);
 
-    const view = await request(app).post(`/files/${fileVerbsFutureId}/view-url`).set('Cookie', cookie);
+    const view = await request(app)
+      .post(`/files/${fileVerbsFutureId}/view-url`)
+      .set('Cookie', cookie);
     expect(view.status).toBe(200);
 
-    const download = await request(app).post(`/files/${fileVerbsFutureId}/download-url`).set('Cookie', cookie);
+    const download = await request(app)
+      .post(`/files/${fileVerbsFutureId}/download-url`)
+      .set('Cookie', cookie);
     expect(download.status).toBe(200);
 
     const rename = await request(app)
@@ -197,10 +214,12 @@ describe('Corte de acesso por grant vencido (change expiracao-permissoes)', () =
       .send({ fileName: 'renomeado-ok.txt' });
     expect(rename.status).toBe(200);
 
-    const upload = await request(app)
-      .post('/files/upload-url')
-      .set('Cookie', cookie)
-      .send({ fileName: 'ok.txt', contentType: 'text/plain', declaredSizeBytes: 10, folderId: folderUploadFutureId });
+    const upload = await request(app).post('/files/upload-url').set('Cookie', cookie).send({
+      fileName: 'ok.txt',
+      contentType: 'text/plain',
+      declaredSizeBytes: 10,
+      folderId: folderUploadFutureId,
+    });
     expect(upload.status).toBe(200);
 
     const del = await request(app).delete(`/files/${fileDeleteFutureId}`).set('Cookie', cookie);
@@ -211,7 +230,9 @@ describe('Corte de acesso por grant vencido (change expiracao-permissoes)', () =
     const app = createApp(ports);
     const cookie = await sessionCookieFor(ports, userA2Id);
 
-    const contents = await request(app).get(`/folders/${folderListingId}/contents`).set('Cookie', cookie);
+    const contents = await request(app)
+      .get(`/folders/${folderListingId}/contents`)
+      .set('Cookie', cookie);
     expect(contents.status).toBe(200);
     const fileIds = contents.body.files.map((f: { id: string }) => f.id);
     expect(fileIds).not.toContain(fileListingHiddenId);
@@ -221,7 +242,9 @@ describe('Corte de acesso por grant vencido (change expiracao-permissoes)', () =
     const app = createApp(ports);
     const cookie = await sessionCookieFor(ports, userA2Id);
 
-    const search = await request(app).get('/files/search?q=search-hidden-unique-token').set('Cookie', cookie);
+    const search = await request(app)
+      .get('/files/search?q=search-hidden-unique-token')
+      .set('Cookie', cookie);
     expect(search.status).toBe(200);
     const fileIds = search.body.files.map((f: { id: string }) => f.id);
     expect(fileIds).not.toContain(fileSearchHiddenId);

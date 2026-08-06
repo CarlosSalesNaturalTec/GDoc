@@ -1,5 +1,20 @@
 import { useMemo } from 'react';
-import { Alert, App, Button, Checkbox, DatePicker, Divider, Empty, Form, Modal, Popconfirm, Select, Space, Tag, Typography } from 'antd';
+import {
+  Alert,
+  App,
+  Button,
+  Checkbox,
+  DatePicker,
+  Divider,
+  Empty,
+  Form,
+  Modal,
+  Popconfirm,
+  Select,
+  Space,
+  Tag,
+  Typography,
+} from 'antd';
 import type { Dayjs } from 'dayjs';
 import type { GrantResponse } from '@gdoc/shared';
 import { GrantResourceType, Permission } from '@gdoc/shared';
@@ -44,7 +59,9 @@ const VERB_OPTIONS = Object.values(Permission).map((permission) => ({
 /** Rótulo do prazo de uma concessão (change `expiracao-permissoes`, design.md D2). */
 function expiryLabel(grant: GrantResponse): string {
   if (!grant.expiresAt) return 'Permanente';
-  return grant.expired ? `Expirada em ${formatDate(grant.expiresAt)}` : `Até ${formatDate(grant.expiresAt)}`;
+  return grant.expired
+    ? `Expirada em ${formatDate(grant.expiresAt)}`
+    : `Até ${formatDate(grant.expiresAt)}`;
 }
 
 /**
@@ -53,7 +70,13 @@ function expiryLabel(grant: GrantResponse): string {
  * explorador — não existe tela global, pois `GET /grants` é sempre por
  * recurso.
  */
-export function PermissoesModal({ resourceType, resourceId, resourceName, open, onClose }: PermissoesModalProps) {
+export function PermissoesModal({
+  resourceType,
+  resourceId,
+  resourceName,
+  open,
+  onClose,
+}: PermissoesModalProps) {
   const { message } = App.useApp();
   const { identity } = useSession();
   const [form] = Form.useForm<GrantFormValues>();
@@ -87,7 +110,9 @@ export function PermissoesModal({ resourceType, resourceId, resourceName, open, 
   // design.md D3: reconceder faz o prazo informado prevalecer — sem
   // oferecer o campo em branco como se fosse neutro, a pessoa que concede
   // precisa ver o que a pessoa já tem antes de decidir deixar em branco.
-  const selectedPersonGrants = selectedSubjectId ? grantsByPerson.get(selectedSubjectId) ?? [] : [];
+  const selectedPersonGrants = selectedSubjectId
+    ? (grantsByPerson.get(selectedSubjectId) ?? [])
+    : [];
 
   // design.md Risks: 404 (recurso/pessoa inexistente ou de outra unidade) e
   // 403 não são distinguidos — mensagem neutra, preservando o fail-closed do servidor.
@@ -127,9 +152,7 @@ export function PermissoesModal({ resourceType, resourceId, resourceName, open, 
       title={`Permissões — ${resourceName}`}
       open={open}
       onCancel={onClose}
-      footer={
-        <Button onClick={onClose}>Fechar</Button>
-      }
+      footer={<Button onClick={onClose}>Fechar</Button>}
       destroyOnClose
       width={640}
     >
@@ -169,14 +192,19 @@ export function PermissoesModal({ resourceType, resourceId, resourceName, open, 
         <Form.Item
           name="permissions"
           label="Verbos"
-          rules={[{ required: true, type: 'array', min: 1, message: 'Selecione ao menos um verbo' }]}
+          rules={[
+            { required: true, type: 'array', min: 1, message: 'Selecione ao menos um verbo' },
+          ]}
         >
           <Checkbox.Group options={VERB_OPTIONS} />
         </Form.Item>
         {selectedPersonGrants.length > 0 && (
           <Typography.Paragraph type="secondary" style={{ fontSize: 12, marginTop: -8 }}>
             Prazo atual desta pessoa neste recurso:{' '}
-            {selectedPersonGrants.map((grant) => `${VERB_LABEL[grant.permission]} (${expiryLabel(grant)})`).join(', ')}.
+            {selectedPersonGrants
+              .map((grant) => `${VERB_LABEL[grant.permission]} (${expiryLabel(grant)})`)
+              .join(', ')}
+            .
           </Typography.Paragraph>
         )}
         <Form.Item
@@ -211,7 +239,9 @@ export function PermissoesModal({ resourceType, resourceId, resourceName, open, 
                 {grants.map((grant) => (
                   <Space key={grant.id}>
                     <Tag>{VERB_LABEL[grant.permission]}</Tag>
-                    <Tag color={grant.expired ? 'red' : grant.expiresAt ? 'orange' : 'default'}>{expiryLabel(grant)}</Tag>
+                    <Tag color={grant.expired ? 'red' : grant.expiresAt ? 'orange' : 'default'}>
+                      {expiryLabel(grant)}
+                    </Tag>
                     <Popconfirm
                       title="Revogar permissão"
                       description={`Remover "${VERB_LABEL[grant.permission]}" desta pessoa sobre este recurso?`}

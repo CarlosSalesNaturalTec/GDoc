@@ -2,7 +2,12 @@ import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import { UserRole } from '@gdoc/shared';
-import type { AuditQueryResponse, FileSummaryResponse, FolderContentsResponse, FolderResponse } from '@gdoc/shared';
+import type {
+  AuditQueryResponse,
+  FileSummaryResponse,
+  FolderContentsResponse,
+  FolderResponse,
+} from '@gdoc/shared';
 import { mockFetch } from './mock-fetch';
 import { renderApp } from './render-app';
 
@@ -20,7 +25,9 @@ function folder(overrides: Partial<FolderResponse> & { id: string; name: string 
   };
 }
 
-function file(overrides: Partial<FileSummaryResponse> & { id: string; fileName: string }): FileSummaryResponse {
+function file(
+  overrides: Partial<FileSummaryResponse> & { id: string; fileName: string },
+): FileSummaryResponse {
   return {
     ownerId: 'user-1',
     folderId: null,

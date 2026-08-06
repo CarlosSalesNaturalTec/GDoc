@@ -19,7 +19,9 @@ export function GraficoBarras({ items }: { items: GraficoBarrasItem[] }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
       {items.map((item) => (
         <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <span style={{ width: 160, flexShrink: 0, color: token.colorTextSecondary, fontSize: 13 }}>
+          <span
+            style={{ width: 160, flexShrink: 0, color: token.colorTextSecondary, fontSize: 13 }}
+          >
             {item.label}
           </span>
           <div

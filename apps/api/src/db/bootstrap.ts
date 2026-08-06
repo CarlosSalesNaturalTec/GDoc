@@ -116,7 +116,9 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   bootstrapAdmin()
     .then((created) => {
       console.log(
-        created ? 'Administrador global criado.' : 'Bootstrap ignorado (já existe um global_admin).',
+        created
+          ? 'Administrador global criado.'
+          : 'Bootstrap ignorado (já existe um global_admin).',
       );
       process.exit(0);
     })

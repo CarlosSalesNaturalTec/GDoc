@@ -83,16 +83,26 @@ describe('Busca transversal de arquivos (routes/search.ts, GET /files/search, US
     const app = createApp(ports);
     const cookie = await sessionCookieFor(ports, ids.userA);
 
-    await insertFile({ unitId: ids.unitA, ownerId: ids.userA, fileName: 'Relatorio-Financeiro-2024.pdf' });
+    await insertFile({
+      unitId: ids.unitA,
+      ownerId: ids.userA,
+      fileName: 'Relatorio-Financeiro-2024.pdf',
+    });
     await insertFile({ unitId: ids.unitA, ownerId: ids.userA, fileName: 'outro-arquivo.txt' });
 
-    const res = await request(app).get('/files/search').query({ q: 'financeiro' }).set('Cookie', cookie);
+    const res = await request(app)
+      .get('/files/search')
+      .query({ q: 'financeiro' })
+      .set('Cookie', cookie);
     expect(res.status).toBe(200);
     const names = (res.body.files as FileSummaryResponse[]).map((f) => f.fileName);
     expect(names).toContain('Relatorio-Financeiro-2024.pdf');
     expect(names).not.toContain('outro-arquivo.txt');
 
-    const empty = await request(app).get('/files/search').query({ q: 'nome-que-nao-existe-xyz' }).set('Cookie', cookie);
+    const empty = await request(app)
+      .get('/files/search')
+      .query({ q: 'nome-que-nao-existe-xyz' })
+      .set('Cookie', cookie);
     expect(empty.status).toBe(200);
     expect(empty.body.files).toEqual([]);
   });
@@ -102,19 +112,54 @@ describe('Busca transversal de arquivos (routes/search.ts, GET /files/search, US
     const cookie = await sessionCookieFor(ports, ids.userA);
     const tag = `cat-${Date.now()}`;
 
-    await insertFile({ unitId: ids.unitA, ownerId: ids.userA, fileName: `${tag}-img.png`, contentType: 'image/png' });
-    await insertFile({ unitId: ids.unitA, ownerId: ids.userA, fileName: `${tag}-vid.mp4`, contentType: 'video/mp4' });
-    await insertFile({ unitId: ids.unitA, ownerId: ids.userA, fileName: `${tag}-aud.mp3`, contentType: 'audio/mpeg' });
-    await insertFile({ unitId: ids.unitA, ownerId: ids.userA, fileName: `${tag}-doc.pdf`, contentType: 'application/pdf' });
+    await insertFile({
+      unitId: ids.unitA,
+      ownerId: ids.userA,
+      fileName: `${tag}-img.png`,
+      contentType: 'image/png',
+    });
+    await insertFile({
+      unitId: ids.unitA,
+      ownerId: ids.userA,
+      fileName: `${tag}-vid.mp4`,
+      contentType: 'video/mp4',
+    });
+    await insertFile({
+      unitId: ids.unitA,
+      ownerId: ids.userA,
+      fileName: `${tag}-aud.mp3`,
+      contentType: 'audio/mpeg',
+    });
+    await insertFile({
+      unitId: ids.unitA,
+      ownerId: ids.userA,
+      fileName: `${tag}-doc.pdf`,
+      contentType: 'application/pdf',
+    });
     await insertFile({
       unitId: ids.unitA,
       ownerId: ids.userA,
       fileName: `${tag}-office.docx`,
       contentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     });
-    await insertFile({ unitId: ids.unitA, ownerId: ids.userA, fileName: `${tag}-text.txt`, contentType: 'text/plain' });
-    await insertFile({ unitId: ids.unitA, ownerId: ids.userA, fileName: `${tag}-unknown.bin`, contentType: 'application/x-unknown' });
-    await insertFile({ unitId: ids.unitA, ownerId: ids.userA, fileName: `${tag}-null`, contentType: null });
+    await insertFile({
+      unitId: ids.unitA,
+      ownerId: ids.userA,
+      fileName: `${tag}-text.txt`,
+      contentType: 'text/plain',
+    });
+    await insertFile({
+      unitId: ids.unitA,
+      ownerId: ids.userA,
+      fileName: `${tag}-unknown.bin`,
+      contentType: 'application/x-unknown',
+    });
+    await insertFile({
+      unitId: ids.unitA,
+      ownerId: ids.userA,
+      fileName: `${tag}-null`,
+      contentType: null,
+    });
 
     const expectations: [string, string][] = [
       ['image', `${tag}-img.png`],
@@ -125,12 +170,20 @@ describe('Busca transversal de arquivos (routes/search.ts, GET /files/search, US
       ['text', `${tag}-text.txt`],
     ];
     for (const [type, expectedName] of expectations) {
-      const res = await request(app).get('/files/search').query({ q: tag, type }).set('Cookie', cookie);
+      const res = await request(app)
+        .get('/files/search')
+        .query({ q: tag, type })
+        .set('Cookie', cookie);
       expect(res.status).toBe(200);
-      expect((res.body.files as FileSummaryResponse[]).map((f) => f.fileName)).toEqual([expectedName]);
+      expect((res.body.files as FileSummaryResponse[]).map((f) => f.fileName)).toEqual([
+        expectedName,
+      ]);
     }
 
-    const other = await request(app).get('/files/search').query({ q: tag, type: 'other' }).set('Cookie', cookie);
+    const other = await request(app)
+      .get('/files/search')
+      .query({ q: tag, type: 'other' })
+      .set('Cookie', cookie);
     expect(other.status).toBe(200);
     const otherNames = (other.body.files as FileSummaryResponse[]).map((f) => f.fileName).sort();
     expect(otherNames).toEqual([`${tag}-null`, `${tag}-unknown.bin`].sort());
@@ -175,7 +228,13 @@ describe('Busca transversal de arquivos (routes/search.ts, GET /files/search, US
 
     const res = await request(app)
       .get('/files/search')
-      .query({ q: tag, type: 'pdf', author: ids.userA, dateFrom: '2024-06-01', dateTo: '2024-06-30' })
+      .query({
+        q: tag,
+        type: 'pdf',
+        author: ids.userA,
+        dateFrom: '2024-06-01',
+        dateTo: '2024-06-30',
+      })
       .set('Cookie', cookie);
     expect(res.status).toBe(200);
     const files = res.body.files as FileSummaryResponse[];
@@ -190,22 +249,44 @@ describe('Busca transversal de arquivos (routes/search.ts, GET /files/search, US
     const cookieAdmin = await sessionCookieFor(ports, unitAdminAId);
     const tag = `perm-${Date.now()}`;
 
-    const fileId = await insertFile({ unitId: ids.unitA, ownerId: ids.userA, fileName: `${tag}-privado.txt` });
+    const fileId = await insertFile({
+      unitId: ids.unitA,
+      ownerId: ids.userA,
+      fileName: `${tag}-privado.txt`,
+    });
 
-    const beforeGrant = await request(app).get('/files/search').query({ q: tag }).set('Cookie', cookieOther);
+    const beforeGrant = await request(app)
+      .get('/files/search')
+      .query({ q: tag })
+      .set('Cookie', cookieOther);
     expect(beforeGrant.body.files).toEqual([]);
 
-    const adminSearch = await request(app).get('/files/search').query({ q: tag }).set('Cookie', cookieAdmin);
-    expect((adminSearch.body.files as FileSummaryResponse[]).map((f) => f.fileName)).toContain(`${tag}-privado.txt`);
+    const adminSearch = await request(app)
+      .get('/files/search')
+      .query({ q: tag })
+      .set('Cookie', cookieAdmin);
+    expect((adminSearch.body.files as FileSummaryResponse[]).map((f) => f.fileName)).toContain(
+      `${tag}-privado.txt`,
+    );
 
     const grant = await request(app)
       .post('/grants')
       .set('Cookie', cookieAdmin)
-      .send({ subjectUserId: userA2Id, resourceType: 'file', resourceId: fileId, permissions: ['view'] });
+      .send({
+        subjectUserId: userA2Id,
+        resourceType: 'file',
+        resourceId: fileId,
+        permissions: ['view'],
+      });
     expect(grant.status).toBe(201);
 
-    const afterGrant = await request(app).get('/files/search').query({ q: tag }).set('Cookie', cookieOther);
-    expect((afterGrant.body.files as FileSummaryResponse[]).map((f) => f.fileName)).toContain(`${tag}-privado.txt`);
+    const afterGrant = await request(app)
+      .get('/files/search')
+      .query({ q: tag })
+      .set('Cookie', cookieOther);
+    expect((afterGrant.body.files as FileSummaryResponse[]).map((f) => f.fileName)).toContain(
+      `${tag}-privado.txt`,
+    );
   });
 
   it('isolamento entre unidades: nome idêntico em outra unidade não aparece, mesmo para global_admin', async () => {
@@ -215,8 +296,13 @@ describe('Busca transversal de arquivos (routes/search.ts, GET /files/search, US
     await insertFile({ unitId: ids.unitA, ownerId: ids.userA, fileName: `${tag}-igual.txt` });
     await insertFile({ unitId: ids.unitB, ownerId: ids.userB, fileName: `${tag}-igual.txt` });
 
-    const resA = await request(app).get('/files/search').query({ q: tag }).set('Cookie', await sessionCookieFor(ports, ids.userA));
-    expect((resA.body.files as FileSummaryResponse[]).map((f) => f.fileName)).toEqual([`${tag}-igual.txt`]);
+    const resA = await request(app)
+      .get('/files/search')
+      .query({ q: tag })
+      .set('Cookie', await sessionCookieFor(ports, ids.userA));
+    expect((resA.body.files as FileSummaryResponse[]).map((f) => f.fileName)).toEqual([
+      `${tag}-igual.txt`,
+    ]);
 
     const resGlobal = await request(app)
       .get('/files/search')
@@ -231,8 +317,18 @@ describe('Busca transversal de arquivos (routes/search.ts, GET /files/search, US
     const cookie = await sessionCookieFor(ports, ids.userA);
     const tag = `trash-order-${Date.now()}`;
 
-    await insertFile({ unitId: ids.unitA, ownerId: ids.userA, fileName: `${tag}-antigo`, createdAt: '2024-01-01T00:00:00Z' });
-    await insertFile({ unitId: ids.unitA, ownerId: ids.userA, fileName: `${tag}-recente`, createdAt: '2024-12-01T00:00:00Z' });
+    await insertFile({
+      unitId: ids.unitA,
+      ownerId: ids.userA,
+      fileName: `${tag}-antigo`,
+      createdAt: '2024-01-01T00:00:00Z',
+    });
+    await insertFile({
+      unitId: ids.unitA,
+      ownerId: ids.userA,
+      fileName: `${tag}-recente`,
+      createdAt: '2024-12-01T00:00:00Z',
+    });
     await insertFile({
       unitId: ids.unitA,
       ownerId: ids.userA,
@@ -253,13 +349,22 @@ describe('Busca transversal de arquivos (routes/search.ts, GET /files/search, US
     const app = createApp(ports);
     const cookie = await sessionCookieFor(ports, ids.userA);
 
-    const badType = await request(app).get('/files/search').query({ type: 'not-a-category' }).set('Cookie', cookie);
+    const badType = await request(app)
+      .get('/files/search')
+      .query({ type: 'not-a-category' })
+      .set('Cookie', cookie);
     expect(badType.status).toBe(400);
 
-    const badAuthor = await request(app).get('/files/search').query({ author: 'not-a-uuid' }).set('Cookie', cookie);
+    const badAuthor = await request(app)
+      .get('/files/search')
+      .query({ author: 'not-a-uuid' })
+      .set('Cookie', cookie);
     expect(badAuthor.status).toBe(400);
 
-    const badDate = await request(app).get('/files/search').query({ dateFrom: 'not-a-date' }).set('Cookie', cookie);
+    const badDate = await request(app)
+      .get('/files/search')
+      .query({ dateFrom: 'not-a-date' })
+      .set('Cookie', cookie);
     expect(badDate.status).toBe(400);
   });
 });

@@ -83,7 +83,11 @@ export function LixeiraPage() {
     },
     { title: 'Nome', key: 'name', dataIndex: 'name' },
     { title: 'Tipo', key: 'typeLabel', render: (_, entry) => TYPE_LABEL[entry.type] },
-    { title: 'Data de exclusão', key: 'deletedAt', render: (_, entry) => formatDate(entry.deletedAt) },
+    {
+      title: 'Data de exclusão',
+      key: 'deletedAt',
+      render: (_, entry) => formatDate(entry.deletedAt),
+    },
     {
       title: 'Dias restantes',
       key: 'daysRemaining',

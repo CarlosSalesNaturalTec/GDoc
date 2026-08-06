@@ -1,7 +1,12 @@
 import { useState } from 'react';
 import { Button, DatePicker, Empty, Input, Result, Select, Space, Spin, Table } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import { ClearOutlined, CloudDownloadOutlined, EyeOutlined, SearchOutlined } from '@ant-design/icons';
+import {
+  ClearOutlined,
+  CloudDownloadOutlined,
+  EyeOutlined,
+  SearchOutlined,
+} from '@ant-design/icons';
 import type { Dayjs } from 'dayjs';
 import type { FileCategory, FileSummaryResponse, SearchFilesQuery } from '@gdoc/shared';
 import { UserRole, fileCategory } from '@gdoc/shared';
@@ -52,7 +57,12 @@ function toSearchQuery(filters: FilterState): SearchFilesQuery {
 
 /** Critério ativo: nome não vazio (após trim) ou algum outro filtro definido (design.md D2). */
 function hasActiveCriteria(filters: FilterState): boolean {
-  return filters.q.trim() !== '' || filters.type !== undefined || filters.author !== undefined || filters.dateRange !== null;
+  return (
+    filters.q.trim() !== '' ||
+    filters.type !== undefined ||
+    filters.author !== undefined ||
+    filters.dateRange !== null
+  );
 }
 
 /**
@@ -63,7 +73,8 @@ function hasActiveCriteria(filters: FilterState): boolean {
  */
 export function BuscaPage() {
   const { identity } = useSession();
-  const isAdmin = identity?.role === UserRole.UNIT_ADMIN || identity?.role === UserRole.GLOBAL_ADMIN;
+  const isAdmin =
+    identity?.role === UserRole.UNIT_ADMIN || identity?.role === UserRole.GLOBAL_ADMIN;
 
   const [filters, setFilters] = useState<FilterState>(EMPTY_FILTERS);
   const [submitted, setSubmitted] = useState<SearchFilesQuery | undefined>(undefined);
@@ -95,7 +106,11 @@ export function BuscaPage() {
       title: 'Nome',
       key: 'name',
       render: (_, file) => (
-        <Button type="link" style={{ padding: 0, height: 'auto' }} onClick={() => setPreviewingFile(file)}>
+        <Button
+          type="link"
+          style={{ padding: 0, height: 'auto' }}
+          onClick={() => setPreviewingFile(file)}
+        >
           {file.fileName}
         </Button>
       ),
@@ -144,7 +159,9 @@ export function BuscaPage() {
         />
         <RangePicker
           value={filters.dateRange}
-          onChange={(range) => setFilters((prev) => ({ ...prev, dateRange: range as [Dayjs, Dayjs] | null }))}
+          onChange={(range) =>
+            setFilters((prev) => ({ ...prev, dateRange: range as [Dayjs, Dayjs] | null }))
+          }
         />
         {isAdmin && (
           <Select
@@ -159,7 +176,12 @@ export function BuscaPage() {
             onChange={(value) => setFilters((prev) => ({ ...prev, author: value }))}
           />
         )}
-        <Button type="primary" icon={<SearchOutlined />} disabled={!canSearch} onClick={handleSearch}>
+        <Button
+          type="primary"
+          icon={<SearchOutlined />}
+          disabled={!canSearch}
+          onClick={handleSearch}
+        >
           Buscar
         </Button>
         <Button icon={<ClearOutlined />} onClick={handleClear}>
@@ -167,11 +189,11 @@ export function BuscaPage() {
         </Button>
       </Space>
 
-      {submitted === undefined && (
-        <Empty description="Informe ao menos um critério para buscar" />
-      )}
+      {submitted === undefined && <Empty description="Informe ao menos um critério para buscar" />}
 
-      {submitted !== undefined && isLoading && <Spin size="large" style={{ display: 'block', margin: '48px auto' }} />}
+      {submitted !== undefined && isLoading && (
+        <Spin size="large" style={{ display: 'block', margin: '48px auto' }} />
+      )}
 
       {submitted !== undefined && isError && (
         <Result

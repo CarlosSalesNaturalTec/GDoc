@@ -66,7 +66,9 @@ describe('Autenticação: /auth/login, /auth/logout, /auth/me', () => {
 
   it('login com credenciais corretas emite sessão (cookie HttpOnly)', async () => {
     const app = createApp(ports);
-    const res = await request(app).post('/auth/login').send({ email: 'ativo@test.dev', password: 'correct-password' });
+    const res = await request(app)
+      .post('/auth/login')
+      .send({ email: 'ativo@test.dev', password: 'correct-password' });
 
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ id: activeUserId, unitId, role: 'collaborator' });
@@ -111,7 +113,9 @@ describe('Autenticação: /auth/login, /auth/logout, /auth/me', () => {
 
   it('GET /auth/me devolve id/unidade/papel sem senha nem hash', async () => {
     const app = createApp(ports);
-    const res = await request(app).get('/auth/me').set('Cookie', await sessionCookieFor(ports, activeUserId));
+    const res = await request(app)
+      .get('/auth/me')
+      .set('Cookie', await sessionCookieFor(ports, activeUserId));
 
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ id: activeUserId, unitId, role: 'collaborator' });
@@ -127,7 +131,9 @@ describe('Autenticação: /auth/login, /auth/logout, /auth/me', () => {
 
   it('sessão de conta desativada é recusada mesmo antes de expirar', async () => {
     const app = createApp(ports);
-    const res = await request(app).get('/auth/me').set('Cookie', await sessionCookieFor(ports, disabledUserId));
+    const res = await request(app)
+      .get('/auth/me')
+      .set('Cookie', await sessionCookieFor(ports, disabledUserId));
     expect(res.status).toBe(401);
   });
 
@@ -156,7 +162,11 @@ describe('Autenticação: /auth/login, /auth/logout, /auth/me', () => {
         return rows[0]!;
       });
 
-      const staleCookie = await sessionCookieFor(ports, userId, new Date(Date.now() - 60 * 60 * 1000));
+      const staleCookie = await sessionCookieFor(
+        ports,
+        userId,
+        new Date(Date.now() - 60 * 60 * 1000),
+      );
 
       await withSystemBypass(pool, (client) =>
         client.query('UPDATE users SET password_changed_at = now() WHERE id = $1', [userId]),
@@ -190,15 +200,21 @@ describe('Autenticação: /auth/login, /auth/logout, /auth/me', () => {
       const app = createApp(ports);
       const secrets = new EnvSecretsPort();
       const secret = await secrets.getSecret('AUTH_SESSION_SECRET');
-      const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' }), 'utf-8').toString('base64url');
+      const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' }), 'utf-8').toString(
+        'base64url',
+      );
       const payload = Buffer.from(
         JSON.stringify({ sub: activeUserId, exp: Math.floor(Date.now() / 1000) + 3600 }),
         'utf-8',
       ).toString('base64url');
-      const signature = createHmac('sha256', secret).update(`${header}.${payload}`).digest('base64url');
+      const signature = createHmac('sha256', secret)
+        .update(`${header}.${payload}`)
+        .digest('base64url');
       const tokenWithoutIat = `${header}.${payload}.${signature}`;
 
-      const res = await request(app).get('/auth/me').set('Cookie', `${SESSION_COOKIE_NAME}=${tokenWithoutIat}`);
+      const res = await request(app)
+        .get('/auth/me')
+        .set('Cookie', `${SESSION_COOKIE_NAME}=${tokenWithoutIat}`);
       expect(res.status).toBe(401);
     });
   });
@@ -293,7 +309,11 @@ describe('Autenticação: /auth/login, /auth/logout, /auth/me', () => {
     it('sessão emitida antes da troca é recusada após a troca', async () => {
       const app = createApp(ports);
       const { id: userId } = await createUser('sessao-antiga@test.dev');
-      const staleCookie = await sessionCookieFor(ports, userId, new Date(Date.now() - 60 * 60 * 1000));
+      const staleCookie = await sessionCookieFor(
+        ports,
+        userId,
+        new Date(Date.now() - 60 * 60 * 1000),
+      );
       const otherCookie = await sessionCookieFor(ports, userId);
 
       const res = await request(app)
@@ -324,7 +344,9 @@ describe('Autenticação: /auth/login, /auth/logout, /auth/me', () => {
   describe('GET /auth/profile (US 1.3, cenário 5)', () => {
     it('devolve nome, e-mail, unidade e papel da pessoa autenticada, sem material de senha', async () => {
       const app = createApp(ports);
-      const res = await request(app).get('/auth/profile').set('Cookie', await sessionCookieFor(ports, activeUserId));
+      const res = await request(app)
+        .get('/auth/profile')
+        .set('Cookie', await sessionCookieFor(ports, activeUserId));
 
       expect(res.status).toBe(200);
       expect(res.body).toEqual({

@@ -72,7 +72,9 @@ describe('routes/notifications.ts — caixa de notificações', () => {
 
     const list = await request(app).get('/notifications').set('Cookie', cookieB);
     expect(list.status).toBe(200);
-    const resourceIds = list.body.notifications.map((n: { payload: { resourceId: string } }) => n.payload.resourceId);
+    const resourceIds = list.body.notifications.map(
+      (n: { payload: { resourceId: string } }) => n.payload.resourceId,
+    );
     expect(resourceIds).not.toContain('r1');
   });
 
@@ -84,7 +86,9 @@ describe('routes/notifications.ts — caixa de notificações', () => {
     expect(list.status).toBe(200);
     // global_admin é da unitA (seedTwoUnits) mas isso não importa: a rota
     // filtra por recipient_user_id = ele mesmo, não por unit_id do bypass.
-    const resourceIds = list.body.notifications.map((n: { payload: { resourceId: string } }) => n.payload.resourceId);
+    const resourceIds = list.body.notifications.map(
+      (n: { payload: { resourceId: string } }) => n.payload.resourceId,
+    );
     expect(resourceIds).not.toContain('r1');
     expect(resourceIds).not.toContain('r2');
   });
@@ -97,7 +101,9 @@ describe('routes/notifications.ts — caixa de notificações', () => {
     const notificationId = before.body.notifications[0].id;
     expect(before.body.notifications[0].readAt).toBeNull();
 
-    const markRead = await request(app).post(`/notifications/${notificationId}/read`).set('Cookie', cookieA);
+    const markRead = await request(app)
+      .post(`/notifications/${notificationId}/read`)
+      .set('Cookie', cookieA);
     expect(markRead.status).toBe(204);
 
     const after = await request(app).get('/notifications').set('Cookie', cookieA);
@@ -108,7 +114,9 @@ describe('routes/notifications.ts — caixa de notificações', () => {
     expect(count.body.count).toBe(0);
 
     // Idempotente: marcar de novo não falha nem altera o resultado.
-    const markAgain = await request(app).post(`/notifications/${notificationId}/read`).set('Cookie', cookieA);
+    const markAgain = await request(app)
+      .post(`/notifications/${notificationId}/read`)
+      .set('Cookie', cookieA);
     expect(markAgain.status).toBe(204);
   });
 
@@ -117,11 +125,15 @@ describe('routes/notifications.ts — caixa de notificações', () => {
     const cookieA = await sessionCookieFor(ports, ids.userA);
 
     const listB = await withSystemBypass(pool, (client) =>
-      client.query<{ id: string }>('SELECT id FROM notifications WHERE recipient_user_id = $1', [ids.userB]),
+      client.query<{ id: string }>('SELECT id FROM notifications WHERE recipient_user_id = $1', [
+        ids.userB,
+      ]),
     );
     const otherPersonNotificationId = listB.rows[0]!.id;
 
-    const res = await request(app).post(`/notifications/${otherPersonNotificationId}/read`).set('Cookie', cookieA);
+    const res = await request(app)
+      .post(`/notifications/${otherPersonNotificationId}/read`)
+      .set('Cookie', cookieA);
     expect(res.status).toBe(404);
   });
 });

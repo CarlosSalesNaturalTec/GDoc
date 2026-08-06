@@ -39,7 +39,11 @@ export function MinhaContaPage() {
     } catch (err) {
       // US 1.3, cenário 3; design.md D9: causa específica, sem confundir com
       // a mensagem genérica do login — quem chama já está autenticado.
-      if (err instanceof ApiError && err.status === 400 && err.message === 'current password is incorrect') {
+      if (
+        err instanceof ApiError &&
+        err.status === 400 &&
+        err.message === 'current password is incorrect'
+      ) {
         form.setFields([{ name: 'currentPassword', errors: ['Senha atual incorreta'] }]);
         return;
       }
@@ -66,7 +70,9 @@ export function MinhaContaPage() {
   }
 
   if (isError || !profile) {
-    return <Typography.Text type="danger">Não foi possível carregar os dados da conta.</Typography.Text>;
+    return (
+      <Typography.Text type="danger">Não foi possível carregar os dados da conta.</Typography.Text>
+    );
   }
 
   return (
@@ -83,7 +89,12 @@ export function MinhaContaPage() {
       </Card>
 
       <Card title="Alterar senha">
-        <Form<ChangePasswordFormValues> form={form} layout="vertical" onFinish={handleSubmit} disabled={submitting}>
+        <Form<ChangePasswordFormValues>
+          form={form}
+          layout="vertical"
+          onFinish={handleSubmit}
+          disabled={submitting}
+        >
           <Form.Item
             name="currentPassword"
             label="Senha atual"

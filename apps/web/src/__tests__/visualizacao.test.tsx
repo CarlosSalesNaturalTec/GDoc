@@ -8,7 +8,9 @@ import { renderApp } from './render-app';
 
 const IDENTITY = { id: 'user-1', unitId: 'unit-1', role: UserRole.COLLABORATOR };
 
-function file(overrides: Partial<FileSummaryResponse> & { id: string; fileName: string }): FileSummaryResponse {
+function file(
+  overrides: Partial<FileSummaryResponse> & { id: string; fileName: string },
+): FileSummaryResponse {
   return {
     ownerId: 'user-1',
     folderId: null,
@@ -95,7 +97,11 @@ describe('Visualização e download de arquivos (web-visualizacao)', () => {
       'GET /folders/root/contents': { status: 200, body: contents({ files: [doc] }) },
       'POST /files/file-doc/view-url': {
         status: 200,
-        body: { previewAvailable: false, reason: 'unsupported_format', download: { available: true } },
+        body: {
+          previewAvailable: false,
+          reason: 'unsupported_format',
+          download: { available: true },
+        },
       },
     });
 
@@ -119,7 +125,11 @@ describe('Visualização e download de arquivos (web-visualizacao)', () => {
       'GET /folders/root/contents': { status: 200, body: contents({ files: [doc] }) },
       'POST /files/file-doc2/view-url': {
         status: 200,
-        body: { previewAvailable: false, reason: 'unsupported_format', download: { available: false } },
+        body: {
+          previewAvailable: false,
+          reason: 'unsupported_format',
+          download: { available: false },
+        },
       },
     });
 

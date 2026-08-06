@@ -18,7 +18,10 @@ export interface FolderRow {
  * excluída; a lixeira e o restore consultam `folders` diretamente, sem
  * passar por aqui.
  */
-export async function findFolderById(client: PoolClient, folderId: string): Promise<FolderRow | null> {
+export async function findFolderById(
+  client: PoolClient,
+  folderId: string,
+): Promise<FolderRow | null> {
   const { rows } = await client.query<FolderRow>(
     'SELECT * FROM folders WHERE id = $1 AND deleted_at IS NULL',
     [folderId],
@@ -27,8 +30,7 @@ export async function findFolderById(client: PoolClient, folderId: string): Prom
 }
 
 export type AnchorValidation =
-  | { ok: true; anchor: FolderRow | null }
-  | { ok: false; status: 404 | 403 };
+  { ok: true; anchor: FolderRow | null } | { ok: false; status: 404 | 403 };
 
 /**
  * Valida a pasta-âncora (`parentId`/`destinationFolderId`): RLS já restringe
@@ -46,7 +48,13 @@ export async function validateAnchor(
   if (!anchorId) return { ok: true, anchor: null };
   const anchor = await findFolderById(client, anchorId);
   if (!anchor) return { ok: false, status: 404 };
-  const allowed = await hasAccess(client, ctx, GrantResourceType.FOLDER, anchor.id, Permission.UPLOAD);
+  const allowed = await hasAccess(
+    client,
+    ctx,
+    GrantResourceType.FOLDER,
+    anchor.id,
+    Permission.UPLOAD,
+  );
   if (!allowed) return { ok: false, status: 403 };
   return { ok: true, anchor };
 }

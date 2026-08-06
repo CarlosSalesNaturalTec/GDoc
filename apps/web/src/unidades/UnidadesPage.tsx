@@ -52,7 +52,9 @@ export function UnidadesPage() {
       // 409 ao desativar (não vazia / própria / bootstrap): aviso claro, sem
       // alterar o estado exibido (a listagem não muda). 403 = permissão.
       if (err instanceof ApiError && err.status === 409) {
-        message.error(DEACTIVATE_ERROR_MESSAGE[err.message] ?? 'Não foi possível desativar a unidade.');
+        message.error(
+          DEACTIVATE_ERROR_MESSAGE[err.message] ?? 'Não foi possível desativar a unidade.',
+        );
         return;
       }
       if (err instanceof ApiError && err.status === 403) {

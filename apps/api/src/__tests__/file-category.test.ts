@@ -7,7 +7,10 @@ describe('fileCategory (packages/shared/src/dashboard.ts) â€” mapeamento MIME â†
     ['video/mp4', FileCategory.VIDEO],
     ['audio/mpeg', FileCategory.AUDIO],
     ['application/pdf', FileCategory.PDF],
-    ['application/vnd.openxmlformats-officedocument.wordprocessingml.document', FileCategory.OFFICE],
+    [
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      FileCategory.OFFICE,
+    ],
     ['application/msword', FileCategory.OFFICE],
     ['text/plain', FileCategory.TEXT],
     ['application/x-unknown', FileCategory.OTHER],

@@ -40,8 +40,18 @@ export function trashRouter(ports: Ports): Router {
       const params: string[] = admin ? [] : [ctx.userId];
       const ownerPlaceholder = admin ? '' : `$${params.length}`;
 
-      const folderScope = resourceScopeClause(GrantResourceType.FOLDER, ownerPlaceholder, ctx, Permission.DELETE);
-      const fileScope = resourceScopeClause(GrantResourceType.FILE, ownerPlaceholder, ctx, Permission.DELETE);
+      const folderScope = resourceScopeClause(
+        GrantResourceType.FOLDER,
+        ownerPlaceholder,
+        ctx,
+        Permission.DELETE,
+      );
+      const fileScope = resourceScopeClause(
+        GrantResourceType.FILE,
+        ownerPlaceholder,
+        ctx,
+        Permission.DELETE,
+      );
 
       const { folders, files } = await ports.database.withTenantTransaction(ctx, async (client) => {
         const { rows: folders } = await client.query<TrashRow>(

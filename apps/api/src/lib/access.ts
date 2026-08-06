@@ -33,7 +33,10 @@ export function resourceTable(resourceType: GrantResourceType): 'folders' | 'fil
  * de outra unidade (Opção B).
  */
 export function isAdminOfUnit(ctx: TenantContext, resourceUnitId: string): boolean {
-  return (ctx.role === UserRole.UNIT_ADMIN || ctx.role === UserRole.GLOBAL_ADMIN) && resourceUnitId === ctx.unitId;
+  return (
+    (ctx.role === UserRole.UNIT_ADMIN || ctx.role === UserRole.GLOBAL_ADMIN) &&
+    resourceUnitId === ctx.unitId
+  );
 }
 
 /**
@@ -93,7 +96,11 @@ export async function hasAccess(
  * inexistente ou na lixeira (`deleted_at IS NULL`) resolve para `false`,
  * sem distinguir os casos.
  */
-export async function canReadAudit(client: PoolClient, ctx: TenantContext, fileId: string): Promise<boolean> {
+export async function canReadAudit(
+  client: PoolClient,
+  ctx: TenantContext,
+  fileId: string,
+): Promise<boolean> {
   const { rows } = await client.query<{ owner_id: string; unit_id: string }>(
     'SELECT owner_id, unit_id FROM files WHERE id = $1 AND deleted_at IS NULL',
     [fileId],
@@ -144,6 +151,10 @@ export function resourceScopeClause(
  * `resourceScopeClause` (verbo `view`) mais `deleted_at IS NULL` — item na
  * lixeira nunca aparece na listagem, nem para o admin da unidade.
  */
-export function visibleResourceClause(resourceType: GrantResourceType, ownerIdParam: string, ctx: TenantContext): string {
+export function visibleResourceClause(
+  resourceType: GrantResourceType,
+  ownerIdParam: string,
+  ctx: TenantContext,
+): string {
   return `deleted_at IS NULL AND ${resourceScopeClause(resourceType, ownerIdParam, ctx, Permission.VIEW)}`;
 }

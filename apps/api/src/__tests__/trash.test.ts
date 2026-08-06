@@ -62,7 +62,10 @@ describe('Lixeira e retenção (Épico 6, US 6.1)', () => {
   });
 
   async function createFolder(cookie: string, name: string, parentId?: string): Promise<string> {
-    const res = await request(createApp(ports)).post('/folders').set('Cookie', cookie).send({ name, parentId });
+    const res = await request(createApp(ports))
+      .post('/folders')
+      .set('Cookie', cookie)
+      .send({ name, parentId });
     expect(res.status).toBe(201);
     return res.body.id as string;
   }
@@ -74,7 +77,9 @@ describe('Lixeira e retenção (Épico 6, US 6.1)', () => {
       .send({ fileName, contentType: 'text/plain', declaredSizeBytes: 5, folderId });
     expect(res.status).toBe(200);
     const { rows } = await withSystemBypass(pool, (client) =>
-      client.query<{ id: string }>('SELECT id FROM files WHERE object_path = $1', [res.body.objectPath]),
+      client.query<{ id: string }>('SELECT id FROM files WHERE object_path = $1', [
+        res.body.objectPath,
+      ]),
     );
     return rows[0]!.id;
   }
@@ -101,15 +106,20 @@ describe('Lixeira e retenção (Épico 6, US 6.1)', () => {
       const cookieAdmin = await sessionCookieFor(ports, ids.globalAdmin);
       const fileId = await uploadFile(cookieA2, 'grant-delete.txt');
 
-      const grant = await request(app).post('/grants').set('Cookie', cookieAdmin).send({
-        subjectUserId: ids.userA,
-        resourceType: 'file',
-        resourceId: fileId,
-        permissions: ['delete'],
-      });
+      const grant = await request(app)
+        .post('/grants')
+        .set('Cookie', cookieAdmin)
+        .send({
+          subjectUserId: ids.userA,
+          resourceType: 'file',
+          resourceId: fileId,
+          permissions: ['delete'],
+        });
       expect(grant.status).toBe(201);
 
-      const del = await request(app).delete(`/files/${fileId}`).set('Cookie', await sessionCookieFor(ports, ids.userA));
+      const del = await request(app)
+        .delete(`/files/${fileId}`)
+        .set('Cookie', await sessionCookieFor(ports, ids.userA));
       expect(del.status).toBe(204);
     });
 
@@ -155,10 +165,15 @@ describe('Lixeira e retenção (Épico 6, US 6.1)', () => {
       expect(view.status).toBe(403);
       expect(view.body.url).toBeUndefined();
 
-      const download = await request(app).post(`/files/${fileId}/download-url`).set('Cookie', cookieA);
+      const download = await request(app)
+        .post(`/files/${fileId}/download-url`)
+        .set('Cookie', cookieA);
       expect(download.status).toBe(403);
 
-      const rename = await request(app).patch(`/files/${fileId}`).set('Cookie', cookieA).send({ fileName: 'novo.txt' });
+      const rename = await request(app)
+        .patch(`/files/${fileId}`)
+        .set('Cookie', cookieA)
+        .send({ fileName: 'novo.txt' });
       expect(rename.status).toBe(403);
 
       const replace = await request(app)
@@ -167,12 +182,17 @@ describe('Lixeira e retenção (Épico 6, US 6.1)', () => {
         .send({ contentType: 'text/plain', declaredSizeBytes: 5 });
       expect(replace.status).toBe(403);
 
-      const contents = await request(app).get(`/folders/${folderId}/contents`).set('Cookie', cookieA);
+      const contents = await request(app)
+        .get(`/folders/${folderId}/contents`)
+        .set('Cookie', cookieA);
       expect(contents.status).toBe(200);
       expect(contents.body.files).toEqual([]);
 
       const audits = await withSystemBypass(pool, (client) =>
-        client.query("SELECT 1 FROM audit_events WHERE file_id = $1 AND action IN ('view','download')", [fileId]),
+        client.query(
+          "SELECT 1 FROM audit_events WHERE file_id = $1 AND action IN ('view','download')",
+          [fileId],
+        ),
       );
       expect(audits.rows).toHaveLength(0);
     });
@@ -184,7 +204,9 @@ describe('Lixeira e retenção (Épico 6, US 6.1)', () => {
 
       await request(app).delete(`/folders/${folderId}`).set('Cookie', cookieA).expect(204);
 
-      const contents = await request(app).get(`/folders/${folderId}/contents`).set('Cookie', cookieA);
+      const contents = await request(app)
+        .get(`/folders/${folderId}/contents`)
+        .set('Cookie', cookieA);
       expect(contents.status).toBe(403);
 
       const root = await request(app).get('/folders/root/contents').set('Cookie', cookieA);
@@ -206,7 +228,9 @@ describe('Lixeira e retenção (Épico 6, US 6.1)', () => {
       // f3 já estava na lixeira antes da cascata de P.
       await request(app).delete(`/files/${f3}`).set('Cookie', cookieA).expect(204);
       const f3Before = await withSystemBypass(pool, (client) =>
-        client.query<{ trash_root_id: string }>('SELECT trash_root_id FROM files WHERE id = $1', [f3]),
+        client.query<{ trash_root_id: string }>('SELECT trash_root_id FROM files WHERE id = $1', [
+          f3,
+        ]),
       );
 
       const del = await request(app).delete(`/folders/${p}`).set('Cookie', cookieA);
@@ -217,7 +241,10 @@ describe('Lixeira e retenção (Épico 6, US 6.1)', () => {
           `SELECT id, deleted_at, trash_root_id FROM folders WHERE id = ANY($1::uuid[])
            UNION ALL
            SELECT id, deleted_at, trash_root_id FROM files WHERE id = ANY($2::uuid[])`,
-          [[p, q], [f1, f2, f3]],
+          [
+            [p, q],
+            [f1, f2, f3],
+          ],
         ),
       );
       const byId = new Map(rows.rows.map((r) => [r.id, r]));
@@ -244,12 +271,15 @@ describe('Lixeira e retenção (Épico 6, US 6.1)', () => {
       const folderId = await createFolder(cookieA, 'Restaura Origem');
       const fileId = await uploadFile(cookieA, 'restaura.txt', folderId);
 
-      const grant = await request(app).post('/grants').set('Cookie', cookieAdmin).send({
-        subjectUserId: userA2Id,
-        resourceType: 'file',
-        resourceId: fileId,
-        permissions: ['view'],
-      });
+      const grant = await request(app)
+        .post('/grants')
+        .set('Cookie', cookieAdmin)
+        .send({
+          subjectUserId: userA2Id,
+          resourceType: 'file',
+          resourceId: fileId,
+          permissions: ['view'],
+        });
       expect(grant.status).toBe(201);
 
       await request(app).delete(`/files/${fileId}`).set('Cookie', cookieA).expect(204);
@@ -259,11 +289,16 @@ describe('Lixeira e retenção (Épico 6, US 6.1)', () => {
       expect(restore.body.folderId).toBe(folderId);
       expect(restore.body.redirectedToRoot).toBe(false);
 
-      const contents = await request(app).get(`/folders/${folderId}/contents`).set('Cookie', cookieA);
+      const contents = await request(app)
+        .get(`/folders/${folderId}/contents`)
+        .set('Cookie', cookieA);
       expect(contents.body.files.map((f: { id: string }) => f.id)).toContain(fileId);
 
       const grants = await withSystemBypass(pool, (client) =>
-        client.query('SELECT 1 FROM grants WHERE resource_id = $1 AND permission = $2', [fileId, 'view']),
+        client.query('SELECT 1 FROM grants WHERE resource_id = $1 AND permission = $2', [
+          fileId,
+          'view',
+        ]),
       );
       expect(grants.rows).toHaveLength(1);
     });
@@ -339,7 +374,9 @@ describe('Lixeira e retenção (Épico 6, US 6.1)', () => {
 
       await request(app).delete(`/files/${fileId}`).set('Cookie', cookieA).expect(204);
 
-      const restoreFromB = await request(app).post(`/files/${fileId}/restore`).set('Cookie', cookieB);
+      const restoreFromB = await request(app)
+        .post(`/files/${fileId}/restore`)
+        .set('Cookie', cookieB);
       expect(restoreFromB.status).toBe(403);
 
       const trashB = await request(app).get('/trash').set('Cookie', cookieB);
@@ -359,12 +396,15 @@ describe('Lixeira e retenção (Épico 6, US 6.1)', () => {
       const grantedFile = await uploadFile(cookieA2, 'trash-granted.txt');
       const otherFile = await uploadFile(cookieA2, 'trash-other.txt');
 
-      await request(app).post('/grants').set('Cookie', cookieAdmin).send({
-        subjectUserId: ids.userA,
-        resourceType: 'file',
-        resourceId: grantedFile,
-        permissions: ['delete'],
-      });
+      await request(app)
+        .post('/grants')
+        .set('Cookie', cookieAdmin)
+        .send({
+          subjectUserId: ids.userA,
+          resourceType: 'file',
+          resourceId: grantedFile,
+          permissions: ['delete'],
+        });
 
       await request(app).delete(`/files/${ownFile}`).set('Cookie', cookieA).expect(204);
       await request(app).delete(`/files/${grantedFile}`).set('Cookie', cookieA).expect(204);
@@ -376,7 +416,9 @@ describe('Lixeira e retenção (Épico 6, US 6.1)', () => {
       expect(idsA).toContain(grantedFile);
       expect(idsA).not.toContain(otherFile);
 
-      const trashAdmin = await request(app).get('/trash').set('Cookie', await sessionCookieFor(ports, unitAdminAId));
+      const trashAdmin = await request(app)
+        .get('/trash')
+        .set('Cookie', await sessionCookieFor(ports, unitAdminAId));
       const idsAdmin = trashAdmin.body.items.map((i: { id: string }) => i.id);
       expect(idsAdmin).toContain(ownFile);
       expect(idsAdmin).toContain(grantedFile);
@@ -391,7 +433,11 @@ describe('Lixeira e retenção (Épico 6, US 6.1)', () => {
       const fileId = await uploadFile(cookieA, 'cota.txt');
 
       await withSystemBypass(pool, (client) =>
-        client.query('UPDATE files SET status = $1, size_bytes = $2 WHERE id = $3', ['active', 1000, fileId]),
+        client.query('UPDATE files SET status = $1, size_bytes = $2 WHERE id = $3', [
+          'active',
+          1000,
+          fileId,
+        ]),
       );
       await withSystemBypass(pool, (client) =>
         client.query('UPDATE users SET storage_used_bytes = $1 WHERE id = $2', [1000, ids.userA]),
@@ -400,7 +446,10 @@ describe('Lixeira e retenção (Épico 6, US 6.1)', () => {
       await request(app).delete(`/files/${fileId}`).set('Cookie', cookieA).expect(204);
 
       const user = await withSystemBypass(pool, (client) =>
-        client.query<{ storage_used_bytes: string }>('SELECT storage_used_bytes FROM users WHERE id = $1', [ids.userA]),
+        client.query<{ storage_used_bytes: string }>(
+          'SELECT storage_used_bytes FROM users WHERE id = $1',
+          [ids.userA],
+        ),
       );
       expect(Number(user.rows[0]!.storage_used_bytes)).toBe(1000);
     });
@@ -429,11 +478,15 @@ describe('Lixeira e retenção (Épico 6, US 6.1)', () => {
       await request(app).delete(`/files/${freshId}`).set('Cookie', cookieA).expect(204);
 
       await withSystemBypass(pool, (client) =>
-        client.query(`UPDATE files SET deleted_at = now() - interval '31 days' WHERE id = $1`, [expiredId]),
+        client.query(`UPDATE files SET deleted_at = now() - interval '31 days' WHERE id = $1`, [
+          expiredId,
+        ]),
       );
 
       const { rows: pathRows } = await withSystemBypass(pool, (client) =>
-        client.query<{ object_path: string }>('SELECT object_path FROM files WHERE id = $1', [expiredId]),
+        client.query<{ object_path: string }>('SELECT object_path FROM files WHERE id = $1', [
+          expiredId,
+        ]),
       );
       const objectPath = pathRows[0]!.object_path;
 
@@ -451,7 +504,10 @@ describe('Lixeira e retenção (Épico 6, US 6.1)', () => {
       expect(freshRow.rows[0].deleted_at).not.toBeNull();
 
       const user = await withSystemBypass(pool, (client) =>
-        client.query<{ storage_used_bytes: string }>('SELECT storage_used_bytes FROM users WHERE id = $1', [ids.userA]),
+        client.query<{ storage_used_bytes: string }>(
+          'SELECT storage_used_bytes FROM users WHERE id = $1',
+          [ids.userA],
+        ),
       );
       expect(Number(user.rows[0]!.storage_used_bytes)).toBe(1000);
 
@@ -464,18 +520,25 @@ describe('Lixeira e retenção (Épico 6, US 6.1)', () => {
       const cookieAdmin = await sessionCookieFor(ports, ids.globalAdmin);
 
       const fileId = await uploadFile(cookieA, 'auditado.txt');
-      await request(app).post('/grants').set('Cookie', cookieAdmin).send({
-        subjectUserId: userA2Id,
-        resourceType: 'file',
-        resourceId: fileId,
-        permissions: ['view'],
-      });
+      await request(app)
+        .post('/grants')
+        .set('Cookie', cookieAdmin)
+        .send({
+          subjectUserId: userA2Id,
+          resourceType: 'file',
+          resourceId: fileId,
+          permissions: ['view'],
+        });
 
-      await request(app).post(`/files/${fileId}/view-url`).set('Cookie', await sessionCookieFor(ports, userA2Id));
+      await request(app)
+        .post(`/files/${fileId}/view-url`)
+        .set('Cookie', await sessionCookieFor(ports, userA2Id));
 
       await request(app).delete(`/files/${fileId}`).set('Cookie', cookieA).expect(204);
       await withSystemBypass(pool, (client) =>
-        client.query(`UPDATE files SET deleted_at = now() - interval '31 days' WHERE id = $1`, [fileId]),
+        client.query(`UPDATE files SET deleted_at = now() - interval '31 days' WHERE id = $1`, [
+          fileId,
+        ]),
       );
 
       await runPurge(ports);
@@ -501,23 +564,30 @@ describe('Lixeira e retenção (Épico 6, US 6.1)', () => {
       await request(app).delete(`/files/${okId}`).set('Cookie', cookieA).expect(204);
       await request(app).delete(`/files/${failId}`).set('Cookie', cookieA).expect(204);
       await withSystemBypass(pool, (client) =>
-        client.query(`UPDATE files SET deleted_at = now() - interval '31 days' WHERE id = ANY($1::uuid[])`, [
-          [okId, failId],
-        ]),
+        client.query(
+          `UPDATE files SET deleted_at = now() - interval '31 days' WHERE id = ANY($1::uuid[])`,
+          [[okId, failId]],
+        ),
       );
 
       const { rows } = await withSystemBypass(pool, (client) =>
-        client.query<{ id: string; object_path: string }>('SELECT id, object_path FROM files WHERE id = ANY($1::uuid[])', [
-          [okId, failId],
-        ]),
+        client.query<{ id: string; object_path: string }>(
+          'SELECT id, object_path FROM files WHERE id = ANY($1::uuid[])',
+          [[okId, failId]],
+        ),
       );
       const failPath = rows.find((r) => r.id === failId)!.object_path;
 
-      const flakyPorts = { database: ports.database, storage: new FlakyStoragePort(new Set([failPath])) };
+      const flakyPorts = {
+        database: ports.database,
+        storage: new FlakyStoragePort(new Set([failPath])),
+      };
       const summary = await runPurge(flakyPorts);
       expect(summary.failedFiles).toBeGreaterThanOrEqual(1);
 
-      const okRow = await withSystemBypass(pool, (client) => client.query('SELECT 1 FROM files WHERE id = $1', [okId]));
+      const okRow = await withSystemBypass(pool, (client) =>
+        client.query('SELECT 1 FROM files WHERE id = $1', [okId]),
+      );
       expect(okRow.rows).toHaveLength(0);
 
       const failRow = await withSystemBypass(pool, (client) =>
@@ -536,10 +606,14 @@ describe('Lixeira e retenção (Épico 6, US 6.1)', () => {
 
       await request(app).delete(`/folders/${folderId}`).set('Cookie', cookieA).expect(204);
       await withSystemBypass(pool, (client) =>
-        client.query(`UPDATE folders SET deleted_at = now() - interval '31 days' WHERE id = $1`, [folderId]),
+        client.query(`UPDATE folders SET deleted_at = now() - interval '31 days' WHERE id = $1`, [
+          folderId,
+        ]),
       );
       await withSystemBypass(pool, (client) =>
-        client.query(`UPDATE files SET deleted_at = now() - interval '31 days' WHERE id = $1`, [fileId]),
+        client.query(`UPDATE files SET deleted_at = now() - interval '31 days' WHERE id = $1`, [
+          fileId,
+        ]),
       );
 
       const summary = await runPurge(ports);

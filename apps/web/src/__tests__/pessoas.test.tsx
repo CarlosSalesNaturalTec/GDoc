@@ -11,8 +11,18 @@ import { SenhaGeradaModal } from '../pessoas/SenhaGeradaModal';
 const UNIT_ADMIN = { id: 'admin-1', unitId: 'unit-1', role: UserRole.UNIT_ADMIN };
 const GLOBAL_ADMIN = { id: 'admin-g', unitId: 'unit-1', role: UserRole.GLOBAL_ADMIN };
 
-const UNIT_A = { id: 'unit-a', name: 'Unidade A', status: UnitStatus.ACTIVE, createdAt: '2026-01-01T00:00:00.000Z' };
-const UNIT_B = { id: 'unit-b', name: 'Unidade B', status: UnitStatus.ACTIVE, createdAt: '2026-01-02T00:00:00.000Z' };
+const UNIT_A = {
+  id: 'unit-a',
+  name: 'Unidade A',
+  status: UnitStatus.ACTIVE,
+  createdAt: '2026-01-01T00:00:00.000Z',
+};
+const UNIT_B = {
+  id: 'unit-b',
+  name: 'Unidade B',
+  status: UnitStatus.ACTIVE,
+  createdAt: '2026-01-02T00:00:00.000Z',
+};
 
 function person(overrides: Partial<PersonResponse> & { id: string }): PersonResponse {
   return {
@@ -41,7 +51,10 @@ async function findDialogByTitle(title: string): Promise<HTMLElement> {
 
 function requestBodies(method: string, path: string): unknown[] {
   return (global.fetch as ReturnType<typeof vi.fn>).mock.calls
-    .filter((call) => String(call[0]).includes(path) && (call[1] as RequestInit | undefined)?.method === method)
+    .filter(
+      (call) =>
+        String(call[0]).includes(path) && (call[1] as RequestInit | undefined)?.method === method,
+    )
     .map((call) => JSON.parse(String((call[1] as RequestInit).body)));
 }
 
@@ -63,7 +76,11 @@ function confirmButton(label: string): HTMLElement {
  * seleção robusta quando há mais de um `combobox` no formulário (ex.: o
  * `global_admin` vê Unidade + Papel — gestao-de-unidades D7).
  */
-async function selectFromField(dialog: HTMLElement, fieldLabel: string, optionLabel: string): Promise<void> {
+async function selectFromField(
+  dialog: HTMLElement,
+  fieldLabel: string,
+  optionLabel: string,
+): Promise<void> {
   const item = within(dialog).getByText(fieldLabel).closest('.ant-form-item') as HTMLElement;
   const combobox = within(item).getByRole('combobox');
   await userEvent.click(combobox);
@@ -73,7 +90,9 @@ async function selectFromField(dialog: HTMLElement, fieldLabel: string, optionLa
   // — seguimos essa associação para abrir exatamente o dropdown clicado.
   const dropdown = await waitFor(() => {
     const listboxId = combobox.getAttribute('aria-controls') ?? combobox.getAttribute('aria-owns');
-    const container = listboxId ? document.getElementById(listboxId)?.closest('.ant-select-dropdown') : null;
+    const container = listboxId
+      ? document.getElementById(listboxId)?.closest('.ant-select-dropdown')
+      : null;
     if (!container) throw new Error('dropdown do Select ainda não está no DOM');
     return container as HTMLElement;
   });
@@ -124,7 +143,10 @@ describe('Gestão de pessoas da SPA (web-pessoas)', () => {
 
     mockFetch({
       'GET /auth/me': { status: 200, body: UNIT_ADMIN },
-      'GET /users': [{ status: 200, body: [] }, { status: 200, body: [novaPessoa] }],
+      'GET /users': [
+        { status: 200, body: [] },
+        { status: 200, body: [novaPessoa] },
+      ],
       'POST /users': { status: 201, body: novaPessoa },
     });
 
@@ -184,12 +206,19 @@ describe('Gestão de pessoas da SPA (web-pessoas)', () => {
   });
 
   it('edição altera os dados da pessoa via PATCH /users/:id; o formulário não tem senha e o e-mail é somente-leitura (spec: edição altera os dados / não expõe senha nem e-mail)', async () => {
-    const pessoa = person({ id: 'person-1', fullName: 'Beltrano Silva', email: 'beltrano@example.com' });
+    const pessoa = person({
+      id: 'person-1',
+      fullName: 'Beltrano Silva',
+      email: 'beltrano@example.com',
+    });
     const pessoaEditada = { ...pessoa, fullName: 'Beltrano Souza' };
 
     mockFetch({
       'GET /auth/me': { status: 200, body: UNIT_ADMIN },
-      'GET /users': [{ status: 200, body: [pessoa] }, { status: 200, body: [pessoaEditada] }],
+      'GET /users': [
+        { status: 200, body: [pessoa] },
+        { status: 200, body: [pessoaEditada] },
+      ],
       'PATCH /users/person-1': { status: 200, body: pessoaEditada },
     });
 
@@ -219,13 +248,24 @@ describe('Gestão de pessoas da SPA (web-pessoas)', () => {
   });
 
   it('desativar chama PATCH com status disabled após confirmação; reativar chama com status active; não há ação de exclusão (spec: desativar / reativar / não há exclusão permanente)', async () => {
-    const ativa = person({ id: 'person-1', fullName: 'Beltrano Silva', status: PersonStatus.ACTIVE });
+    const ativa = person({
+      id: 'person-1',
+      fullName: 'Beltrano Silva',
+      status: PersonStatus.ACTIVE,
+    });
     const inativa = { ...ativa, status: PersonStatus.DISABLED };
 
     mockFetch({
       'GET /auth/me': { status: 200, body: UNIT_ADMIN },
-      'GET /users': [{ status: 200, body: [ativa] }, { status: 200, body: [inativa] }, { status: 200, body: [ativa] }],
-      'PATCH /users/person-1': [{ status: 200, body: inativa }, { status: 200, body: ativa }],
+      'GET /users': [
+        { status: 200, body: [ativa] },
+        { status: 200, body: [inativa] },
+        { status: 200, body: [ativa] },
+      ],
+      'PATCH /users/person-1': [
+        { status: 200, body: inativa },
+        { status: 200, body: ativa },
+      ],
     });
 
     renderApp(['/admin/pessoas']);
@@ -275,7 +315,9 @@ describe('Gestão de pessoas da SPA (web-pessoas)', () => {
     await userEvent.click(within(selfRow).getByRole('button', { name: 'Editar' }));
     const selfDialog = await findDialogByTitle('Editar pessoa');
     await userEvent.click(within(selfDialog).getByRole('combobox'));
-    let dropdown = await waitFor(() => document.querySelector('.ant-select-dropdown') as HTMLElement);
+    let dropdown = await waitFor(
+      () => document.querySelector('.ant-select-dropdown') as HTMLElement,
+    );
     expect(within(dropdown).queryByText('Colaborador')).not.toBeInTheDocument();
     expect(within(dropdown).queryByText('Administrador global')).not.toBeInTheDocument();
     expect(within(dropdown).getByText('Administrador da unidade')).toBeInTheDocument();
@@ -316,7 +358,10 @@ describe('Gestão de pessoas da SPA (web-pessoas)', () => {
     const roleItem = within(dialog).getByText('Papel').closest('.ant-form-item') as HTMLElement;
     await userEvent.click(within(roleItem).getByRole('combobox'));
     const dropdown = await waitFor(
-      () => document.querySelector('.ant-select-dropdown:not(.ant-select-dropdown-hidden)') as HTMLElement,
+      () =>
+        document.querySelector(
+          '.ant-select-dropdown:not(.ant-select-dropdown-hidden)',
+        ) as HTMLElement,
     );
     expect(within(dropdown).getByText('Administrador global')).toBeInTheDocument();
   });
@@ -326,7 +371,10 @@ describe('Gestão de pessoas da SPA (web-pessoas)', () => {
 
     mockFetch({
       'GET /auth/me': { status: 200, body: GLOBAL_ADMIN },
-      'GET /users': [{ status: 200, body: [] }, { status: 200, body: [novaPessoa] }],
+      'GET /users': [
+        { status: 200, body: [] },
+        { status: 200, body: [novaPessoa] },
+      ],
       'GET /units': { status: 200, body: [UNIT_A, UNIT_B] },
       'POST /users': { status: 201, body: novaPessoa },
     });
@@ -417,9 +465,21 @@ describe('Gestão de pessoas da SPA (web-pessoas)', () => {
 
   describe('Redefinição de senha (US 1.4, design.md (troca-de-senha) D5) — visibilidade é UX, não defesa', () => {
     it('unit_admin vê a ação só em colaboradores', async () => {
-      const collaborator = person({ id: 'p-collab', fullName: 'Um Colaborador', role: UserRole.COLLABORATOR });
-      const unitAdmin = person({ id: 'p-unit-admin', fullName: 'Outro Unit Admin', role: UserRole.UNIT_ADMIN });
-      const globalAdmin = person({ id: 'p-global-admin', fullName: 'Um Global Admin', role: UserRole.GLOBAL_ADMIN });
+      const collaborator = person({
+        id: 'p-collab',
+        fullName: 'Um Colaborador',
+        role: UserRole.COLLABORATOR,
+      });
+      const unitAdmin = person({
+        id: 'p-unit-admin',
+        fullName: 'Outro Unit Admin',
+        role: UserRole.UNIT_ADMIN,
+      });
+      const globalAdmin = person({
+        id: 'p-global-admin',
+        fullName: 'Um Global Admin',
+        role: UserRole.GLOBAL_ADMIN,
+      });
 
       mockFetch({
         'GET /auth/me': { status: 200, body: UNIT_ADMIN },
@@ -430,19 +490,37 @@ describe('Gestão de pessoas da SPA (web-pessoas)', () => {
       await screen.findByText('Um Colaborador');
 
       const collabRow = screen.getByText('Um Colaborador').closest('tr')!;
-      expect(within(collabRow).getByRole('button', { name: 'Redefinir senha' })).toBeInTheDocument();
+      expect(
+        within(collabRow).getByRole('button', { name: 'Redefinir senha' }),
+      ).toBeInTheDocument();
 
       const unitAdminRow = screen.getByText('Outro Unit Admin').closest('tr')!;
-      expect(within(unitAdminRow).queryByRole('button', { name: 'Redefinir senha' })).not.toBeInTheDocument();
+      expect(
+        within(unitAdminRow).queryByRole('button', { name: 'Redefinir senha' }),
+      ).not.toBeInTheDocument();
 
       const globalAdminRow = screen.getByText('Um Global Admin').closest('tr')!;
-      expect(within(globalAdminRow).queryByRole('button', { name: 'Redefinir senha' })).not.toBeInTheDocument();
+      expect(
+        within(globalAdminRow).queryByRole('button', { name: 'Redefinir senha' }),
+      ).not.toBeInTheDocument();
     });
 
     it('global_admin vê a ação em colaboradores e administradores de unidade; nenhuma linha de global_admin oferece a ação', async () => {
-      const collaborator = person({ id: 'p-collab', fullName: 'Um Colaborador', role: UserRole.COLLABORATOR });
-      const unitAdmin = person({ id: 'p-unit-admin', fullName: 'Um Unit Admin', role: UserRole.UNIT_ADMIN });
-      const globalAdmin = person({ id: 'p-global-admin', fullName: 'Outro Global Admin', role: UserRole.GLOBAL_ADMIN });
+      const collaborator = person({
+        id: 'p-collab',
+        fullName: 'Um Colaborador',
+        role: UserRole.COLLABORATOR,
+      });
+      const unitAdmin = person({
+        id: 'p-unit-admin',
+        fullName: 'Um Unit Admin',
+        role: UserRole.UNIT_ADMIN,
+      });
+      const globalAdmin = person({
+        id: 'p-global-admin',
+        fullName: 'Outro Global Admin',
+        role: UserRole.GLOBAL_ADMIN,
+      });
 
       mockFetch({
         'GET /auth/me': { status: 200, body: GLOBAL_ADMIN },
@@ -453,22 +531,35 @@ describe('Gestão de pessoas da SPA (web-pessoas)', () => {
       await screen.findByText('Um Colaborador');
 
       const collabRow = screen.getByText('Um Colaborador').closest('tr')!;
-      expect(within(collabRow).getByRole('button', { name: 'Redefinir senha' })).toBeInTheDocument();
+      expect(
+        within(collabRow).getByRole('button', { name: 'Redefinir senha' }),
+      ).toBeInTheDocument();
 
       const unitAdminRow = screen.getByText('Um Unit Admin').closest('tr')!;
-      expect(within(unitAdminRow).getByRole('button', { name: 'Redefinir senha' })).toBeInTheDocument();
+      expect(
+        within(unitAdminRow).getByRole('button', { name: 'Redefinir senha' }),
+      ).toBeInTheDocument();
 
       const globalAdminRow = screen.getByText('Outro Global Admin').closest('tr')!;
-      expect(within(globalAdminRow).queryByRole('button', { name: 'Redefinir senha' })).not.toBeInTheDocument();
+      expect(
+        within(globalAdminRow).queryByRole('button', { name: 'Redefinir senha' }),
+      ).not.toBeInTheDocument();
     });
 
     it('confirma e exibe a senha gerada uma única vez, com aviso de que não será mostrada de novo', async () => {
-      const collaborator = person({ id: 'p-collab', fullName: 'Um Colaborador', role: UserRole.COLLABORATOR });
+      const collaborator = person({
+        id: 'p-collab',
+        fullName: 'Um Colaborador',
+        role: UserRole.COLLABORATOR,
+      });
 
       mockFetch({
         'GET /auth/me': { status: 200, body: UNIT_ADMIN },
         'GET /users': { status: 200, body: [collaborator] },
-        'POST /users/p-collab/password': { status: 200, body: { generatedPassword: 'Senha-Gerada-123' } },
+        'POST /users/p-collab/password': {
+          status: 200,
+          body: { generatedPassword: 'Senha-Gerada-123' },
+        },
       });
 
       renderApp(['/admin/pessoas']);
@@ -503,7 +594,11 @@ describe('Gestão de pessoas da SPA (web-pessoas)', () => {
     });
 
     it('403 ao redefinir exibe o mesmo aviso neutro das demais operações', async () => {
-      const collaborator = person({ id: 'p-collab', fullName: 'Um Colaborador', role: UserRole.COLLABORATOR });
+      const collaborator = person({
+        id: 'p-collab',
+        fullName: 'Um Colaborador',
+        role: UserRole.COLLABORATOR,
+      });
 
       mockFetch({
         'GET /auth/me': { status: 200, body: UNIT_ADMIN },
