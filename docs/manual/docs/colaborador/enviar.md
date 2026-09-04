@@ -15,7 +15,7 @@ Ao enviar um arquivo, **você se torna o dono dele** e passa a poder consultar q
 acessou (ver [Auditoria](auditoria.md)).
 
 !!! warning "Cota de armazenamento"
-    Cada pessoa tem uma cota de armazenamento (ver [Limites](../referencia/limites.md)
+    Cada colaborador tem uma cota de armazenamento (ver [Limites](../referencia/limites.md)
     para o valor vigente desta implantação). Ao atingir o limite, novos envios são
     bloqueados com um aviso. Para voltar a enviar, libere espaço excluindo arquivos.
 
@@ -23,7 +23,7 @@ acessou (ver [Auditoria](auditoria.md)).
 
 Enviar um arquivo faz de você o **dono**, mas não concede permissão a mais ninguém
 sobre ele. **Conceder permissão é ação da administração da sua unidade** — se você
-precisa que outra pessoa acesse um arquivo que enviou, peça a um administrador que
+precisa que outro colaborador acesse um arquivo que enviou, peça a um administrador que
 conceda a permissão (ver [Permissões](../administrador/permissoes.md)). Você não vê o
 botão **Permissões** na tela, porque essa ação não está disponível para o perfil de
 colaborador.

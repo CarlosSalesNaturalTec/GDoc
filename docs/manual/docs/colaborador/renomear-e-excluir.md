@@ -18,7 +18,7 @@ aparecer na listagem de origem.
 
 Mover preserva o conteúdo, o dono, as permissões já concedidas sobre o item e o
 histórico de auditoria de arquivo — nada disso é afetado pela mudança de local. Mover
-uma pasta leva junto toda a sua subárvore, inclusive arquivos de outras pessoas que
+uma pasta leva junto toda a sua subárvore, inclusive arquivos de outros colaboradores que
 estejam dentro dela.
 
 !!! warning "Mover para uma pasta compartilhada não compartilha o item"
@@ -26,7 +26,7 @@ estejam dentro dela.
     antes. Mas mover um item para dentro de uma pasta que você compartilha com a
     equipe **não estende** esse compartilhamento ao item movido — as permissões são
     sempre por item, nunca herdadas da pasta que o contém. Se quiser que outra
-    pessoa acesse o item movido, peça a um administrador para conceder permissão
+    colaborador acesse o item movido, peça a um administrador para conceder permissão
     sobre ele diretamente (ver [Permissões](../administrador/permissoes.md)).
 
 Mover (arquivo ou pasta) e renomear pasta usam o mesmo alcance: **dono do item OU

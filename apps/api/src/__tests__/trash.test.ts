@@ -110,7 +110,7 @@ describe('Lixeira e retenção (Épico 6, US 6.1)', () => {
         .post('/grants')
         .set('Cookie', cookieAdmin)
         .send({
-          subjectUserId: ids.userA,
+          subjectUserIds: [ids.userA],
           resourceType: 'file',
           resourceId: fileId,
           permissions: ['delete'],
@@ -275,7 +275,7 @@ describe('Lixeira e retenção (Épico 6, US 6.1)', () => {
         .post('/grants')
         .set('Cookie', cookieAdmin)
         .send({
-          subjectUserId: userA2Id,
+          subjectUserIds: [userA2Id],
           resourceType: 'file',
           resourceId: fileId,
           permissions: ['view'],
@@ -400,7 +400,7 @@ describe('Lixeira e retenção (Épico 6, US 6.1)', () => {
         .post('/grants')
         .set('Cookie', cookieAdmin)
         .send({
-          subjectUserId: ids.userA,
+          subjectUserIds: [ids.userA],
           resourceType: 'file',
           resourceId: grantedFile,
           permissions: ['delete'],
@@ -524,7 +524,7 @@ describe('Lixeira e retenção (Épico 6, US 6.1)', () => {
         .post('/grants')
         .set('Cookie', cookieAdmin)
         .send({
-          subjectUserId: userA2Id,
+          subjectUserIds: [userA2Id],
           resourceType: 'file',
           resourceId: fileId,
           permissions: ['view'],

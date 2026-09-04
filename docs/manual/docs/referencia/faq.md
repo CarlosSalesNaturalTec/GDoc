@@ -14,8 +14,8 @@ arquivos para liberar espaço.
 
 **Como compartilho um arquivo que enviei?**
 Você não concede permissão sobre o próprio arquivo — essa ação é exclusiva da
-administração da sua unidade. Peça a um administrador que conceda a permissão à
-pessoa que precisa acessá-lo.
+administração da sua unidade. Peça a um administrador que conceda a permissão ao
+colaborador que precisa acessá-lo.
 
 **Cliquei em visualizar um Word (ou Excel) e não abriu na tela.**
 Documentos do Office não têm pré-visualização nesta versão. O sistema avisa e oferece
@@ -37,7 +37,7 @@ sistema, e pode trocá-la depois em **Minha conta**.
 É esperado: trocar a senha encerra as demais sessões, mantendo apenas aquela em que
 você fez a troca.
 
-**Por que não vejo os menus "Pessoas", "Painel" ou "Unidades"?**
-"Pessoas" e "Painel" são exclusivos de administradores, e "Unidades" é exclusivo do
+**Por que não vejo os menus "Colaboradores", "Painel" ou "Unidades"?**
+"Colaboradores" e "Painel" são exclusivos de administradores, e "Unidades" é exclusivo do
 administrador global. Se você precisa deles, converse com a área administrativa sobre
 o seu perfil.
