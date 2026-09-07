@@ -93,6 +93,13 @@ export const config = {
     maxFiles: Number(optional('DOWNLOAD_MANIFEST_MAX_FILES', '100')),
   },
 
+  // Teto de destinatários por requisição de concessão (change
+  // `concessao-multipla-e-nomenclatura-colaborador`, design.md D4) — mesmo
+  // molde do teto do manifesto de download, configurável por ambiente.
+  grants: {
+    maxSubjects: Number(optional('GRANTS_MAX_SUBJECTS', '50')),
+  },
+
   secretsDriver: optional('SECRETS_DRIVER', 'env') as 'env' | 'secret-manager',
 
   // Autenticação da notificação de finalização (push do Pub/Sub → API).
