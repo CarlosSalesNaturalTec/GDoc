@@ -1,6 +1,7 @@
 import { config as loadDotenv } from 'dotenv';
 import { fileURLToPath } from 'node:url';
 import { isAbsolute, join } from 'node:path';
+import { MOVE_BATCH_MAX_ITEMS_DEFAULT } from '@gdoc/shared';
 
 const REPO_ROOT = fileURLToPath(new URL('../../../', import.meta.url));
 
@@ -98,6 +99,17 @@ export const config = {
   // molde do teto do manifesto de download, configurável por ambiente.
   grants: {
     maxSubjects: Number(optional('GRANTS_MAX_SUBJECTS', '50')),
+  },
+
+  // Teto de itens por operação de mover em lote (change
+  // `mover-itens-em-lote`, design.md D1) — POST /files/move e
+  // POST /folders/move, cada requisição avaliada contra este teto
+  // independentemente. Mesmo molde do teto de grants/manifesto de download,
+  // configurável por ambiente. O padrão é compartilhado com a SPA
+  // (`MOVE_BATCH_MAX_ITEMS_DEFAULT` em `packages/shared`) para a recusa de
+  // envio acontecer antes da requisição, sem endpoint de leitura novo.
+  moveBatch: {
+    maxItems: Number(optional('MOVE_BATCH_MAX_ITEMS', String(MOVE_BATCH_MAX_ITEMS_DEFAULT))),
   },
 
   secretsDriver: optional('SECRETS_DRIVER', 'env') as 'env' | 'secret-manager',

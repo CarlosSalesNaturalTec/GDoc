@@ -159,6 +159,29 @@ O **objetivo principal** do GDoc é entregar um repositório de arquivos corpora
       * **Quando** reorganizo itens de qualquer pessoa
       * **Então** consigo fazê-lo apenas dentro da minha própria unidade, e nunca sobre itens de outra unidade.
 
+* **US 2.4:** Como Colaborador, eu quero selecionar vários arquivos e pastas de uma vez e movê-los juntos para o mesmo destino para que eu reorganize uma pasta cheia sem repetir a ação item a item.
+  * **Critérios de Aceitação:**
+    * *Cenário 1 — Lote movido com sucesso:*
+      * **Dado** que selecionei vários arquivos e pastas sobre os quais tenho alcance
+      * **Quando** escolho um destino e confirmo
+      * **Então** todos passam a residir no destino com o mesmo conteúdo e as mesmas permissões, e recebo um único aviso de sucesso.
+    * *Cenário 2 — Falha parcial com veredito por item:*
+      * **Dado** que a seleção contém um item sobre o qual não tenho alcance, ou uma pasta cujo destino formaria ciclo ou colide de nome
+      * **Quando** confirmo o movimento em lote
+      * **Então** os demais itens são movidos normalmente, e sou informado de quantos foram movidos e de qual item foi recusado, com o motivo.
+    * *Cenário 3 — Destino sem alcance derruba o lote inteiro:*
+      * **Dado** que o destino escolhido está fora do meu alcance, é de outra unidade ou não existe
+      * **Quando** confirmo o movimento em lote
+      * **Então** nenhum item da seleção é movido, e recebo o aviso de permissão insuficiente.
+    * *Cenário 4 — Teto de itens por operação:*
+      * **Dado** que selecionei mais itens do que o teto permitido por operação
+      * **Quando** acionar mover
+      * **Então** a ação é recusada antes de qualquer envio, com aviso distinto da recusa por permissão.
+    * *Cenário 5 — Seleção limpa ao navegar:*
+      * **Dado** que tenho itens selecionados na pasta corrente
+      * **Quando** entro em uma subpasta ou volto pela trilha de navegação
+      * **Então** a seleção anterior é esvaziada, sem misturar itens de pastas diferentes num mesmo lote.
+
 ### Épico 3: Envio e Download em Lote
 
 * **US 3.1:** Como Colaborador, eu quero enviar vários arquivos de uma vez e acompanhar o progresso de cada um para que eu saiba o que já concluiu.

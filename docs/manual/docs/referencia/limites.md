@@ -12,6 +12,7 @@ Os valores abaixo são os vigentes **nesta implantação** do PapelHub. Todos s�
 | Tamanho máximo do download compactado de pasta | 50 MB      | `DOWNLOAD_MANIFEST_MAX_BYTES`            |
 | Quantidade máxima de arquivos no download compactado de pasta | 100 arquivos | `DOWNLOAD_MANIFEST_MAX_FILES` |
 | Quantidade máxima de colaboradores por concessão de permissão | 50 colaboradores | `GRANTS_MAX_SUBJECTS` |
+| Quantidade máxima de itens por operação de mover em lote | 100 itens | `MOVE_BATCH_MAX_ITEMS` |
 
 Se um desses valores parecer diferente do que você observa na tela, prevalece o que a
 aplicação mostra — esta página descreve os padrões, não uma garantia contratual.
