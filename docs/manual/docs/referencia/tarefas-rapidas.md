@@ -13,6 +13,7 @@
 | Baixar uma subpasta            | Arquivos      | Botão **Baixar pasta** na linha da subpasta (gera um `.zip`) |
 | Renomear um arquivo ou pasta   | Arquivos      | Botão **Renomear** na linha do item (dono ou administrador) |
 | Mover um arquivo ou pasta      | Arquivos      | Botão **Mover para...** na linha do item (dono ou administrador) |
+| Mover vários itens de uma vez  | Arquivos      | Marque as caixas de seleção da listagem → botão **Mover selecionados** |
 | Excluir um arquivo             | Arquivos      | Botão **Excluir** na linha do arquivo (vai para a Lixeira) |
 | Excluir a pasta atual          | Arquivos      | Botão **Excluir esta pasta** (barra superior)              |
 | Excluir uma subpasta           | Arquivos      | Botão **Excluir** na linha da subpasta                     |

@@ -14,6 +14,8 @@ import type {
   GrantListResponse,
   GrantNotificationPayload,
   GrantResponse,
+  MoveBatchItemResult,
+  MoveBatchResponse,
   MyProfileResponse,
   NotificationListResponse,
   NotificationResponse,
@@ -170,6 +172,23 @@ export const grantResponseSchema: z.ZodType<GrantResponse> = z.object({
 /** Espelha `GrantListResponse` (design.md D6, `web-permissoes`). */
 export const grantListResponseSchema: z.ZodType<GrantListResponse> = z.object({
   grants: z.array(grantResponseSchema),
+});
+
+/**
+ * Espelha `MoveBatchItemResult` (união discriminada em `ok`, design.md D2 do
+ * change `mover-itens-em-lote`) — mesmo molde de `batchUploadItemResultSchema`.
+ */
+export const moveBatchItemResultSchema: z.ZodType<MoveBatchItemResult> = z.discriminatedUnion(
+  'ok',
+  [
+    z.object({ id: z.string(), ok: z.literal(true) }),
+    z.object({ id: z.string(), ok: z.literal(false), error: z.string() }),
+  ],
+);
+
+/** Espelha `MoveBatchResponse` (design.md D2 do change `mover-itens-em-lote`). */
+export const moveBatchResponseSchema: z.ZodType<MoveBatchResponse> = z.object({
+  results: z.array(moveBatchItemResultSchema),
 });
 
 /** Espelha `TrashListResponse` (design.md D7, `web-lixeira`): item de raiz de exclusão. */

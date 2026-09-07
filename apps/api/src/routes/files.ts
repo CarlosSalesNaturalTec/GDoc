@@ -13,6 +13,10 @@ import type {
   BatchUploadUrlRequest,
   FileRestoreResponse,
   FileSummaryResponse,
+  MoveBatchItemResult,
+  MoveBatchLimitExceededResponse,
+  MoveBatchRequest,
+  MoveBatchResponse,
   MoveItemRequest,
   RenameFileRequest,
   ReplaceFileRequest,
@@ -81,6 +85,30 @@ async function recordAudit(
       'INSERT INTO audit_events (unit_id, user_id, file_id, action) VALUES ($1, $2, $3, $4)',
       [file.unit_id, ctx.userId, file.id, action],
     );
+  });
+}
+
+/**
+ * Um evento por arquivo, numa única transação (design.md D6 do change
+ * `mover-itens-em-lote`) — mesmo molde de `recordFileAudits` em
+ * `routes/folders.ts`, usado aqui só pelo lote de `POST /files/move` (a
+ * versão singular acima segue chamada pelas demais rotas, uma transação por
+ * evento).
+ */
+async function recordAudits(
+  ports: Ports,
+  ctx: NonNullable<import('express').Request['tenantContext']>,
+  files: { id: string; unit_id: string }[],
+  action: AuditAction,
+) {
+  if (files.length === 0) return;
+  await ports.database.withTenantTransaction(ctx, async (client) => {
+    for (const file of files) {
+      await client.query(
+        'INSERT INTO audit_events (unit_id, user_id, file_id, action) VALUES ($1, $2, $3, $4)',
+        [file.unit_id, ctx.userId, file.id, action],
+      );
+    }
   });
 }
 
@@ -394,6 +422,105 @@ export function filesRouter(ports: Ports): Router {
 
       await recordAudit(ports, ctx, updated, AuditAction.RENAME);
       res.json(toFileSummaryResponse(updated));
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  /**
+   * Mover vários arquivos para um mesmo destino (US 2.4, design.md D1/D2/D6
+   * do change `mover-itens-em-lote`) — dois segmentos, sem colisão nem
+   * requisito de ordenação de registro com `POST /files/:id/move` (três
+   * segmentos, abaixo). Pré-condição global de destino derruba o lote
+   * inteiro (mesmo alcance dono-ou-admin da rota por item); falta de alcance
+   * sobre um item recusa só aquele item, sem abortar os demais (design.md
+   * D2). Auditoria só para os itens efetivamente movidos, depois da
+   * transação (design.md D6).
+   */
+  router.post('/files/move', async (req, res, next) => {
+    try {
+      const ctx = req.tenantContext!;
+      const { ids, destinationFolderId } = req.body as MoveBatchRequest;
+
+      if (
+        !Array.isArray(ids) ||
+        ids.length === 0 ||
+        !ids.every((id) => typeof id === 'string' && id.length > 0) ||
+        (destinationFolderId !== null && typeof destinationFolderId !== 'string')
+      ) {
+        res.status(400).json({ error: 'invalid request body' });
+        return;
+      }
+
+      // Dedup preservando ordem de chegada (mesmo padrão de POST /grants):
+      // o teto e o veredito por item se aplicam a identificadores distintos.
+      const uniqueIds = Array.from(new Set(ids));
+
+      if (uniqueIds.length > config.moveBatch.maxItems) {
+        const limitResponse: MoveBatchLimitExceededResponse = {
+          error: 'move_batch_limit_exceeded',
+          found: uniqueIds.length,
+          allowed: config.moveBatch.maxItems,
+        };
+        res.status(400).json(limitResponse);
+        return;
+      }
+
+      const outcome = await ports.database.withTenantTransaction(ctx, async (client) => {
+        // Pré-condição global de destino (design.md D2): mesmo alcance
+        // dono-ou-admin exigido pela rota por item, indistinguível entre
+        // inexistente/de outra unidade/na lixeira/sem alcance.
+        if (destinationFolderId !== null) {
+          const destination = await findFolderById(client, destinationFolderId);
+          if (!destination) return { ok: false as const };
+          const destinationAllowed = await canReorganize(
+            client,
+            ctx,
+            GrantResourceType.FOLDER,
+            destination.id,
+          );
+          if (!destinationAllowed) return { ok: false as const };
+        }
+
+        const results: MoveBatchItemResult[] = [];
+        const movedFiles: FileRow[] = [];
+
+        for (const id of uniqueIds) {
+          const { rows } = await client.query<FileRow>(
+            'SELECT * FROM files WHERE id = $1 AND deleted_at IS NULL',
+            [id],
+          );
+          const file = rows[0];
+          if (!file) {
+            results.push({ id, ok: false, error: 'forbidden' });
+            continue;
+          }
+          const allowed = await canReorganize(client, ctx, GrantResourceType.FILE, file.id);
+          if (!allowed) {
+            results.push({ id, ok: false, error: 'forbidden' });
+            continue;
+          }
+
+          const { rows: updated } = await client.query<FileRow>(
+            'UPDATE files SET folder_id = $1 WHERE id = $2 RETURNING *',
+            [destinationFolderId, file.id],
+          );
+          movedFiles.push(updated[0]!);
+          results.push({ id, ok: true });
+        }
+
+        return { ok: true as const, results, movedFiles };
+      });
+
+      if (!outcome.ok) {
+        res.status(403).json({ error: 'forbidden' });
+        return;
+      }
+
+      await recordAudits(ports, ctx, outcome.movedFiles, AuditAction.MOVE);
+
+      const response: MoveBatchResponse = { results: outcome.results };
+      res.json(response);
     } catch (err) {
       next(err);
     }

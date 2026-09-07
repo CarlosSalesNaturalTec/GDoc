@@ -41,6 +41,35 @@ específicas ao mover ou renomear pasta, além da falta de permissão:
   já é usado por outra pasta viva no mesmo local. O sistema recusa em vez de
   substituir ou combinar o conteúdo das duas.
 
+## Selecionar vários itens e mover em lote
+
+Além de mover um item por vez, você pode marcar **vários arquivos e pastas** ao
+mesmo tempo (uma caixa de seleção aparece em cada linha da listagem) e movê-los
+juntos para o mesmo destino, numa única confirmação — útil para reorganizar uma
+pasta cheia sem repetir a ação item a item. Assim que algo é marcado, uma barra
+aparece acima da listagem mostrando quantos itens estão selecionados e o botão
+**Mover selecionados**, que abre o mesmo seletor de destino usado para mover um
+único item.
+
+A seleção vale só para a pasta em que você está: **entrar em uma subpasta, voltar
+pela trilha de navegação ou trocar de tela esvazia a seleção**. Não é possível
+acumular itens de pastas diferentes num mesmo lote.
+
+Ao confirmar, você recebe um único aviso, mesmo que a seleção misture arquivos e
+pastas:
+
+- **Sucesso total** — todos os itens passam a residir no destino.
+- **Falha parcial** — o aviso informa quantos itens foram movidos e lista, um a
+  um, cada item que não pôde ser movido e o motivo (sem permissão, destino dentro
+  da própria pasta, ou nome já existente no destino). Os demais itens da seleção
+  são movidos normalmente.
+- **Destino sem alcance** — se você não tem permissão sobre o destino escolhido,
+  nenhum item da seleção é movido, e o aviso é o mesmo de falta de permissão.
+
+Se a seleção passar do teto de itens por operação (ver
+[Limites](../referencia/limites.md)), a ação é recusada **antes** de qualquer
+envio, com um aviso próprio, distinto da recusa por permissão.
+
 ## Excluir arquivos
 
 Use **Excluir** na linha do arquivo. O item vai para a **Lixeira** (ver abaixo).
