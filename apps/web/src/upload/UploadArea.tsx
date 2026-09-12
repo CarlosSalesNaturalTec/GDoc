@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { App, Button, List, Progress, Space, Typography, Upload } from 'antd';
 import { FolderOpenOutlined, ReloadOutlined, UploadOutlined } from '@ant-design/icons';
 import type { BatchUploadItemRequest, BatchUploadUrlRequest } from '@gdoc/shared';
+import { UPLOAD_BATCH_MAX_ITEMS_DEFAULT } from '@gdoc/shared';
 import { ApiError } from '../lib/api-client';
 import { useNarrowMode } from '../app/responsive';
 import { putObject } from './put-object';
@@ -9,6 +10,33 @@ import { deriveRelativePath } from './relative-path';
 import { useInvalidateFolderContents, useRequestUploadUrls } from './queries';
 
 const QUOTA_ERROR = 'quota exceeded';
+const BATCH_LIMIT_ERROR = 'upload_batch_limit_exceeded';
+
+/**
+ * Transferências simultâneas (change `corrige-defeitos-envio-lote`,
+ * design.md D4). O GCS fala HTTP/2, que multiplexa — **não** existe o teto
+ * implícito de ~6 conexões por host do HTTP/1.1, então sem esta fila N PUTs
+ * viram N streams disputando a mesma banda: todos rastejam juntos, nenhum
+ * conclui cedo, e uma interrupção deixa N arquivos pela metade em vez de
+ * alguns concluídos. Quatro é o suficiente para cobrir latência de handshake
+ * e a variação de tamanho entre itens, mantendo alta a taxa de conclusão.
+ */
+const UPLOAD_CONCURRENCY = 4;
+
+/**
+ * Margem de vigência da URL assinada (design.md D5). O item pode esperar na
+ * fila antes do PUT começar, e uma URL que vence no meio da transferência
+ * falha igual a uma vencida antes dela.
+ */
+const URL_EXPIRY_MARGIN_MS = 60_000;
+
+/**
+ * A partir de quantas falhas consecutivas de PUT a URL é renovada mesmo
+ * quando o relógio do cliente a julga vigente (design.md D5): o relógio do
+ * navegador decide uma otimização — poupar uma requisição —, nunca a
+ * correção.
+ */
+const FAILURES_BEFORE_FORCED_RENEWAL = 2;
 
 /** Mensagem da recusa de envio de pasta por dispositivo (design.md D5, `web-responsividade`)
  * — `webkitdirectory` não existe em Safari iOS nem em Chrome Android; texto distinguível
@@ -21,11 +49,23 @@ interface UploadItem {
   file: File;
   fileName: string;
   relativePath?: string;
-  status: 'uploading' | 'done' | 'error';
+  /** `queued` = aceito pelo servidor, aguardando vaga na fila (design.md D4). */
+  status: 'queued' | 'uploading' | 'done' | 'error';
   percent: number;
   error?: string;
   /** Presente enquanto a URL assinada segue válida (design.md D4) — mantida mesmo após falha de PUT, para o repetir reusar. */
   uploadUrl?: string;
+  /** Prazo da URL acima, devolvido pela API — base da renovação no retry (design.md D5). */
+  expiresAt?: string;
+  /** Falhas consecutivas de PUT deste item; zerado ao obter URL nova (design.md D5). */
+  putFailures: number;
+}
+
+/** Item admitido na fila de transferência (design.md D4). */
+interface QueuedTransfer {
+  uid: string;
+  uploadUrl: string;
+  file: File;
 }
 
 interface UploadAreaProps {
@@ -50,6 +90,18 @@ function describeError(error: string | undefined): string {
   if (error === QUOTA_ERROR) return 'Cota de armazenamento atingida.';
   if (error === 'invalid item') return 'Arquivo inválido.';
   return 'Falha no envio.';
+}
+
+/**
+ * Vigência da URL assinada pelo relógio do cliente (design.md D5). Sem
+ * `expiresAt` a resposta é "não confiável" — item vindo de antes deste
+ * conserto, ou resposta sem o campo —, e o retry pede URL nova: mais barato
+ * que repetir um PUT que já se sabe condenado.
+ */
+function urlStillFresh(item: Pick<UploadItem, 'uploadUrl' | 'expiresAt'>): boolean {
+  if (!item.uploadUrl || !item.expiresAt) return false;
+  const restante = new Date(item.expiresAt).getTime() - Date.now();
+  return Number.isFinite(restante) && restante > URL_EXPIRY_MARGIN_MS;
 }
 
 /**
@@ -79,6 +131,15 @@ export function UploadArea({ destinationFolderId }: UploadAreaProps) {
     setItems((prev) => prev.map((it) => (it.uid === uid ? { ...it, ...patch } : it)));
   }
 
+  function notifyBatchLimit(found: number, allowed: number) {
+    // design.md D2: recusa por **quantidade**, nunca a mensagem genérica que
+    // convida a repetir a mesma operação — repetir não muda o número.
+    notification.warning({
+      message: 'Seleção acima do limite por envio',
+      description: `Você selecionou ${found} arquivos e o limite é ${allowed} por envio. Envie em partes.`,
+    });
+  }
+
   function notifyQuota() {
     notification.warning({
       message: 'Cota de armazenamento atingida',
@@ -91,6 +152,15 @@ export function UploadArea({ destinationFolderId }: UploadAreaProps) {
   // sem iniciar transferência alguma — mesmo padrão `handlePermissionError`
   // da Fatia 2. 401 segue tratado centralmente pelo apiClient.
   function handleDestinationError(err: unknown) {
+    // Rede de segurança do teto (design.md D2): a recusa antecipada usa o
+    // padrão compartilhado, mas a implantação pode ter um teto menor — e aí
+    // o `allowed` do servidor é a fonte da verdade.
+    const details =
+      err instanceof ApiError ? (err.details as Record<string, unknown> | null) : null;
+    if (details?.error === BATCH_LIMIT_ERROR) {
+      notifyBatchLimit(Number(details.found), Number(details.allowed));
+      return;
+    }
     if (err instanceof ApiError && err.status === 403) {
       message.error('Permissão insuficiente para enviar arquivos neste destino.');
       return;
@@ -102,25 +172,63 @@ export function UploadArea({ destinationFolderId }: UploadAreaProps) {
     message.error('Não foi possível solicitar o envio. Tente novamente.');
   }
 
-  function runPut(uid: string, uploadUrl: string, file: File) {
+  // Fila de transferência (design.md D4). Vive em refs, não em estado: a
+  // vaga liberada precisa ser ocupada no próprio callback do XHR, sem
+  // esperar um ciclo de render.
+  const queueRef = useRef<QueuedTransfer[]>([]);
+  const activeRef = useRef(0);
+
+  function enqueueTransfers(transfers: QueuedTransfer[]) {
+    queueRef.current.push(...transfers);
+    pumpQueue();
+  }
+
+  function pumpQueue() {
+    while (activeRef.current < UPLOAD_CONCURRENCY && queueRef.current.length > 0) {
+      const next = queueRef.current.shift()!;
+      activeRef.current += 1;
+      startTransfer(next);
+    }
+  }
+
+  /** Libera a vaga e puxa o próximo — por sucesso **ou** por falha (design.md D4). */
+  function releaseSlot() {
+    activeRef.current = Math.max(0, activeRef.current - 1);
+    pumpQueue();
+  }
+
+  function startTransfer({ uid, uploadUrl, file }: QueuedTransfer) {
     updateItem(uid, { status: 'uploading', percent: 0, error: undefined });
     putObject(uploadUrl, file, {
       onProgress: (percent) => updateItem(uid, { percent }),
       onSuccess: () => {
         // design.md D6: sucesso = PUT 2xx; invalida a listagem, sem esperar
         // `active` — a mensagem diz "enviado", não "disponível".
-        updateItem(uid, { status: 'done', percent: 100 });
+        updateItem(uid, { status: 'done', percent: 100, putFailures: 0 });
         invalidate();
         message.success(`"${file.name}" enviado.`);
+        releaseSlot();
       },
       onError: () => {
-        updateItem(uid, { status: 'error', error: 'put failed' });
+        // A contagem alimenta a renovação forçada de D5: se o relógio disse
+        // "vigente" e o PUT falhou duas vezes, o relógio não é confiável.
+        const anterior = itemsRef.current.find((it) => it.uid === uid)?.putFailures ?? 0;
+        updateItem(uid, { status: 'error', error: 'put failed', putFailures: anterior + 1 });
+        releaseSlot();
       },
     });
   }
 
   async function startBatch(files: File[]) {
     if (files.length === 0) return;
+
+    // design.md D2: recusa **antes** da requisição, pelo padrão compartilhado
+    // em `packages/shared`, sem endpoint de leitura novo. O servidor segue
+    // validando — isto é conveniência de UX, nunca a guarda.
+    if (files.length > UPLOAD_BATCH_MAX_ITEMS_DEFAULT) {
+      notifyBatchLimit(files.length, UPLOAD_BATCH_MAX_ITEMS_DEFAULT);
+      return;
+    }
 
     const relativePaths = files.map((file) => deriveRelativePath(file));
     const requestItems: BatchUploadItemRequest[] = files.map((file, index) =>
@@ -142,9 +250,17 @@ export function UploadArea({ destinationFolderId }: UploadAreaProps) {
     const newItems: UploadItem[] = files.map((file, index) => {
       const relativePath = relativePaths[index];
       const result = response!.results[index];
-      const base = { uid: nextUid(), file, fileName: file.name, relativePath };
+      const base = { uid: nextUid(), file, fileName: file.name, relativePath, putFailures: 0 };
       if (result?.ok) {
-        return { ...base, status: 'uploading' as const, percent: 0, uploadUrl: result.uploadUrl };
+        // Nasce `queued`, não `uploading`: quem vira transferência de fato é
+        // a fila (design.md D4), e um item parado não deve parecer travado.
+        return {
+          ...base,
+          status: 'queued' as const,
+          percent: 0,
+          uploadUrl: result.uploadUrl,
+          expiresAt: result.expiresAt,
+        };
       }
       return {
         ...base,
@@ -156,24 +272,33 @@ export function UploadArea({ destinationFolderId }: UploadAreaProps) {
 
     setItems((prev) => [...prev, ...newItems]);
 
+    const transfers: QueuedTransfer[] = [];
     for (const item of newItems) {
       if (item.status === 'error') {
         if (item.error === QUOTA_ERROR) notifyQuota();
         continue;
       }
-      runPut(item.uid, item.uploadUrl!, item.file);
+      transfers.push({ uid: item.uid, uploadUrl: item.uploadUrl!, file: item.file });
     }
+    enqueueTransfers(transfers);
   }
 
   // design.md D4: item sem URL válida (recusado pelo servidor) refaz uma
   // chamada de lote de 1 para reconquistar a folga de cota; item que só
-  // falhou no PUT reusa a URL já obtida (ainda não expirada).
+  // falhou no PUT reusa a URL já obtida — **enquanto ela estiver vigente**.
+  //
+  // design.md D5: antes deste conserto a mera presença de `uploadUrl` mandava
+  // direto para o PUT, então um item que falhou *porque a URL venceu* era
+  // retentado com a mesma URL vencida, para sempre. Duas condições agora
+  // forçam URL nova: prazo fora da margem (relógio do cliente, otimização) e
+  // falhas consecutivas (rede de segurança quando o relógio mente).
   async function retryItem(uid: string) {
     const item = itemsRef.current.find((it) => it.uid === uid);
     if (!item) return;
 
-    if (item.uploadUrl) {
-      runPut(uid, item.uploadUrl, item.file);
+    const forcarRenovacao = item.putFailures >= FAILURES_BEFORE_FORCED_RENEWAL;
+    if (item.uploadUrl && urlStillFresh(item) && !forcarRenovacao) {
+      enqueueTransfers([{ uid, uploadUrl: item.uploadUrl, file: item.file }]);
       return;
     }
 
@@ -185,8 +310,13 @@ export function UploadArea({ destinationFolderId }: UploadAreaProps) {
       });
       const result = response.results[0];
       if (result?.ok) {
-        updateItem(uid, { uploadUrl: result.uploadUrl });
-        runPut(uid, result.uploadUrl, item.file);
+        // URL nova zera a contagem: o histórico de falhas era da URL antiga.
+        updateItem(uid, {
+          uploadUrl: result.uploadUrl,
+          expiresAt: result.expiresAt,
+          putFailures: 0,
+        });
+        enqueueTransfers([{ uid, uploadUrl: result.uploadUrl, file: item.file }]);
       } else {
         const error = result?.error ?? 'invalid item';
         updateItem(uid, { status: 'error', error });
@@ -263,6 +393,11 @@ export function UploadArea({ destinationFolderId }: UploadAreaProps) {
                 description={
                   item.status === 'error' ? (
                     <Typography.Text type="danger">{describeError(item.error)}</Typography.Text>
+                  ) : item.status === 'queued' ? (
+                    // design.md D4: item aguardando vaga precisa ser
+                    // distinguível de item em transferência — sem isto, uma
+                    // barra parada em 0% lê-se como travada ou falha.
+                    <Typography.Text type="secondary">Aguardando envio…</Typography.Text>
                   ) : (
                     <Progress
                       percent={item.percent}

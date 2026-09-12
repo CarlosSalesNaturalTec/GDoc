@@ -11,6 +11,16 @@ Na página **Arquivos**, use os botões de envio para adicionar conteúdo à pas
   operação (ver [Limites](../referencia/limites.md)). Use um computador para enviar
   uma pasta inteira.
 
+Há um **limite de arquivos por envio** (ver [Limites](../referencia/limites.md) para o
+valor vigente desta implantação). Se a sua seleção passar do limite, o envio é recusado
+**antes de começar**, com a mensagem informando quantos arquivos você selecionou e qual
+é o limite — nesse caso, envie em partes.
+
+Os arquivos são enviados **alguns de cada vez**, não todos ao mesmo tempo: os que estão
+aguardando a vez aparecem como **Aguardando envio**, e passam a mostrar o progresso
+quando começam a subir. Isso faz cada arquivo concluir mais rápido do que se todos
+disputassem a conexão ao mesmo tempo.
+
 Ao enviar um arquivo, **você se torna o dono dele** e passa a poder consultar quem o
 acessou (ver [Auditoria](auditoria.md)).
 
