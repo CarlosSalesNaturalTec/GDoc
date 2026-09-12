@@ -553,3 +553,65 @@ describe('Envio em lote — fila, vigência e teto (corrige-defeitos-envio-lote)
     ).not.toBeInTheDocument();
   });
 });
+
+/**
+ * Cenário "Segunda falha renova a URL mesmo se julgada vigente" da spec
+ * `web-upload` (design.md D5): o relógio do navegador pode estar errado, e
+ * por isso a vigência é otimização — poupar uma requisição —, nunca a
+ * garantia de correção. Um `expiresAt` folgado que mesmo assim produz PUTs
+ * falhos precisa levar a uma URL nova.
+ */
+describe('Renovação forçada após falhas consecutivas (design.md D5)', () => {
+  it('segunda falha pede URL nova mesmo com expiresAt folgado', async () => {
+    const FUTURO = new Date(Date.now() + 3_600_000).toISOString();
+    const a = makeFile('teimosa.txt');
+
+    const result = (url: string): BatchUploadItemResult => ({
+      fileName: 'teimosa.txt',
+      ok: true,
+      uploadUrl: url,
+      objectPath: 'teimosa.txt',
+      folderId: null,
+      expiresAt: FUTURO,
+    });
+
+    mockFetch({
+      'GET /auth/me': { status: 200, body: IDENTITY },
+      'GET /folders/root/contents': { status: 200, body: contents() },
+      'POST /files/upload-urls': [
+        { status: 200, body: { results: [result('https://storage.example/velha')] } },
+        { status: 200, body: { results: [result('https://storage.example/renovada')] } },
+      ],
+    });
+
+    const fetchMock = global.fetch as unknown as ReturnType<typeof vi.fn>;
+    const xhr = mockControllableXhr();
+    const { container } = renderApp(['/pastas']);
+    await screen.findByRole('button', { name: /enviar arquivos/i });
+
+    const [filesInput] = fileInputs(container);
+    await userEvent.upload(filesInput!, [a]);
+
+    // 1ª falha.
+    await waitFor(() => expect(xhr.inFlight()).toBe(1));
+    xhr.failOldest();
+
+    const contarPedidos = () =>
+      fetchMock.mock.calls.filter((c) => String(c[0]).includes('/files/upload-urls')).length;
+    const pedidosAposEnvio = contarPedidos();
+
+    // 1º Repetir: URL julgada vigente, então reusa — sem pedir nada.
+    await userEvent.click(await screen.findByRole('button', { name: /repetir/i }));
+    await waitFor(() => expect(xhr.started()).toBe(2));
+    expect(contarPedidos()).toBe(pedidosAposEnvio);
+    expect(xhr.startedUrls()[1]).toBe('https://storage.example/velha');
+
+    // 2ª falha — a URL "vigente" já falhou duas vezes.
+    xhr.failOldest();
+
+    // 2º Repetir: agora renova, apesar do expiresAt folgado.
+    await userEvent.click(await screen.findByRole('button', { name: /repetir/i }));
+    await waitFor(() => expect(contarPedidos()).toBe(pedidosAposEnvio + 1));
+    await waitFor(() => expect(xhr.startedUrls()).toContain('https://storage.example/renovada'));
+  });
+});

@@ -52,6 +52,16 @@ O código é nosso, estável e sem conteúdo interno; a mensagem do erro origina
 **não** é repassada. O `console.error(err)` permanece para os dois casos — um
 cliente batendo no teto é sinal operacional, não ruído.
 
+A regra mora numa **função pura exportada**, `mapErrorResponse(err)`, e o
+`errorHandler` só a chama e escreve a resposta. A separação existe por
+testabilidade: o handler vive dentro de `createApp` e é registrado por último,
+de modo que só é alcançável através de uma rota já montada — e a garantia que
+esta decisão mais preza é uma **negativa** (`err.status` arbitrário não passa,
+`type` desconhecido não passa, a mensagem original nunca sai), que exige
+exercitar entradas que nenhuma rota real produz. Com a função pura, essas
+negativas são casos de teste diretos, sem `res` de mentira e sem inventar uma
+rota que lance o erro desejado.
+
 **Alternativa descartada:** tratar o 413 só na rota de envio, com um middleware
 próprio antes do `express.json`. Resolveria o sintoma no caminho conhecido e
 deixaria todas as outras rotas mentindo do mesmo jeito. O defeito é do handler,

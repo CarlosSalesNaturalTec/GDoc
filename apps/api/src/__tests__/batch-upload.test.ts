@@ -432,6 +432,36 @@ describe('Defeitos do envio em lote (change corrige-defeitos-envio-lote)', () =>
     expect(janelaMs).toBeGreaterThan(esperadoMs - 60_000);
     expect(janelaMs).toBeLessThanOrEqual(esperadoMs);
   });
+
+  // A independência de verdade: mexer no TTL de download não pode mover o
+  // prazo de envio um milissegundo (spec `platform-infrastructure`, cenário
+  // "Prazo de envio é independente do de download"). O teste acima mostra que
+  // os valores diferem hoje; este mostra que não há acoplamento.
+  it('alterar o TTL de download não altera o prazo devolvido pelo envio', async () => {
+    const app = createApp(ports);
+    const cookie = await sessionCookieFor(ports, ids.userA);
+    const pedir = async (nome: string) =>
+      request(app)
+        .post('/files/upload-urls')
+        .set('Cookie', cookie)
+        .send({ items: [{ fileName: nome, contentType: 'text/plain', declaredSizeBytes: 10 }] });
+
+    const original = config.signedUrlDownloadTtlSeconds;
+    try {
+      const antes = await pedir('antes.txt');
+      const janelaAntes = new Date(antes.body.results[0].expiresAt).getTime() - Date.now();
+
+      config.signedUrlDownloadTtlSeconds = original * 4;
+      const depois = await pedir('depois.txt');
+      const janelaDepois = new Date(depois.body.results[0].expiresAt).getTime() - Date.now();
+
+      // Mesma janela nas duas, a menos do tempo decorrido entre as chamadas.
+      expect(Math.abs(janelaDepois - janelaAntes)).toBeLessThan(5_000);
+      expect(janelaDepois).toBeLessThanOrEqual(config.signedUrlUploadTtlSeconds * 1000);
+    } finally {
+      config.signedUrlDownloadTtlSeconds = original;
+    }
+  });
 });
 
 // design.md D1 — erro de leitura do corpo ganha status próprio; o resto segue
