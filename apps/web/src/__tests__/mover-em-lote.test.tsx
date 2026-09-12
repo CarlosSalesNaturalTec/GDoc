@@ -272,7 +272,16 @@ describe('Mover itens em lote (US 2.4, web-navegacao)', () => {
       await userEvent.click(headerCheckbox);
       await screen.findByText('101 itens selecionados');
 
-      await userEvent.click(screen.getByRole('button', { name: /mover selecionados/i }));
+      // `getByRole('button', { name })` calcula o nome acessível de **todo**
+      // botão do DOM, e com 101 linhas de tabela (cada uma com seus próprios
+      // botões de ação) isso custava ~17 s — 80% do tempo deste teste, que
+      // batia no limite de 30 s em runner carregado. Localizar pelo texto e
+      // subir ao botão custa ~0,1 s e continua provando que o acionador é um
+      // `button`. Os demais casos deste arquivo usam poucas linhas e seguem
+      // com `getByRole`.
+      const acaoMover = screen.getByText('Mover selecionados').closest('button');
+      expect(acaoMover).toBeInTheDocument();
+      await userEvent.click(acaoMover!);
 
       await screen.findByText(/excede o teto de 100 por operação/);
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
