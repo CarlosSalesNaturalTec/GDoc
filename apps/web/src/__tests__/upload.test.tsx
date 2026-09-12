@@ -1,14 +1,15 @@
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
-import { UserRole } from '@gdoc/shared';
+import { UserRole, UPLOAD_BATCH_MAX_ITEMS_DEFAULT } from '@gdoc/shared';
 import type {
+  BatchUploadItemResult,
   BatchUploadUrlResponse,
   FileSummaryResponse,
   FolderContentsResponse,
 } from '@gdoc/shared';
 import { mockFetch } from './mock-fetch';
-import { mockXhr } from './mock-xhr';
+import { mockXhr, mockControllableXhr } from './mock-xhr';
 import { renderApp } from './render-app';
 import { mockViewportWidth, NARROW_VIEWPORT } from './viewport';
 
@@ -305,6 +306,250 @@ describe('Envio de arquivos e pastas (web-upload)', () => {
     // Distinguível da recusa por permissão insuficiente do mesmo fluxo.
     expect(
       screen.queryByText('Permissão insuficiente para enviar arquivos neste destino.'),
+    ).not.toBeInTheDocument();
+  });
+});
+
+/**
+ * Defeitos consertados pelo change `corrige-defeitos-envio-lote`: fila de
+ * concorrência (D4), renovação da URL vencida no retry (D5) e recusa
+ * antecipada pelo teto de itens (D2).
+ */
+describe('Envio em lote — fila, vigência e teto (corrige-defeitos-envio-lote)', () => {
+  const FUTURO = new Date(Date.now() + 3_600_000).toISOString();
+  const PASSADO = new Date(Date.now() - 60_000).toISOString();
+
+  function okResult(name: string, url: string, expiresAt = FUTURO): BatchUploadItemResult {
+    return {
+      fileName: name,
+      ok: true,
+      uploadUrl: url,
+      objectPath: name,
+      folderId: null,
+      expiresAt,
+    };
+  }
+
+  it('no máximo 4 PUTs simultâneos, e a fila drena por completo (design.md D4)', async () => {
+    const total = 10;
+    const files = Array.from({ length: total }, (_, i) => makeFile(`f${i}.txt`));
+
+    mockFetch({
+      'GET /auth/me': { status: 200, body: IDENTITY },
+      'GET /folders/root/contents': { status: 200, body: contents() },
+      'POST /files/upload-urls': {
+        status: 200,
+        body: {
+          results: files.map((f, i) => okResult(f.name, `https://storage.example/f${i}`)),
+        } satisfies BatchUploadUrlResponse,
+      },
+    });
+
+    const xhr = mockControllableXhr();
+    const { container } = renderApp(['/pastas']);
+    await screen.findByRole('button', { name: /enviar arquivos/i });
+
+    const [filesInput] = fileInputs(container);
+    await userEvent.upload(filesInput!, files);
+
+    // A fila abre exatamente 4 vagas, não as 10 aceitas.
+    await waitFor(() => expect(xhr.inFlight()).toBe(4));
+    expect(xhr.started()).toBe(4);
+
+    // Itens sem vaga aparecem como aguardando, não como parados em 0%.
+    await screen.findAllByText('Aguardando envio…');
+
+    // Cada conclusão libera uma vaga, e só uma.
+    let concluidos = 0;
+    while (xhr.inFlight() > 0) {
+      xhr.succeedOldest();
+      concluidos += 1;
+      await waitFor(() => expect(xhr.inFlight()).toBeLessThanOrEqual(4));
+      if (concluidos < total) {
+        await waitFor(() => expect(xhr.started()).toBe(Math.min(concluidos + 4, total)));
+      }
+    }
+
+    // A fila drenou inteira: todos os 10 foram efetivamente transferidos.
+    expect(concluidos).toBe(total);
+    expect(xhr.started()).toBe(total);
+    expect(new Set(xhr.startedUrls()).size).toBe(total);
+  });
+
+  it('item que falha libera a vaga imediatamente para o próximo (design.md D4)', async () => {
+    const files = Array.from({ length: 6 }, (_, i) => makeFile(`g${i}.txt`));
+
+    mockFetch({
+      'GET /auth/me': { status: 200, body: IDENTITY },
+      'GET /folders/root/contents': { status: 200, body: contents() },
+      'POST /files/upload-urls': {
+        status: 200,
+        body: {
+          results: files.map((f, i) => okResult(f.name, `https://storage.example/g${i}`)),
+        } satisfies BatchUploadUrlResponse,
+      },
+    });
+
+    const xhr = mockControllableXhr();
+    const { container } = renderApp(['/pastas']);
+    await screen.findByRole('button', { name: /enviar arquivos/i });
+
+    const [filesInput] = fileInputs(container);
+    await userEvent.upload(filesInput!, files);
+    await waitFor(() => expect(xhr.inFlight()).toBe(4));
+
+    xhr.failOldest();
+
+    // A vaga liberada por FALHA é ocupada igual à liberada por sucesso.
+    await waitFor(() => expect(xhr.started()).toBe(5));
+    expect(xhr.inFlight()).toBe(4);
+    await screen.findByText('Falha no envio.');
+  });
+
+  it('repetir com URL vencida pede URL nova em vez de reusar a vencida (design.md D5)', async () => {
+    const a = makeFile('vencida.txt');
+
+    mockFetch({
+      'GET /auth/me': { status: 200, body: IDENTITY },
+      'GET /folders/root/contents': { status: 200, body: contents() },
+      'POST /files/upload-urls': [
+        {
+          status: 200,
+          body: {
+            results: [okResult('vencida.txt', 'https://storage.example/velha', PASSADO)],
+          } satisfies BatchUploadUrlResponse,
+        },
+        {
+          status: 200,
+          body: {
+            results: [okResult('vencida.txt', 'https://storage.example/nova', FUTURO)],
+          } satisfies BatchUploadUrlResponse,
+        },
+      ],
+    });
+
+    const fetchMock = global.fetch as unknown as ReturnType<typeof vi.fn>;
+    const xhr = mockControllableXhr();
+    const { container } = renderApp(['/pastas']);
+    await screen.findByRole('button', { name: /enviar arquivos/i });
+
+    const [filesInput] = fileInputs(container);
+    await userEvent.upload(filesInput!, [a]);
+
+    await waitFor(() => expect(xhr.inFlight()).toBe(1));
+    xhr.failOldest();
+    const repetir = await screen.findByRole('button', { name: /repetir/i });
+
+    const chamadasAntes = fetchMock.mock.calls.filter((c) =>
+      String(c[0]).includes('/files/upload-urls'),
+    ).length;
+
+    await userEvent.click(repetir);
+
+    // Pediu URL nova...
+    await waitFor(() => {
+      const depois = fetchMock.mock.calls.filter((c) =>
+        String(c[0]).includes('/files/upload-urls'),
+      ).length;
+      expect(depois).toBe(chamadasAntes + 1);
+    });
+    // ...e transferiu para ela, não para a vencida.
+    await waitFor(() => expect(xhr.startedUrls()).toContain('https://storage.example/nova'));
+  });
+
+  it('repetir com URL vigente reusa a URL, sem requisição adicional (design.md D5)', async () => {
+    const a = makeFile('vigente.txt');
+
+    mockFetch({
+      'GET /auth/me': { status: 200, body: IDENTITY },
+      'GET /folders/root/contents': { status: 200, body: contents() },
+      'POST /files/upload-urls': {
+        status: 200,
+        body: {
+          results: [okResult('vigente.txt', 'https://storage.example/mesma', FUTURO)],
+        } satisfies BatchUploadUrlResponse,
+      },
+    });
+
+    const fetchMock = global.fetch as unknown as ReturnType<typeof vi.fn>;
+    const xhr = mockControllableXhr();
+    const { container } = renderApp(['/pastas']);
+    await screen.findByRole('button', { name: /enviar arquivos/i });
+
+    const [filesInput] = fileInputs(container);
+    await userEvent.upload(filesInput!, [a]);
+
+    await waitFor(() => expect(xhr.inFlight()).toBe(1));
+    xhr.failOldest();
+    const repetir = await screen.findByRole('button', { name: /repetir/i });
+
+    const chamadasAntes = fetchMock.mock.calls.filter((c) =>
+      String(c[0]).includes('/files/upload-urls'),
+    ).length;
+
+    await userEvent.click(repetir);
+    await waitFor(() => expect(xhr.started()).toBe(2));
+
+    const depois = fetchMock.mock.calls.filter((c) =>
+      String(c[0]).includes('/files/upload-urls'),
+    ).length;
+    expect(depois).toBe(chamadasAntes);
+    expect(xhr.startedUrls()).toEqual([
+      'https://storage.example/mesma',
+      'https://storage.example/mesma',
+    ]);
+  });
+
+  it('seleção acima do teto é recusada sem emitir requisição (design.md D2)', async () => {
+    const demais = Array.from({ length: UPLOAD_BATCH_MAX_ITEMS_DEFAULT + 1 }, (_, i) =>
+      makeFile(`x${i}.txt`),
+    );
+
+    mockFetch({
+      'GET /auth/me': { status: 200, body: IDENTITY },
+      'GET /folders/root/contents': { status: 200, body: contents() },
+    });
+
+    const fetchMock = global.fetch as unknown as ReturnType<typeof vi.fn>;
+    const { container } = renderApp(['/pastas']);
+    await screen.findByRole('button', { name: /enviar arquivos/i });
+
+    const [filesInput] = fileInputs(container);
+    await userEvent.upload(filesInput!, demais);
+
+    await screen.findByText('Seleção acima do limite por envio');
+    await screen.findByText(
+      `Você selecionou ${demais.length} arquivos e o limite é ${UPLOAD_BATCH_MAX_ITEMS_DEFAULT} por envio. Envie em partes.`,
+    );
+    expect(
+      fetchMock.mock.calls.filter((c) => String(c[0]).includes('/files/upload-urls')),
+    ).toHaveLength(0);
+  });
+
+  it('recusa por teto vinda do servidor não vira "tente novamente" (design.md D2)', async () => {
+    const a = makeFile('h.txt');
+
+    mockFetch({
+      'GET /auth/me': { status: 200, body: IDENTITY },
+      'GET /folders/root/contents': { status: 200, body: contents() },
+      'POST /files/upload-urls': {
+        status: 400,
+        body: { error: 'upload_batch_limit_exceeded', found: 300, allowed: 200 },
+      },
+    });
+
+    const { container } = renderApp(['/pastas']);
+    await screen.findByRole('button', { name: /enviar arquivos/i });
+
+    const [filesInput] = fileInputs(container);
+    await userEvent.upload(filesInput!, [a]);
+
+    await screen.findByText('Seleção acima do limite por envio');
+    await screen.findByText(
+      'Você selecionou 300 arquivos e o limite é 200 por envio. Envie em partes.',
+    );
+    expect(
+      screen.queryByText('Não foi possível solicitar o envio. Tente novamente.'),
     ).not.toBeInTheDocument();
   });
 });

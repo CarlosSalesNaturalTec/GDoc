@@ -263,6 +263,22 @@ export function filesRouter(ports: Ports): Router {
         return;
       }
 
+      // Teto por requisição (change corrige-defeitos-envio-lote, design.md
+      // D2), avaliado **antes** de abrir a transação: a recusa não deixa
+      // linha `pending`, pasta de caminho relativo nem URL assinada para
+      // trás. Molde de `move_batch_limit_exceeded` /
+      // `download_manifest_limit_exceeded`; `allowed` é a fonte da verdade
+      // para o cliente, que orienta a recusa antecipada pelo padrão
+      // compartilhado em `packages/shared`.
+      if (items.length > config.uploadBatch.maxItems) {
+        res.status(400).json({
+          error: 'upload_batch_limit_exceeded',
+          found: items.length,
+          allowed: config.uploadBatch.maxItems,
+        });
+        return;
+      }
+
       type PreparedItem =
         | {
             fileName: string;

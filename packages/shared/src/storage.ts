@@ -141,3 +141,44 @@ export type BatchUploadItemResult = BatchUploadItemSuccess | BatchUploadItemFail
 export interface BatchUploadUrlResponse {
   results: BatchUploadItemResult[];
 }
+
+/**
+ * Recusa por teto de itens por requisição de envio em lote
+ * (`UPLOAD_BATCH_MAX_ITEMS`, `apps/api/src/config.ts`), no molde de
+ * `MoveBatchLimitExceededResponse` e
+ * `FolderDownloadManifestLimitExceededResponse` (change
+ * `corrige-defeitos-envio-lote`, design.md D2). Distinta dos erros **por
+ * item** de `BatchUploadItemFailure`: esta recusa o lote inteiro, antes de
+ * qualquer efeito — nenhuma linha `pending`, nenhuma pasta, nenhuma URL.
+ */
+export interface UploadBatchLimitExceededResponse {
+  error: 'upload_batch_limit_exceeded';
+  found: number;
+  allowed: number;
+}
+
+/**
+ * Valor padrão do teto de itens por requisição de envio em lote
+ * (`UPLOAD_BATCH_MAX_ITEMS`, `apps/api/src/config.ts`). Compartilhado com a
+ * SPA para a recusa acontecer **antes** da requisição, sem endpoint de
+ * leitura novo — mesmo padrão de `MOVE_BATCH_MAX_ITEMS_DEFAULT`. Se a
+ * implantação sobrescrever a variável de ambiente, o cliente segue orientado
+ * por este padrão até a primeira resposta do servidor, cujo `allowed` é
+ * sempre a fonte da verdade.
+ */
+export const UPLOAD_BATCH_MAX_ITEMS_DEFAULT = 500;
+
+/**
+ * Recusas de leitura do corpo da requisição, propagadas com status próprio
+ * pelo tratador de erro da API em vez do 500 genérico (change
+ * `corrige-defeitos-envio-lote`, design.md D1). A superfície é fechada: só
+ * estas duas classes, reconhecidas pelo `err.type` do `body-parser`, mudam o
+ * status — a mensagem do erro original nunca é repassada.
+ */
+export interface RequestBodyTooLargeResponse {
+  error: 'request_body_too_large';
+}
+
+export interface InvalidJsonResponse {
+  error: 'invalid_json';
+}
