@@ -186,14 +186,14 @@ O **objetivo principal** do GDoc é entregar um repositório de arquivos corpora
 
 * **US 3.1:** Como Colaborador, eu quero enviar vários arquivos de uma vez e acompanhar o progresso de cada um para que eu saiba o que já concluiu.
   * **Critérios de Aceitação:**
-    * *Cenário 1 — Progresso individual:*
+    * *Cenário 1 — Progresso do conjunto:*
       * **Dado** que selecionei vários arquivos para envio
       * **Quando** inicio o envio
-      * **Então** cada arquivo exibe seu próprio progresso e um indica sucesso ou falha ao final, de forma independente dos demais.
+      * **Então** acompanho um progresso único do conjunto, medido pelos bytes já transferidos sobre o total, com a quantidade de arquivos concluídos e o arquivo corrente como informação complementar — e um envio com milhares de arquivos não degrada a interface.
     * *Cenário 2 — Falha parcial:*
       * **Dado** que um dos arquivos falha durante o envio
       * **Quando** os demais concluem
-      * **Então** os que concluíram permanecem salvos e o que falhou é sinalizado, permitindo nova tentativa apenas dele.
+      * **Então** os que concluíram permanecem salvos e o que falhou é contabilizado e listável sob demanda, permitindo nova tentativa apenas dele.
 
 * **US 3.2:** Como Colaborador, eu quero enviar uma pasta inteira preservando suas subpastas para que a estrutura original seja mantida.
   * **Critérios de Aceitação:**
@@ -212,6 +212,37 @@ O **objetivo principal** do GDoc é entregar um repositório de arquivos corpora
       * **Dado** que a pasta contém itens sem permissão de download para mim
       * **Quando** solicito o download da pasta
       * **Então** apenas os itens permitidos são incluídos no arquivo compactado.
+
+* **US 3.4:** Como Colaborador, eu quero enviar várias pastas de uma vez e saber antes de começar se o envio cabe no meu espaço, para não esperar dezenas de minutos por uma transferência que seria recusada no meio.
+  * **Critérios de Aceitação:**
+    * *Cenário 1 — Várias pastas numa seleção só:*
+      * **Dado** que arrasto duas ou mais pastas para a área de envio
+      * **Quando** as solto
+      * **Então** todos os arquivos das pastas são reunidos em um único envio e a hierarquia de cada pasta é recriada preservada dentro da pasta atual.
+    * *Cenário 2 — Verificação antes de transferir:*
+      * **Dado** que a minha seleção é maior que o meu espaço disponível
+      * **Quando** a seleção é recebida
+      * **Então** nenhum arquivo é transferido e sou informado do volume da seleção, do espaço disponível e do quanto falta, antes de qualquer espera.
+    * *Cenário 3 — A recusa diz onde o espaço está:*
+      * **Dado** que parte do meu espaço está ocupada por arquivos na lixeira
+      * **Quando** um envio é recusado por falta de espaço
+      * **Então** vejo quanto do meu espaço está em arquivos ativos, na lixeira e em envios pendentes, e sou informado de que excluir arquivos não libera espaço de imediato.
+    * *Cenário 4 — Enviar só o que cabe:*
+      * **Dado** que a seleção não cabe por inteiro
+      * **Quando** escolho enviar apenas o que cabe
+      * **Então** o subconjunto que cabe é enviado e sou informado com clareza de quantos arquivos ficaram de fora.
+    * *Cenário 5 — Confirmação quando cabe:*
+      * **Dado** que a seleção cabe no espaço disponível
+      * **Quando** a verificação termina
+      * **Então** vejo a quantidade de arquivos e o volume a enviar, e a transferência só começa após a minha confirmação.
+    * *Cenário 6 — Espaço esgotado durante o envio:*
+      * **Dado** que o meu espaço se esgota com o envio já em andamento
+      * **Quando** o sistema detecta a falta de espaço
+      * **Então** o envio é pausado sem tentar o restante, os arquivos já transferidos permanecem enviados, e sou informado de que o envio ficou incompleto e de quantos arquivos não foram enviados.
+    * *Cenário 7 — Sem limite próprio de quantidade:*
+      * **Dado** que selecionei uma quantidade muito grande de arquivos
+      * **Quando** a verificação termina
+      * **Então** não sou recusado por quantidade de arquivos: a única recusa por tamanho é a que o espaço disponível justifica.
 
 ### Épico 4: Controle de Acesso e Permissões Granulares
 
