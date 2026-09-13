@@ -200,3 +200,59 @@ Referência: PRD US 3.1 (cenário 2), RF #13; design.md D7 do change
 - **WHEN** um envio é pausado por falta de espaço
 - **THEN** o usuário é informado de que o envio ficou incompleto e de quantos
   arquivos não foram transferidos
+
+## MODIFIED Requirements
+
+### Requirement: Envio de múltiplos arquivos com progresso individual
+
+A cláusula de **progresso próprio de cada arquivo** é substituída pelo progresso
+macro do conjunto — ver o requisito "Progresso macro do envio medido em bytes"
+desta mesma fatia. O restante do requisito permanece: a chamada única de lote por
+fatia, os itens por arquivo e o PUT direto ao GCS na URL assinada continuam
+valendo, e o desfecho de cada arquivo continua independente dos demais.
+
+A perda do progresso por item é consciente (design.md D6): com 2.000 arquivos,
+renderizar um indicador por item trava a aba **antes** do envio — e o envio ainda
+precisa rodar por dezenas de minutos naquela mesma aba. O detalhe por item
+permanece onde é acionável: a lista de falhas, curta por natureza.
+
+#### Scenario: Progresso individual de cada arquivo do lote
+- **WHEN** o usuário seleciona vários arquivos e inicia o envio
+- **THEN** a SPA pede as URLs assinadas de cada fatia numa única chamada e
+  apresenta um progresso único do conjunto, sinalizando ao final quantos
+  arquivos concluíram e quantos falharam, com o desfecho de cada um
+  independente dos demais
+
+### Requirement: Recusa antecipada de seleção acima do teto de itens por requisição
+
+A recusa **antecipada pela SPA** deixa de existir: com o envio dividido em fatias
+abaixo do teto por requisição, o teto deixou de ser alcançável por uso normal, e
+apresentá-lo ao usuário seria anunciar um limite que ele nunca encontra —
+justamente o limite que o requisito "Envio dividido em fatias com URLs pedidas
+por fatia" proíbe impor (design.md D5). A SPA NÃO SHALL mais recusar uma seleção
+por quantidade de arquivos.
+
+O **reconhecimento do código de erro vindo do servidor permanece**, como rede de
+segurança para uma implantação que aperte o teto abaixo do tamanho da fatia: a
+SPA SHALL continuar apresentando essa recusa como recusa por quantidade, nunca
+como falha genérica que convide a repetir a mesma operação.
+
+#### Scenario: Recusa vinda do servidor é apresentada como recusa por quantidade
+- **WHEN** o servidor recusa a requisição com o código de erro próprio do teto
+- **THEN** a SPA informa que a quantidade excedeu o limite, em vez de sugerir
+  nova tentativa da mesma operação
+
+## RENAMED Requirements
+
+- FROM: `### Requirement: Envio de múltiplos arquivos com progresso individual`
+- TO: `### Requirement: Envio de múltiplos arquivos em lote`
+
+O título prometia o que o requisito deixou de exigir: o progresso passou a ser do
+conjunto, medido em bytes (design.md D6). O que o requisito guarda — a chamada de
+lote e o PUT direto ao GCS na URL assinada — é o que o novo nome descreve.
+
+- FROM: `### Requirement: Recusa antecipada de seleção acima do teto de itens por requisição`
+- TO: `### Requirement: Reconhecimento da recusa por teto de itens vinda do servidor`
+
+A recusa antecipada foi removida (design.md D5); o que resta do requisito é o
+reconhecimento do código de erro do servidor, como rede de segurança.
