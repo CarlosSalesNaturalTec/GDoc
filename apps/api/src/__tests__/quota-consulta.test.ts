@@ -100,6 +100,7 @@ describe('Consulta do espaço de armazenamento do próprio solicitante', () => {
       quotaBytes: config.storageQuotaBytesPerUser,
       usedBytes: 3000,
       trashedBytes: 0,
+      trashedFiles: 0,
       pendingBytes: 0,
       availableBytes: config.storageQuotaBytesPerUser - 3000,
     });
@@ -123,6 +124,9 @@ describe('Consulta do espaço de armazenamento do próprio solicitante', () => {
 
     expect(res.status).toBe(200);
     expect(res.body.trashedBytes).toBe(2000);
+    // O par de contagem, que a confirmação do expurgo sob demanda usa (change
+    // `esvaziar-lixeira`, design.md D4).
+    expect(res.body.trashedFiles).toBe(1);
     expect(res.body.usedBytes).toBe(5000);
     // O ponto do teste: 2000 não é subtraído duas vezes.
     expect(res.body.availableBytes).toBe(config.storageQuotaBytesPerUser - 5000);

@@ -127,8 +127,9 @@ export function filesRouter(ports: Ports): Router {
    * Deliberadamente **sem** o bypass de `global_admin`: o CLAUDE.md restringe
    * esse bypass a agregados de painel, e cota é dado de pessoa.
    *
-   * `trashedBytes` é decomposição explicativa de `usedBytes` e **não** é
-   * descontado do disponível — um arquivo na lixeira segue contando em
+   * `trashedBytes` (e seu par de contagem `trashedFiles`, que a confirmação
+   * de `POST /trash/purge` usa) é decomposição explicativa de `usedBytes` e
+   * **não** é descontado do disponível — um arquivo na lixeira segue contando em
    * `storage_used_bytes` até o `purge-trash` (retenção de
    * `config.trashRetentionDays`). Descontá-lo aqui inflaria o disponível e
    * produziria uma promessa que a emissão de URLs desmentiria em seguida.
@@ -147,12 +148,16 @@ export function filesRouter(ports: Ports): Router {
         );
         const usedBytes = Number(usageRows[0]?.storage_used_bytes ?? '0');
 
-        const { rows: trashedRows } = await client.query<{ total: string | null }>(
-          `SELECT SUM(size_bytes) AS total FROM files
+        const { rows: trashedRows } = await client.query<{
+          total: string | null;
+          files: string;
+        }>(
+          `SELECT SUM(size_bytes) AS total, COUNT(*) AS files FROM files
            WHERE owner_id = $1 AND deleted_at IS NOT NULL`,
           [ctx.userId],
         );
         const trashedBytes = Number(trashedRows[0]?.total ?? '0');
+        const trashedFiles = Number(trashedRows[0]?.files ?? '0');
 
         const { rows: pendingRows } = await client.query<{ total: string | null }>(
           `SELECT SUM(size_bytes) AS total FROM files
@@ -161,7 +166,7 @@ export function filesRouter(ports: Ports): Router {
         );
         const pendingBytes = Number(pendingRows[0]?.total ?? '0');
 
-        return { usedBytes, trashedBytes, pendingBytes };
+        return { usedBytes, trashedBytes, trashedFiles, pendingBytes };
       });
 
       const quotaBytes = config.storageQuotaBytesPerUser;
@@ -169,6 +174,7 @@ export function filesRouter(ports: Ports): Router {
         quotaBytes,
         usedBytes: snapshot.usedBytes,
         trashedBytes: snapshot.trashedBytes,
+        trashedFiles: snapshot.trashedFiles,
         pendingBytes: snapshot.pendingBytes,
         // Piso em zero: uma reconciliação de finalize que ultrapasse a cota
         // (o `size_bytes` real difere do declarado) não deve devolver um

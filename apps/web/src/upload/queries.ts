@@ -1,4 +1,4 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type {
   BatchUploadUrlRequest,
   BatchUploadUrlResponse,
@@ -39,4 +39,22 @@ export function useInvalidateFolderContents() {
 export async function fetchStorageQuota(): Promise<StorageQuotaResponse> {
   const raw = await apiClient.get<StorageQuotaResponse>('/files/quota');
   return storageQuotaResponseSchema.parse(raw);
+}
+
+export const QUOTA_KEY = 'files-quota';
+
+/**
+ * O mesmo `GET /files/quota` como consulta com chave, para as telas que
+ * **exibem** o retrato em vez de decidir com ele (change `esvaziar-lixeira`:
+ * a lixeira precisa saber quantos arquivos próprios e quantos bytes o
+ * expurgo devolveria). `staleTime: 0` para que a invalidação após o expurgo
+ * traga o número recalculado; a pré-checagem do envio segue usando
+ * `fetchStorageQuota` sob demanda, sem cache algum.
+ */
+export function useStorageQuota() {
+  return useQuery({
+    queryKey: [QUOTA_KEY],
+    queryFn: fetchStorageQuota,
+    staleTime: 0,
+  });
 }

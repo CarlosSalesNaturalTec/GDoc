@@ -97,3 +97,29 @@ definitivo (não é mais possível recuperar).
 Acesse pelo menu **Lixeira** para restaurar ou acompanhar seus itens excluídos. A
 lista mostra a **data de exclusão** e quantos **dias restantes** faltam até o expurgo,
 com destaque colorido quando o prazo está perto do fim.
+
+### Esvaziar a lixeira para liberar espaço agora
+
+Enquanto um arquivo está na lixeira, ele **continua ocupando a sua cota** (ver
+[Enviar arquivos](enviar.md)). Se você precisa de espaço **hoje**, sem esperar o
+expurgo automático, use **Esvaziar lixeira**, no alto da tela da Lixeira.
+
+A confirmação diz, antes de qualquer coisa, **quantos arquivos** serão apagados e
+**quanto espaço** retorna — é a troca que você está aceitando. Ao confirmar:
+
+- os **seus arquivos** na lixeira são apagados **em definitivo**, e o espaço volta na
+  hora para a sua cota;
+- **não há como desfazer**: eles deixam de ser restauráveis;
+- **pastas não são apagadas** — pasta não ocupa espaço, então continua na lixeira até
+  o expurgo automático (inclusive quando os arquivos que estavam dentro dela foram
+  apagados);
+- **arquivos de outras pessoas não são afetados**, mesmo que apareçam na sua lista da
+  Lixeira porque você tem permissão de exclusão sobre eles. Cada pessoa esvazia a
+  própria lixeira — inclusive administradores, que não esvaziam a lixeira de
+  terceiros.
+
+Se algum arquivo não puder ser apagado no momento, os demais são apagados normalmente
+e a tela informa quantos ficaram — eles permanecem na lixeira e entram no próximo
+expurgo automático.
+
+O botão só aparece quando você tem arquivos próprios na lixeira.
