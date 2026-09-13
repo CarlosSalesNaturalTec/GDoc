@@ -92,6 +92,17 @@ Após o expurgo, a listagem da lixeira e a consulta de cota são invalidadas, pa
 que a pessoa veja imediatamente o espaço recuperado — é o encerramento do ciclo
 que começou na recusa detalhada do envio.
 
+**De onde vêm os dois números.** De `GET /files/quota`, que já devolve
+`trashedBytes` — a soma dos arquivos **do solicitante** na lixeira, exatamente o
+conjunto que a rota apaga. Falta apenas o par de contagem, e ele entra ali, como
+`trashedFiles`, na mesma leitura: dois números do mesmo retrato nunca se
+contradizem. `GET /trash` não serve para isso — lista **raízes de exclusão no
+alcance** do solicitante (inclusive alheias, por grant `delete` ou por ser
+admin), não informa tamanho, e não enxerga o arquivo que está na lixeira dentro
+de uma pasta excluída, que ocupa bytes do mesmo jeito. Consequência assumida: se
+o retrato de cota não estiver disponível, a ação não é oferecida — sem os
+números, a confirmação seria a genérica que este D4 recusa.
+
 ## Riscos
 
 - **Perda irreversível por engano.** Mitigada pela confirmação quantificada de

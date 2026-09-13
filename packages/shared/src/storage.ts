@@ -212,6 +212,13 @@ export interface StorageQuotaResponse {
   usedBytes: number;
   /** Soma dos arquivos do solicitante na lixeira; decomposição de `usedBytes`, não descontada do disponível. */
   trashedBytes: number;
+  /**
+   * Quantidade de arquivos do solicitante na lixeira — o par de contagem de
+   * `trashedBytes` (change `esvaziar-lixeira`, design.md D4: a confirmação do
+   * expurgo precisa dizer **quantos** arquivos e **quanto** espaço, e os dois
+   * números vêm da mesma leitura).
+   */
+  trashedFiles: number;
   /** Soma dos arquivos em `pending`/`replacing` — reserva de envios não reconciliados. */
   pendingBytes: number;
   /** `quotaBytes − usedBytes − pendingBytes`, nunca negativo. */

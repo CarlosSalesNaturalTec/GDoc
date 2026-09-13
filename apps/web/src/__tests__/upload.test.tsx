@@ -24,6 +24,7 @@ function quota(overrides: Partial<StorageQuotaResponse> = {}): StorageQuotaRespo
     quotaBytes: 10 * GIGA,
     usedBytes: 0,
     trashedBytes: 0,
+    trashedFiles: 0,
     pendingBytes: 0,
     availableBytes: 10 * GIGA,
     ...overrides,
@@ -749,6 +750,7 @@ describe('Verificação de viabilidade antes de transferir (design.md D3/D4)', (
         body: quota({
           usedBytes: 9.5 * GIGA,
           trashedBytes: 2 * GIGA,
+          trashedFiles: 1,
           pendingBytes: 100 * MEGA,
           availableBytes: 10 * GIGA - 9.5 * GIGA - 100 * MEGA,
         }),
@@ -778,6 +780,7 @@ describe('Verificação de viabilidade antes de transferir (design.md D3/D4)', (
         body: quota({
           usedBytes: 9 * GIGA,
           trashedBytes: 3 * GIGA,
+          trashedFiles: 1,
           pendingBytes: 512 * MEGA,
           availableBytes: 10 * GIGA - 9 * GIGA - 512 * MEGA,
         }),
@@ -809,6 +812,7 @@ describe('Verificação de viabilidade antes de transferir (design.md D3/D4)', (
         body: quota({
           usedBytes: 9.8 * GIGA,
           trashedBytes: 4 * GIGA,
+          trashedFiles: 1,
           availableBytes: 10 * GIGA - 9.8 * GIGA,
         }),
       },
@@ -1077,6 +1081,7 @@ describe('Estouro de cota durante o envio pausa e reapresenta o veredito (design
           body: quota({
             usedBytes: 10 * GIGA,
             trashedBytes: 1 * GIGA,
+            trashedFiles: 1,
             availableBytes: 0,
           }),
         },

@@ -26,6 +26,7 @@ import type {
   SignedUrlResponse,
   StorageQuotaResponse,
   TrashListResponse,
+  TrashPurgeResponse,
   UnitResponse,
   UnreadNotificationCountResponse,
   ViewUrlResponse,
@@ -140,6 +141,7 @@ export const storageQuotaResponseSchema: z.ZodType<StorageQuotaResponse> = z.obj
   quotaBytes: z.number(),
   usedBytes: z.number(),
   trashedBytes: z.number(),
+  trashedFiles: z.number(),
   pendingBytes: z.number(),
   availableBytes: z.number(),
 });
@@ -202,6 +204,13 @@ export const moveBatchItemResultSchema: z.ZodType<MoveBatchItemResult> = z.discr
 /** Espelha `MoveBatchResponse` (design.md D2 do change `mover-itens-em-lote`). */
 export const moveBatchResponseSchema: z.ZodType<MoveBatchResponse> = z.object({
   results: z.array(moveBatchItemResultSchema),
+});
+
+/** Espelha `TrashPurgeResponse` (change `esvaziar-lixeira`) — fronteira de `POST /trash/purge`. */
+export const trashPurgeResponseSchema: z.ZodType<TrashPurgeResponse> = z.object({
+  purgedFiles: z.number(),
+  reclaimedBytes: z.number(),
+  failedFiles: z.number(),
 });
 
 /** Espelha `TrashListResponse` (design.md D7, `web-lixeira`): item de raiz de exclusão. */

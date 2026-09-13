@@ -301,6 +301,25 @@ O **objetivo principal** do GDoc é entregar um repositório de arquivos corpora
       * **Quando** a rotina diária das 3h é executada
       * **Então** o item é apagado de forma permanente e deixa de poder ser restaurado.
 
+* **US 6.2:** Como Colaborador, eu quero esvaziar a minha lixeira quando quiser para que eu recupere de imediato o espaço que os arquivos excluídos ainda ocupam na minha cota, sem esperar os 30 dias de retenção.
+  * **Critérios de Aceitação:**
+    * *Cenário 1 — Espaço devolvido na hora:*
+      * **Dado** que tenho arquivos meus na lixeira, ainda dentro do prazo de retenção
+      * **Quando** aciono esvaziar a lixeira e confirmo a ação
+      * **Então** esses arquivos são apagados de forma permanente, deixam de poder ser restaurados, e o meu espaço utilizado é reduzido pelo tamanho deles.
+    * *Cenário 2 — Confirmação informa a troca antes de apagar:*
+      * **Dado** que aciono esvaziar a lixeira
+      * **Quando** a confirmação é exibida
+      * **Então** vejo quantos arquivos serão apagados, quanto espaço retorna e o aviso de que a ação não tem volta, e nada é apagado até que eu confirme.
+    * *Cenário 3 — Alcance restrito ao que é meu:*
+      * **Dado** que na lixeira existem também arquivos de outras pessoas e pastas
+      * **Quando** esvazio a minha lixeira
+      * **Então** apenas os arquivos de que sou dono são apagados: os arquivos das outras pessoas seguem restauráveis e as pastas permanecem na lixeira até o expurgo automático.
+    * *Cenário 4 — Falha em um arquivo não derruba os demais:*
+      * **Dado** que a remoção de um dos arquivos falha durante o expurgo
+      * **Quando** a operação termina
+      * **Então** os demais arquivos são apagados normalmente, o arquivo que falhou permanece íntegro na lixeira, e sou informado de quantos foram apagados e quantos falharam.
+
 ### Épico 7: Auditoria
 
 * **US 7.1:** Como Administrador, eu quero consultar quem visualizou ou baixou cada arquivo, com data e hora, para que haja comprovação de acesso.

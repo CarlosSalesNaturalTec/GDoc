@@ -65,14 +65,16 @@ atingir o limite, novos envios são recusados — com o detalhamento descrito ac
 
 !!! warning "Excluir arquivos não libera espaço de imediato"
     Excluir um arquivo o move para a **lixeira**, e um arquivo na lixeira **continua
-    ocupando a sua cota**. O espaço só retorna quando o expurgo automático remove o
-    arquivo em definitivo, ao fim do prazo de retenção da lixeira (ver
-    [Limites](../referencia/limites.md) para o prazo vigente). Por isso, excluir
-    arquivos para tentar enviar agora não resolve: a nova tentativa seria recusada
-    do mesmo jeito.
+    ocupando a sua cota**. O espaço só retorna quando o arquivo é apagado em
+    definitivo — pelo expurgo automático, ao fim do prazo de retenção da lixeira
+    (ver [Limites](../referencia/limites.md) para o prazo vigente), ou quando você
+    mesmo **esvazia a lixeira**. Por isso, só excluir não resolve: a nova tentativa
+    seria recusada do mesmo jeito.
 
     Quando um envio não couber, as saídas imediatas são **enviar só o que cabe** ou
-    aguardar o expurgo dos arquivos que já estão na lixeira.
+    **esvaziar a lixeira** para recuperar na hora o espaço retido nela — lembrando que
+    esvaziar apaga seus arquivos em definitivo, sem possibilidade de restauração (ver
+    [Mover, renomear e excluir](renomear-e-excluir.md#esvaziar-a-lixeira-para-liberar-espaco-agora)).
 
 Se o seu espaço se esgotar **durante** um envio já em andamento — porque outro
 dispositivo ou outra aba consumiu espaço no intervalo —, o envio **pausa**: os
