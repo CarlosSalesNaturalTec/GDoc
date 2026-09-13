@@ -24,6 +24,7 @@ import type {
   ResetPasswordResponse,
   SearchFilesResponse,
   SignedUrlResponse,
+  StorageQuotaResponse,
   TrashListResponse,
   UnitResponse,
   UnreadNotificationCountResponse,
@@ -129,6 +130,18 @@ export const batchUploadItemResultSchema: z.ZodType<BatchUploadItemResult> = z.d
 /** Espelha `BatchUploadUrlResponse` (design.md D8, `web-upload`). */
 export const batchUploadUrlResponseSchema: z.ZodType<BatchUploadUrlResponse> = z.object({
   results: z.array(batchUploadItemResultSchema),
+});
+
+/**
+ * Espelha `StorageQuotaResponse` (change `envio-multiplas-pastas-com-prechecagem`,
+ * design.md D2) — a decomposição do espaço do próprio solicitante.
+ */
+export const storageQuotaResponseSchema: z.ZodType<StorageQuotaResponse> = z.object({
+  quotaBytes: z.number(),
+  usedBytes: z.number(),
+  trashedBytes: z.number(),
+  pendingBytes: z.number(),
+  availableBytes: z.number(),
 });
 
 /** Espelha `SearchFilesResponse` (design.md D6, `web-busca`), reusando `fileSummaryResponseSchema`. */

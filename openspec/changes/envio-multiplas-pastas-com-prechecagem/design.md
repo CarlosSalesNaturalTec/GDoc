@@ -214,14 +214,23 @@ pré-checagem é o que torna esse caso raro o bastante para que a troca valha.
 imagem anterior — `GET /files/quota` deixa de existir e a SPA volta ao envio
 não-fatiado. Arquivos já enviados não são afetados.
 
-## Open Questions
+## Open Questions — resolvidas na implementação
 
-- **Estimativa de duração na confirmação.** Exibir "~12 min" exige uma taxa, e
-  a primeira fatia é a única fonte honesta dela. Mostrar a estimativa só a partir
-  da segunda fatia, ou estimar de saída com uma taxa suposta e corrigir? A
-  segunda opção mente no primeiro minuto; a primeira deixa a confirmação sem o
-  número mais útil. Decidir na implementação.
-- **Tamanho do subconjunto em "enviar só o que cabe".** Prefixo da ordem de
-  travessia é o mais simples e previsível, mas pode partir uma subpasta ao meio.
-  Preencher priorizando pastas inteiras é mais agradável e menos previsível.
-  Decidir na implementação, com a interface deixando claro o que ficou de fora.
+- **Estimativa de duração na confirmação.** ~~Exibir "~12 min" exige uma taxa, e
+  a primeira fatia é a única fonte honesta dela.~~ **Decidido: a confirmação não
+  exibe estimativa.** Ela mostra o que é fato — quantidade de arquivos e volume —
+  e cala sobre o que ainda não é. A estimativa aparece **durante** o envio, a
+  partir da taxa medida (`estimarRestante`, com piso de 5 s de amostra), e não
+  antes. Estimar de saída com uma taxa suposta mentiria justamente no primeiro
+  minuto, que é quando a pessoa decide se espera — e uma estimativa que encolhe
+  ou dobra sozinha ensina a ignorar a estimativa.
+- **Tamanho do subconjunto em "enviar só o que cabe".** ~~Prefixo da ordem de
+  travessia é o mais simples e previsível, mas pode partir uma subpasta ao
+  meio.~~ **Decidido: prefixo da ordem de travessia** (`subconjuntoQueCabe`). A
+  alternativa — preencher priorizando pastas inteiras — é mais agradável e menos
+  previsível: o corte deixa de ter relação com a ordem que a pessoa vê, e o
+  resultado não é antecipável. O preço do prefixo (partir uma subpasta) é pago
+  pela interface, que declara exatamente quantos arquivos e quanto volume ficaram
+  de fora. Nenhum arquivo é partido — a unidade é sempre o arquivo inteiro —, e o
+  corte é no **primeiro** item que não cabe, sem garimpar itens menores adiante,
+  pelo mesmo motivo: previsibilidade acima de aproveitamento.

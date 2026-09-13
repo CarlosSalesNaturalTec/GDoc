@@ -20,6 +20,7 @@ import type {
   MoveItemRequest,
   RenameFileRequest,
   ReplaceFileRequest,
+  StorageQuotaResponse,
   UploadUrlRequest,
   ViewUrlResponse,
 } from '@gdoc/shared';
@@ -114,6 +115,71 @@ async function recordAudits(
 
 export function filesRouter(ports: Ports): Router {
   const router = Router();
+
+  /**
+   * `GET /files/quota` (change `envio-multiplas-pastas-com-prechecagem`,
+   * design.md D2) — espaço de armazenamento **do próprio solicitante**.
+   *
+   * A identidade vem exclusivamente de `ctx.userId` (sessão relida do banco
+   * por `attachTenantContext`): a rota **não aceita identificador de pessoa**,
+   * nem em caminho, nem em query — não existindo superfície para consultar a
+   * cota de terceiro, ainda que da mesma unidade, ainda que por admin.
+   * Deliberadamente **sem** o bypass de `global_admin`: o CLAUDE.md restringe
+   * esse bypass a agregados de painel, e cota é dado de pessoa.
+   *
+   * `trashedBytes` é decomposição explicativa de `usedBytes` e **não** é
+   * descontado do disponível — um arquivo na lixeira segue contando em
+   * `storage_used_bytes` até o `purge-trash` (retenção de
+   * `config.trashRetentionDays`). Descontá-lo aqui inflaria o disponível e
+   * produziria uma promessa que a emissão de URLs desmentiria em seguida.
+   *
+   * `pendingBytes` usa a **mesma** soma de `pending`/`replacing` da reserva
+   * consciente do lote em `POST /files/upload-urls`, para que o retrato e a
+   * guarda falem do mesmo número.
+   */
+  router.get('/files/quota', async (req, res, next) => {
+    try {
+      const ctx = req.tenantContext!;
+      const snapshot = await ports.database.withTenantTransaction(ctx, async (client) => {
+        const { rows: usageRows } = await client.query<{ storage_used_bytes: string }>(
+          'SELECT storage_used_bytes FROM users WHERE id = $1',
+          [ctx.userId],
+        );
+        const usedBytes = Number(usageRows[0]?.storage_used_bytes ?? '0');
+
+        const { rows: trashedRows } = await client.query<{ total: string | null }>(
+          `SELECT SUM(size_bytes) AS total FROM files
+           WHERE owner_id = $1 AND deleted_at IS NOT NULL`,
+          [ctx.userId],
+        );
+        const trashedBytes = Number(trashedRows[0]?.total ?? '0');
+
+        const { rows: pendingRows } = await client.query<{ total: string | null }>(
+          `SELECT SUM(size_bytes) AS total FROM files
+           WHERE owner_id = $1 AND status IN ('pending', 'replacing')`,
+          [ctx.userId],
+        );
+        const pendingBytes = Number(pendingRows[0]?.total ?? '0');
+
+        return { usedBytes, trashedBytes, pendingBytes };
+      });
+
+      const quotaBytes = config.storageQuotaBytesPerUser;
+      const response: StorageQuotaResponse = {
+        quotaBytes,
+        usedBytes: snapshot.usedBytes,
+        trashedBytes: snapshot.trashedBytes,
+        pendingBytes: snapshot.pendingBytes,
+        // Piso em zero: uma reconciliação de finalize que ultrapasse a cota
+        // (o `size_bytes` real difere do declarado) não deve devolver um
+        // disponível negativo, que o cliente exibiria como número absurdo.
+        availableBytes: Math.max(0, quotaBytes - snapshot.usedBytes - snapshot.pendingBytes),
+      };
+      res.json(response);
+    } catch (err) {
+      next(err);
+    }
+  });
 
   router.post('/files/:id/view-url', async (req, res, next) => {
     try {

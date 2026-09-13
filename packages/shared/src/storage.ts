@@ -182,3 +182,62 @@ export interface RequestBodyTooLargeResponse {
 export interface InvalidJsonResponse {
   error: 'invalid_json';
 }
+
+/**
+ * Resposta de `GET /files/quota` (change `envio-multiplas-pastas-com-prechecagem`,
+ * design.md D2) — espaço de armazenamento **do próprio solicitante**, nunca de
+ * terceiro: a identidade vem só da sessão e a rota não aceita identificador de
+ * pessoa. Não é rota de painel e não agrega unidade; o bypass de `global_admin`
+ * não se aplica (cota é dado de pessoa, não agregado).
+ *
+ * `trashedBytes` é **decomposição explicativa** de `usedBytes`, e **não** é
+ * subtraído de `availableBytes`: um arquivo na lixeira continua contando em
+ * `users.storage_used_bytes` até o job `purge-trash` expurgá-lo por retenção.
+ * Descontá-lo de novo inflaria o disponível e produziria uma promessa falsa —
+ * ele existe para **explicar onde o espaço está preso**, não para entrar na
+ * conta.
+ *
+ * `availableBytes = quotaBytes − usedBytes − pendingBytes`, com `pendingBytes`
+ * refletindo a mesma reserva consciente do lote já aplicada na emissão de URLs
+ * (`POST /files/upload-urls`).
+ *
+ * É um **retrato do instante**, nunca garantia de aceitação: entre a consulta e
+ * o fim de um envio de dezenas de minutos, outra aba pode consumir espaço. A
+ * guarda continua sendo o servidor, avaliada em transação a cada pedido de URLs.
+ */
+export interface StorageQuotaResponse {
+  /** Cota total por pessoa (`config.storageQuotaBytesPerUser`). */
+  quotaBytes: number;
+  /** `users.storage_used_bytes` — já inclui o retido na lixeira. */
+  usedBytes: number;
+  /** Soma dos arquivos do solicitante na lixeira; decomposição de `usedBytes`, não descontada do disponível. */
+  trashedBytes: number;
+  /** Soma dos arquivos em `pending`/`replacing` — reserva de envios não reconciliados. */
+  pendingBytes: number;
+  /** `quotaBytes − usedBytes − pendingBytes`, nunca negativo. */
+  availableBytes: number;
+}
+
+/**
+ * Tetos de uma **fatia** de envio (change `envio-multiplas-pastas-com-prechecagem`,
+ * design.md D5). São tetos **do cliente**: a API vê requisições, nunca "o
+ * envio", e portanto não consegue — nem deve — impor teto sobre um conjunto que
+ * não observa. O teto por requisição segue validado no servidor
+ * (`upload_batch_limit_exceeded`), e a guarda real do conjunto é a **cota**,
+ * que é autoritativa e já soma pendentes. Mesmo precedente do manifesto de
+ * download: "o limite protege a memória do cliente, não o servidor".
+ *
+ * 200 itens: no pior caso medido (153 bytes por item, nome real com subpasta)
+ * a fatia pesa ~30 KB de corpo — folga de 30× contra o teto de 1 MB do parser,
+ * e bem abaixo de `UPLOAD_BATCH_MAX_ITEMS_DEFAULT` (500) por requisição.
+ */
+export const UPLOAD_SLICE_MAX_ITEMS_DEFAULT = 200;
+
+/**
+ * 500 MB por fatia: numa conexão ruim de 2 Mbps, 500 MB levam ~35 min, dentro
+ * do prazo de 60 min da URL de envio (`signedUrlUploadTtlSeconds`). É o teto
+ * que impede uma fatia de arquivos pesados de vencer antes de terminar — o de
+ * itens sozinho não cobre acervos de escaneados. Ver `UPLOAD_SLICE_MAX_ITEMS_DEFAULT`
+ * para a natureza (cliente) destes tetos.
+ */
+export const UPLOAD_SLICE_MAX_BYTES_DEFAULT = 500 * 1024 * 1024;
