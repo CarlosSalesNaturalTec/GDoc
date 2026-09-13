@@ -9,8 +9,13 @@ Vá à **Lixeira** e **restaure** — desde que dentro do prazo de retenção (v
 [Limites](limites.md)). Após esse prazo, o item é apagado permanentemente.
 
 **Meus envios pararam de funcionar.**
-Você pode ter atingido sua cota de armazenamento (ver [Limites](limites.md)). Exclua
-arquivos para liberar espaço.
+Você pode ter atingido sua cota de armazenamento (ver [Limites](limites.md)). Ao
+receber uma seleção, o sistema informa quanto espaço você tem e onde ele está — em
+arquivos ativos, na lixeira e em envios pendentes. **Excluir arquivos não libera
+espaço de imediato**: o arquivo vai para a lixeira e continua ocupando a sua cota até
+o expurgo automático, ao fim do prazo de retenção. A saída imediata é **enviar só o
+que cabe**, oferecida na própria recusa (ver
+[Enviar arquivos](../colaborador/enviar.md)).
 
 **Como compartilho um arquivo que enviei?**
 Você não concede permissão sobre o próprio arquivo — essa ação é exclusiva da

@@ -994,6 +994,13 @@ describe('Envio fatiado e progresso macro (design.md D5/D6)', () => {
     // As URLs da 1ª fatia são pedidas pouco antes de usá-las — nunca todas
     // no início (design.md D5).
     await waitFor(() => expect(xhr.inFlight()).toBe(4));
+
+    // Um envio de centenas de arquivos não renderiza um indicador por
+    // arquivo: com 2.000 itens isso travaria a aba antes do envio, e o envio
+    // ainda precisaria rodar por dezenas de minutos nela (design.md D6).
+    expect(container.querySelectorAll('.ant-progress')).toHaveLength(1);
+    expect(container.querySelectorAll('.ant-list-item')).toHaveLength(0);
+
     expect(uploadUrlCalls()).toHaveLength(1);
     expect(corpoDaChamada(uploadUrlCalls()[0]!).items).toHaveLength(UPLOAD_SLICE_MAX_ITEMS_DEFAULT);
 
