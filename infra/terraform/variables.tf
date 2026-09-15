@@ -80,15 +80,75 @@ variable "api_memory" {
 }
 
 variable "api_min_instances" {
-  description = "Instâncias mínimas do Cloud Run da API (0 = escala a zero; MVP de baixo custo)."
+  description = <<-EOT
+    Instâncias mínimas do Cloud Run da API. Passou de 0 para 1 no conserto do
+    `429 Rate exceeded.`: com escala a zero, a primeira visita depois de um
+    período ocioso chega a um serviço sem instância e o Cloud Run só enfileira
+    a requisição por max(10s, 3,5x o tempo médio de arranque) antes de o
+    Google Front End recusar com 429 — e a tela de login dispara várias
+    requisições em paralelo (index.html, assets, /auth/me,
+    /auth/public-config), todas na mesma janela fria.
+
+    Tem custo: uma instância sempre alocada (cobrada na tarifa ociosa, já que
+    a CPU continua liberada só durante requisições). Voltar para 0 reabre a
+    falha; é uma escolha de custo, não de correção.
+  EOT
   type        = number
-  default     = 0
+  default     = 1
 }
 
 variable "api_max_instances" {
-  description = "Teto de instâncias do Cloud Run da API."
+  description = <<-EOT
+    Teto de instâncias do Cloud Run da API. Era 3, baixo demais: quando as
+    instâncias saturam, o Google Front End não acha instância livre e devolve
+    `429 Rate exceeded.` sem chegar ao container.
+
+    O teto é limitado pelo banco, não pelo Cloud Run:
+    `api_max_instances x api_db_pool_max` precisa caber no `max_connections`
+    do tier do Cloud SQL (25 no `db-f1-micro`), com folga para os Jobs
+    (migração, bootstrap, expurgo, avisos). 8 x 2 = 16 deixa essa folga.
+    Subir daqui exige subir o `db_tier` junto — ver o README.
+  EOT
   type        = number
-  default     = 3
+  default     = 8
+}
+
+variable "api_request_concurrency" {
+  description = <<-EOT
+    Requisições simultâneas por instância do Cloud Run. O padrão do Cloud Run
+    (80) é alto demais para este container: 512Mi de memória com argon2id a
+    19 MiB por verificação de senha, e um pool de banco muito menor que 80 —
+    o excedente só enfileira dentro da instância, aumentando a latência sem
+    aumentar a vazão, até a instância ser morta por memória. 20 mantém a fila
+    dentro do que a instância realmente serve.
+  EOT
+  type        = number
+  default     = 20
+}
+
+variable "api_request_timeout_seconds" {
+  description = <<-EOT
+    Timeout de requisição do Cloud Run da API. O padrão (300s) deixa uma
+    requisição travada segurando um slot de concorrência por cinco minutos —
+    é assim que poucas requisições lentas saturam o serviço inteiro. Bytes
+    não passam pela API (URLs assinadas), então nenhuma rota legítima precisa
+    de minutos; o manifesto de download de pasta, a rota mais pesada, é
+    limitado a 100 arquivos.
+  EOT
+  type        = number
+  default     = 120
+}
+
+variable "api_db_pool_max" {
+  description = <<-EOT
+    Teto de conexões do pool `pg` por instância da API (`DATABASE_POOL_MAX`).
+    Sem isso o `pg` usa 10 por processo: com o teto antigo de 3 instâncias já
+    eram 30 conexões possíveis contra as 25 do `db-f1-micro`, e as recusadas
+    penduravam a requisição em `pool.connect()` — a origem do 429. Ver o
+    cálculo do envelope em `api_max_instances`.
+  EOT
+  type        = number
+  default     = 2
 }
 
 variable "cors_allowed_origins" {

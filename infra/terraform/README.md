@@ -249,6 +249,45 @@ recriadas, mas não remove o que já foi criado antes dela existir.
   401 até o código novo subir.
 - **`db-f1-micro`** é o tier mais barato disponível — adequado para MVP,
   revisar (`db_tier`) antes de qualquer carga de produção real.
+- **Envelope de capacidade: o limite real é o `max_connections` do Cloud SQL,
+  não o Cloud Run.** Produção respondeu `429 Rate exceeded.` na tela de login
+  — resposta do Google Front End quando não há instância livre, gerada antes
+  de a requisição chegar ao container (por isso não aparece log da API). A
+  cadeia era: o `pg` sem configuração abre até **10 conexões por processo** e
+  espera **indefinidamente** por uma livre; com o teto anterior de 3
+  instâncias isso já dava 30 conexões possíveis contra as **25** do
+  `db-f1-micro`, e cada conexão recusada deixava a requisição pendurada em
+  `pool.connect()` segurando um slot de concorrência da instância até o
+  timeout de 300s — as instâncias saturavam e o front end recusava. Escala a
+  zero (`api_min_instances = 0`) somava o arranque a frio, em que o Cloud Run
+  só enfileira por max(10s, 3,5x o arranque médio) antes de devolver o mesmo 429.
+
+  O envelope agora é explícito e precisa ser recalculado junto, nunca um
+  valor de cada vez:
+
+  | Ponta                       | Variável / origem                                           | Valor              |
+  | --------------------------- | ----------------------------------------------------------- | ------------------ |
+  | Instâncias da API           | `api_max_instances`                                         | 8                  |
+  | Conexões por instância      | `api_db_pool_max` → `DATABASE_POOL_MAX`                     | 2                  |
+  | Conexões da API (pior caso) | produto das duas acima                                      | 16                 |
+  | Teto do banco               | `max_connections` do `db_tier`                              | 25 (`db-f1-micro`) |
+  | Folga                       | Jobs (migração, bootstrap, expurgo, avisos) + acesso manual | 9                  |
+
+  **Subir `api_max_instances` sem subir `db_tier` reabre exatamente o mesmo
+  429**, por um caminho pior (erro no banco em vez de fila). Os Jobs herdam o
+  mesmo `DATABASE_POOL_MAX` (`migrate_job.tf`, `bootstrap_job.tf`,
+  `scheduler.tf`) — o de migração roda a cada deploy, concorrendo com o
+  serviço em horário de uso.
+
+  Completam o conserto, em `cloud_run.tf`:
+  `max_instance_request_concurrency` (20, contra o padrão 80 — 512Mi com
+  argon2id a 19 MiB por login não serve 80 simultâneas), `timeout` (120s,
+  contra 300s — encurta quanto tempo uma requisição travada segura um slot),
+  `startup_cpu_boost` e `min_instance_count = 1`. Este último **tem custo
+  recorrente** (uma instância sempre alocada, na tarifa ociosa): voltar a 0
+  economiza, e reabre o 429 de arranque a frio na primeira visita após
+  ociosidade.
+
 - **PITR do Cloud SQL desligado na fase MVP (change `desativa-pitr-cloud-sql-mvp`).**
   `backup_configuration.enabled = true` (backups diários, `03:00`,
   `retainedBackups = 7`) permanece sempre ligado — é a durabilidade mínima e
