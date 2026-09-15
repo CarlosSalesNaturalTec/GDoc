@@ -258,9 +258,10 @@ recriadas, mas não remove o que já foi criado antes dela existir.
   instâncias isso já dava 30 conexões possíveis contra as **25** do
   `db-f1-micro`, e cada conexão recusada deixava a requisição pendurada em
   `pool.connect()` segurando um slot de concorrência da instância até o
-  timeout de 300s — as instâncias saturavam e o front end recusava. Escala a
-  zero (`api_min_instances = 0`) somava o arranque a frio, em que o Cloud Run
-  só enfileira por max(10s, 3,5x o arranque médio) antes de devolver o mesmo 429.
+  timeout de 300s — as instâncias saturavam e o front end recusava. A escala a
+  zero (`api_min_instances = 0`) soma um segundo caminho para o mesmo 429: o
+  arranque a frio, em que o Cloud Run só enfileira por max(10s, 3,5x o
+  arranque médio) antes de recusar.
 
   O envelope agora é explícito e precisa ser recalculado junto, nunca um
   valor de cada vez:
@@ -282,11 +283,17 @@ recriadas, mas não remove o que já foi criado antes dela existir.
   Completam o conserto, em `cloud_run.tf`:
   `max_instance_request_concurrency` (20, contra o padrão 80 — 512Mi com
   argon2id a 19 MiB por login não serve 80 simultâneas), `timeout` (120s,
-  contra 300s — encurta quanto tempo uma requisição travada segura um slot),
-  `startup_cpu_boost` e `min_instance_count = 1`. Este último **tem custo
-  recorrente** (uma instância sempre alocada, na tarifa ociosa): voltar a 0
-  economiza, e reabre o 429 de arranque a frio na primeira visita após
-  ociosidade.
+  contra 300s — encurta quanto tempo uma requisição travada segura um slot) e
+  `startup_cpu_boost`.
+
+  **A escala a zero permanece, por decisão de custo** (`api_min_instances = 0`;
+  instância mínima é cobrada mesmo parada). Logo o caminho do arranque a frio
+  é atenuado, não eliminado: `startup_cpu_boost` encurta a janela de recusa, e
+  o retry de GET em 429/503 da SPA (`apps/web/src/lib/api-client.ts`) absorve o
+  que sobra, de modo que o usuário não vê erro. O login é POST e não é
+  retentado — ali a tela orienta a tentar de novo. Se a recusa a frio passar a
+  incomodar na prática, `api_min_instances = 1` a elimina, ao custo da
+  instância ociosa.
 
 - **PITR do Cloud SQL desligado na fase MVP (change `desativa-pitr-cloud-sql-mvp`).**
   `backup_configuration.enabled = true` (backups diários, `03:00`,

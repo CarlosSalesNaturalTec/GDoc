@@ -68,9 +68,12 @@ resource "google_cloud_run_v2_service" "api" {
     # 2. `timeout` — o padrão de 300s deixa uma requisição travada segurando
     #    um slot de concorrência por cinco minutos; é o multiplicador que
     #    transforma poucas requisições lentas em serviço saturado.
-    # 3. `min_instance_count = 1` (acima) + `startup_cpu_boost` (abaixo) —
-    #    tiram a tela de login da janela de arranque a frio, onde o Cloud Run
-    #    só enfileira por max(10s, 3,5x o arranque médio) antes de recusar.
+    # 3. `startup_cpu_boost` (abaixo) — encurta o arranque a frio, e com ele
+    #    a janela em que o Cloud Run pode recusar (ele só enfileira por
+    #    max(10s, 3,5x o arranque médio)). A escala a zero permanece por
+    #    decisão de custo (`api_min_instances`), então esse caso é atenuado,
+    #    não eliminado: quem o absorve do lado do usuário é o retry de GET
+    #    em 429/503 da SPA (`apps/web/src/lib/api-client.ts`).
     max_instance_request_concurrency = var.api_request_concurrency
     timeout                          = "${var.api_request_timeout_seconds}s"
 
@@ -92,9 +95,11 @@ resource "google_cloud_run_v2_service" "api" {
 
         # CPU extra só durante o arranque: encurta o cold start (Node 22 +
         # argon2 nativo + estáticos da SPA) e com isso a janela em que o
-        # front end pode recusar com 429. Não altera a tarifa fora do
-        # arranque — `cpu_idle` continua no padrão (CPU liberada só durante
-        # requisições), que é o que torna `min_instance_count = 1` barato.
+        # front end pode recusar com 429. Importa mais aqui do que importaria
+        # com instância mínima: com escala a zero (decisão de custo, ver
+        # `api_min_instances`) todo período ocioso termina num arranque a
+        # frio. Não há custo ocioso — a cobrança extra é só durante o
+        # arranque.
         startup_cpu_boost = true
       }
 

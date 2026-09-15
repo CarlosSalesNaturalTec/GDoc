@@ -81,20 +81,27 @@ variable "api_memory" {
 
 variable "api_min_instances" {
   description = <<-EOT
-    Instâncias mínimas do Cloud Run da API. Passou de 0 para 1 no conserto do
-    `429 Rate exceeded.`: com escala a zero, a primeira visita depois de um
-    período ocioso chega a um serviço sem instância e o Cloud Run só enfileira
-    a requisição por max(10s, 3,5x o tempo médio de arranque) antes de o
-    Google Front End recusar com 429 — e a tela de login dispara várias
-    requisições em paralelo (index.html, assets, /auth/me,
-    /auth/public-config), todas na mesma janela fria.
+    Instâncias mínimas do Cloud Run da API. **Permanece 0 (escala a zero) por
+    decisão de custo** — 1 instância sempre alocada é cobrada mesmo parada
+    (tarifa ociosa), e o MVP não justifica isso.
 
-    Tem custo: uma instância sempre alocada (cobrada na tarifa ociosa, já que
-    a CPU continua liberada só durante requisições). Voltar para 0 reabre a
-    falha; é uma escolha de custo, não de correção.
+    O preço dessa escolha é conhecido e aceito: a primeira visita depois de um
+    período ocioso chega a um serviço sem instância, e o Cloud Run só enfileira
+    a requisição por max(10s, 3,5x o tempo médio de arranque) antes de o Google
+    Front End recusar com `429 Rate exceeded.` — justamente na tela de login,
+    que dispara várias requisições em paralelo (index.html, assets, /auth/me,
+    /auth/public-config) na mesma janela fria.
+
+    O que sobra contra esse caso, sem custo ocioso: `startup_cpu_boost`
+    encurta o arranque (e com ele a janela de recusa), e a SPA retenta GET em
+    429/503 (`apps/web/src/lib/api-client.ts`), absorvendo o arranque a frio
+    sem o usuário ver erro. O login é POST e não é retentado — aí a tela
+    orienta a tentar de novo.
+
+    Subir para 1 elimina o caso de vez, ao custo da instância ociosa.
   EOT
   type        = number
-  default     = 1
+  default     = 0
 }
 
 variable "api_max_instances" {
