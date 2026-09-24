@@ -151,6 +151,7 @@ VOLUMES = [200, 300, 400, 500, 600, 700, 800, 900, 1024,
            10 * 1024, 20 * 1024, 30 * 1024, 40 * 1024, 50 * 1024]
 FUNCS = [50, 100, 200, 300]
 PERFIS_EGRESS = {"Leve": 2, "Moderado": 8, "Intenso": 25}   # GiB baixados/func/mês
+COTA_GIB = 300   # espelha storage_quota_bytes_per_user (infra/terraform/variables.tf)
 
 
 def rotulo(gib):
@@ -222,7 +223,7 @@ if __name__ == "__main__":
         print(f"{rotulo(g):>8}: Standard ${std:>8,.2f}  ->  misto ${misto:>8,.2f}  "
               f"(economia ${std-misto:>7,.2f}/mês, {(std-misto)/std:.0%})")
 
-    print("\n=== TETO DE COTA (10 GiB/pessoa, config atual) ===")
+    print(f"\n=== TETO DE COTA ({COTA_GIB} GiB/pessoa, config atual) ===")
     for f in FUNCS:
-        print(f"{f:>3} funcionários -> teto {f*10/1024:.2f} TB de acervo")
+        print(f"{f:>3} funcionários -> teto {f*COTA_GIB/1024:.2f} TB de acervo")
 

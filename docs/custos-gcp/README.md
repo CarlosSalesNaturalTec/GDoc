@@ -58,9 +58,12 @@ excedente por GB, nunca embutido num valor fechado.
 Documentados na seção "Antes de assinar", e vale repetir aqui porque são
 decisões de produto, não de planilha:
 
-- **Cota de 10 GB por pessoa** (`storage_quota_bytes_per_user` no Terraform)
-  limita o acervo a ~2,9 TB com 300 usuários. Toda a faixa de 10 a 50 TB do
-  documento exige elevar essa cota antes da contratação.
+- **Cota de 300 GB por pessoa** (`storage_quota_bytes_per_user` no Terraform)
+  comporta ~87,9 TB de acervo com 300 usuários, então ela deixou de ser o teto
+  que trava a faixa de 10 a 50 TB do documento. Em compensação, a cota também
+  deixou de ser o freio de custo: o gasto de armazenamento passa a acompanhar o
+  uso real, e o dimensionamento depende inteiramente do volume contratado nas
+  tabelas abaixo, não de um limite técnico que segure o acervo.
 - **O banco não tem SLA hoje.** O Google só garante disponibilidade de Cloud SQL
   com HA regional; a instância atual é `ZONAL` com tier shared-core, e
   shared-core é explicitamente excluído do SLA.
