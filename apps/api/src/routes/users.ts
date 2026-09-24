@@ -10,6 +10,7 @@ import type {
 import type { Ports } from '../ports/index.js';
 import type { TenantContext } from '../ports/database-port.js';
 import { isPasswordValid, generatePassword } from '../lib/password-policy.js';
+import { isValidQuotaInput } from '../lib/quota.js';
 
 interface PersonRow {
   id: string;
@@ -23,10 +24,18 @@ interface PersonRow {
   role: string;
   status: string;
   created_at: string;
+  storage_used_bytes: string;
+  storage_quota_bytes: string | null;
 }
 
 const PERSON_COLUMNS =
-  'id, unit_id, full_name, email, phone, job_title, work_area, notes, role, status, created_at';
+  'id, unit_id, full_name, email, phone, job_title, work_area, notes, role, status, created_at, ' +
+  // Consumo e exceção de cota (change `cota-por-usuario`): o consumo existe
+  // para que a administração decida a cota vendo o uso atual em vez de às
+  // cegas (design.md D5); a exceção é `null` quando a pessoa segue o padrão da
+  // plataforma. Ambos herdam o alcance que a gestão de pessoas já impõe — RLS
+  // por unidade mais `canActOnTarget` —, sem rota nova.
+  'storage_used_bytes, storage_quota_bytes';
 
 function toPersonResponse(row: PersonRow): PersonResponse {
   return {
@@ -41,6 +50,11 @@ function toPersonResponse(row: PersonRow): PersonResponse {
     role: row.role as PersonResponse['role'],
     status: row.status as PersonResponse['status'],
     createdAt: new Date(row.created_at).toISOString(),
+    storageUsedBytes: Number(row.storage_used_bytes ?? '0'),
+    storageQuotaBytes:
+      row.storage_quota_bytes === null || row.storage_quota_bytes === undefined
+        ? null
+        : Number(row.storage_quota_bytes),
   };
 }
 
@@ -217,6 +231,22 @@ export function usersRouter(ports: Ports): Router {
         return;
       }
 
+      // Concessão de cota é exclusiva do `global_admin` (change
+      // `cota-por-usuario`, design.md D3) — mais estreita que o `isAdmin()`
+      // que governa os demais campos, porque cota é alavanca de custo de
+      // infraestrutura. A recusa é **total**: a requisição inteira cai sem
+      // aplicar os outros campos. Ignorar o campo em silêncio e salvar o resto
+      // devolveria sucesso por uma concessão que não ocorreu.
+      const quotaRequested = 'storageQuotaBytes' in body && body.storageQuotaBytes !== undefined;
+      if (quotaRequested && ctx.role !== UserRole.GLOBAL_ADMIN) {
+        res.status(403).json({ error: 'forbidden' });
+        return;
+      }
+      if (quotaRequested && !isValidQuotaInput(body.storageQuotaBytes)) {
+        res.status(400).json({ error: 'invalid storage quota' });
+        return;
+      }
+
       const setClauses: string[] = [];
       const values: unknown[] = [];
       const setField = (column: string, value: unknown) => {
@@ -230,6 +260,9 @@ export function usersRouter(ports: Ports): Router {
       if (body.notes !== undefined) setField('notes', body.notes);
       if (body.status !== undefined) setField('status', body.status);
       if (body.role !== undefined) setField('role', body.role);
+      // `null` remove a exceção e devolve a pessoa ao padrão da plataforma,
+      // sem exigir que quem chama conheça o valor do padrão (design.md D8).
+      if (quotaRequested) setField('storage_quota_bytes', body.storageQuotaBytes);
 
       if (setClauses.length === 0) {
         res.status(400).json({ error: 'no fields to update' });
