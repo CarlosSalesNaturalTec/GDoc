@@ -49,6 +49,24 @@ confirme. O sistema:
 Copie e repasse a senha com segurança antes de fechar o aviso — **ela não pode ser
 consultada depois**. Se a senha se perder, é só redefinir de novo.
 
+**Quem pode editar quem:**
+
+| Quem edita               | Pode editar                                                      |
+| ------------------------- | ------------------------------------------------------------------ |
+| Administrador da unidade | Colaboradores da própria unidade                                 |
+| Administrador global     | Todos, inclusive outros administradores globais e ele mesmo      |
+
+Duas coisas ninguém faz, nem o administrador global: **mudar o próprio papel** e
+**desativar a própria conta**. São as travas que impedem alguém de cortar o
+próprio acesso — por isso a ação **Desativar** não aparece na sua própria linha.
+
+!!! warning "Editar não é o mesmo que redefinir a senha"
+
+    Um administrador global edita outro administrador global — inclusive o papel,
+    o status e a cota —, mas **não redefine a senha dele**. A senha de um
+    administrador global só muda por ele mesmo, em **Minha conta**. É por isso
+    que as duas tabelas desta página são diferentes.
+
 **Quem pode redefinir a senha de quem:**
 
 | Quem redefine            | Pode redefinir de                                                             |
