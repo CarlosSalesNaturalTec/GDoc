@@ -215,7 +215,7 @@ variable "signed_url_download_ttl_seconds" {
 variable "storage_quota_bytes_per_user" {
   description = "Cota de armazenamento por usuário, em bytes."
   type        = number
-  default     = 10737418240 # 10 GiB
+  default     = 322122547200 # 300 GiB
 }
 
 variable "trash_purge_schedule" {

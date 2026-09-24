@@ -6,7 +6,7 @@ Os valores abaixo são os vigentes **nesta implantação** do PapelHub. Todos s�
 
 | Limite                                    | Valor vigente | Ajustável por                          |
 | ------------------------------------------ | -------------- | ---------------------------------------- |
-| Cota de armazenamento por colaborador      | 10 GB          | `STORAGE_QUOTA_BYTES_PER_USER`          |
+| Cota de armazenamento por colaborador      | 300 GB         | `STORAGE_QUOTA_BYTES_PER_USER`          |
 | Retenção da lixeira antes do expurgo       | 30 dias        | `TRASH_RETENTION_DAYS`                   |
 | Antecedência do aviso de expiração de acesso | 7 dias       | `GRANT_EXPIRING_NOTICE_WINDOW_DAYS`      |
 | Tamanho máximo do download compactado de pasta | 50 MB      | `DOWNLOAD_MANIFEST_MAX_BYTES`            |
