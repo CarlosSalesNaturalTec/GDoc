@@ -45,9 +45,9 @@ efetivamente entregue, descrevendo o campo como ele aparece na tela de gestão d
 pessoas.
 
 O manual SHALL registrar a consequência de definir cota menor que o consumo
-atual — a pessoa fica impedida de enviar e de substituir arquivos, inclusive por
-arquivo menor — e SHALL remeter à orientação já existente de que excluir não
-libera espaço de imediato.
+atual — a pessoa fica impedida de enviar, e a substituição de versão só é aceita
+quando a própria troca traz o volume para dentro da cota — e SHALL remeter à
+orientação já existente de que excluir não libera espaço de imediato.
 
 O manual NÃO SHALL documentar a concessão de cota como recurso disponível ao
 administrador de unidade, por não sê-lo.
@@ -61,8 +61,7 @@ administrador de unidade, por não sê-lo.
 - **WHEN** o administrador consulta o que acontece ao reduzir a cota de alguém
   abaixo do consumo atual
 - **THEN** encontra a informação de que a pessoa fica bloqueada para novos
-  envios e substituições até liberar espaço, com remissão ao comportamento da
-  lixeira
+  envios até liberar espaço, com remissão ao comportamento da lixeira
 
 #### Scenario: Manual não atribui a concessão ao administrador de unidade
 - **WHEN** um administrador de unidade consulta o manual do seu perfil

@@ -213,9 +213,9 @@ variable "signed_url_download_ttl_seconds" {
 }
 
 variable "storage_quota_bytes_per_user" {
-  description = "Cota de armazenamento por usuário, em bytes."
+  description = "Padrão de cota de armazenamento por usuário, em bytes. Vale para quem não tem exceção nominal (users.storage_quota_bytes); exceções são concedidas na aplicação pelo global_admin, não aqui."
   type        = number
-  default     = 322122547200 # 300 GiB
+  default     = 10737418240 # 10 GiB
 }
 
 variable "trash_purge_schedule" {

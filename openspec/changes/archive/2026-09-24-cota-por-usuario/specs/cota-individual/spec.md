@@ -124,8 +124,12 @@ tornado inacessível por efeito de uma cota reduzida: visualização, download e
 demais leituras SHALL continuar funcionando.
 
 Enquanto o volume utilizado exceder a cota efetiva, o sistema SHALL recusar
-novos envios e substituições de versão, inclusive substituição por arquivo
-menor, dado que a avaliação considera o volume projetado após a operação.
+novos envios. A substituição de versão SHALL ser avaliada pelo volume
+**projetado** após a troca (utilizado − versão antiga + versão nova): SHALL ser
+recusada sempre que esse volume projetado ainda exceder a cota — o que inclui a
+troca por arquivo menor, quando o restante do acervo da pessoa já excede
+sozinho o limite — e SHALL ser aceita quando a própria troca trouxer o volume
+para dentro da cota.
 
 #### Scenario: Reduzir a cota abaixo do uso não apaga arquivos
 
@@ -139,6 +143,19 @@ menor, dado que a avaliação considera o volume projetado após a operação.
 - **WHEN** uma pessoa cujo volume utilizado excede a cota efetiva solicita o
   envio de qualquer arquivo novo
 - **THEN** a emissão da URL é recusada por cota excedida
+
+#### Scenario: Substituição por arquivo menor é recusada quando a projeção ainda excede
+
+- **WHEN** uma pessoa cujo volume utilizado excede a cota efetiva substitui um
+  arquivo por outro menor, e o volume projetado após a troca continua acima da
+  cota
+- **THEN** a substituição é recusada, e o arquivo vigente permanece íntegro
+
+#### Scenario: Substituição que traz o volume para dentro da cota é aceita
+
+- **WHEN** a troca por um arquivo menor, por si só, baixa o volume projetado
+  para dentro da cota efetiva
+- **THEN** a substituição é autorizada
 
 #### Scenario: Elevar a cota de volta restaura a capacidade de envio
 
