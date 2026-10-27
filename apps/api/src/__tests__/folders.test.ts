@@ -7,7 +7,13 @@ import { InAppNotificationPort } from '../adapters/in-app-notification-port.js';
 import { EnvSecretsPort } from '../adapters/env-secrets-port.js';
 import { Argon2AuthPort } from '../adapters/argon2-auth-port.js';
 import { InMemoryStoragePort } from './in-memory-storage-port.js';
-import { setupTestDatabase, seedTwoUnits, withSystemBypass, sessionCookieFor } from './test-db.js';
+import {
+  setupTestDatabase,
+  seedTwoUnits,
+  withSystemBypass,
+  sessionCookieFor,
+  controleDeTeste,
+} from './test-db.js';
 import type { Ports } from '../ports/index.js';
 
 interface FolderBody {
@@ -157,6 +163,7 @@ describe('Navegação: pastas aninhadas, trilha e visibilidade só-por-dono', ()
       contentType: 'text/plain',
       declaredSizeBytes: 5,
       folderId: sharedFolderId,
+      documentControl: controleDeTeste(),
     });
     expect(uploadA.status).toBe(200);
 
@@ -177,6 +184,7 @@ describe('Navegação: pastas aninhadas, trilha e visibilidade só-por-dono', ()
       contentType: 'text/plain',
       declaredSizeBytes: 5,
       folderId: sharedFolderId,
+      documentControl: controleDeTeste(),
     });
     expect(uploadA2.status).toBe(200);
 
@@ -270,6 +278,7 @@ describe('Navegação: pastas aninhadas, trilha e visibilidade só-por-dono', ()
         contentType: 'text/plain',
         declaredSizeBytes: 5,
         folderId: folderBId,
+        documentControl: controleDeTeste(),
       });
 
     const root = await request(app)
@@ -299,12 +308,15 @@ describe('Navegação: pastas aninhadas, trilha e visibilidade só-por-dono', ()
       contentType: 'text/plain',
       declaredSizeBytes: 5,
       folderId,
+      documentControl: controleDeTeste(),
     });
 
-    await request(app)
-      .post('/files/upload-url')
-      .set('Cookie', cookie)
-      .send({ fileName: 'na-raiz.txt', contentType: 'text/plain', declaredSizeBytes: 5 });
+    await request(app).post('/files/upload-url').set('Cookie', cookie).send({
+      fileName: 'na-raiz.txt',
+      contentType: 'text/plain',
+      declaredSizeBytes: 5,
+      documentControl: controleDeTeste(),
+    });
 
     const folderContents = await request(app)
       .get(`/folders/${folderId}/contents`)

@@ -29,9 +29,13 @@ import type {
   TrashPurgeResponse,
   UnitResponse,
   UnreadNotificationCountResponse,
+  UploadUrlResponse,
   ViewUrlResponse,
 } from '@gdoc/shared';
 import {
+  DocumentLifecycleState,
+  DocumentStatus,
+  DocumentType,
   FileAccessAction,
   FileCategory,
   GrantResourceType,
@@ -63,7 +67,19 @@ export const folderResponseSchema: z.ZodType<FolderResponse> = z.object({
   createdAt: z.string(),
 });
 
-/** Espelha `FileSummaryResponse` (design.md D8, `web-navegacao`). */
+/**
+ * Espelha `FileSummaryResponse` (design.md D8, `web-navegacao`), já com os
+ * dados de controle do Épico 10.
+ *
+ * Os campos novos usam `.catch(...)` pela mesma razão de
+ * `FolderContentsResponse.canUpload`: uma API mais antiga que a SPA
+ * simplesmente não traz controle documental, e a listagem precisa continuar
+ * renderizando — sem eles, um `parse` estrito derrubaria a tela inteira por
+ * causa de colunas acessórias. `documentStatus` ausente resolve para "sem
+ * controle de revisão", que é a verdade quando o servidor não informou
+ * situação alguma; `canEditControl` ausente resolve para `undefined`, que a
+ * interface trata como "não oferecer a ação".
+ */
 export const fileSummaryResponseSchema: z.ZodType<FileSummaryResponse> = z.object({
   id: z.string(),
   ownerId: z.string(),
@@ -73,6 +89,43 @@ export const fileSummaryResponseSchema: z.ZodType<FileSummaryResponse> = z.objec
   sizeBytes: z.number().nullable(),
   status: z.string(),
   createdAt: z.string(),
+  documentType: z
+    .enum([
+      DocumentType.PROTOCOL,
+      DocumentType.PROCEDURE,
+      DocumentType.POLICY,
+      DocumentType.FORM,
+      DocumentType.FLOWCHART,
+      DocumentType.MANUAL,
+      DocumentType.CONSENT_TERM,
+      DocumentType.INTERNAL_NOTICE,
+    ])
+    .nullable()
+    .catch(null),
+  documentCode: z.string().nullable().catch(null),
+  documentRevision: z.number().nullable().catch(null),
+  responsibleSector: z.string().nullable().catch(null),
+  nextReviewAt: z.string().nullable().catch(null),
+  lifecycleState: z
+    .enum([
+      DocumentLifecycleState.CURRENT,
+      DocumentLifecycleState.IN_REVIEW,
+      DocumentLifecycleState.OBSOLETE,
+    ])
+    .nullable()
+    .catch(null),
+  documentStatus: z
+    .enum([
+      DocumentStatus.CURRENT,
+      DocumentStatus.DUE_SOON,
+      DocumentStatus.IN_REVIEW,
+      DocumentStatus.OVERDUE,
+      DocumentStatus.OBSOLETE,
+      DocumentStatus.UNCONTROLLED,
+    ])
+    .catch(DocumentStatus.UNCONTROLLED),
+  daysUntilReview: z.number().nullable().catch(null),
+  canEditControl: z.boolean().optional().catch(undefined),
 });
 
 /** Espelha `FolderContentsResponse` (design.md D8, `web-navegacao`). */
@@ -132,6 +185,16 @@ export const batchUploadItemResultSchema: z.ZodType<BatchUploadItemResult> = z.d
     }),
   ],
 );
+
+/**
+ * Espelha `UploadUrlResponse` — resposta da publicação de **um** documento
+ * (`POST /files/upload-url`, Épico 10).
+ */
+export const uploadUrlResponseSchema: z.ZodType<UploadUrlResponse> = z.object({
+  uploadUrl: z.string(),
+  objectPath: z.string(),
+  expiresAt: z.string(),
+});
 
 /** Espelha `BatchUploadUrlResponse` (design.md D8, `web-upload`). */
 export const batchUploadUrlResponseSchema: z.ZodType<BatchUploadUrlResponse> = z.object({

@@ -14,7 +14,9 @@ import {
   paleta,
   theme,
   tonsDeEstado,
+  tonsDeTipoDocumental,
 } from '../app/theme';
+import { DOCUMENT_TYPES } from '@gdoc/shared';
 import { LOGIN_BACKGROUND_COLOR } from '../auth/LoginPage';
 
 describe('Razão de contraste (sistema-de-design, apuração por cálculo)', () => {
@@ -129,6 +131,21 @@ describe('Piso de acessibilidade dos tokens (sistema-de-design)', () => {
       expect(atendeAoPiso(tom.texto, tom.fundo, PISO_CONTRASTE_TEXTO)).toBe(true);
     },
   );
+
+  // Épico 10: os tons de tipo documental entram no mesmo regime dos tons de
+  // estado — a sigla é texto sobre o fundo do tipo, logo é par de **texto** e
+  // tem piso de 4,5:1. Acrescentar um tipo sem acrescentá-lo aqui deixa o
+  // piso sem guarda, que é justamente o que esta tabela existe para impedir.
+  it.each(Object.entries(tonsDeTipoDocumental))(
+    'o tom do tipo documental "%s" atende ao mínimo de 4,5:1 sobre o próprio fundo',
+    (_nome, tom) => {
+      expect(atendeAoPiso(tom.texto, tom.fundo, PISO_CONTRASTE_TEXTO)).toBe(true);
+    },
+  );
+
+  it('há um tom por tipo documental — nenhum tipo fica sem cor, nenhuma cor sobra', () => {
+    expect(Object.keys(tonsDeTipoDocumental).sort()).toEqual([...DOCUMENT_TYPES].sort());
+  });
 
   // A borda do rótulo de estado é **decorativa**: o rótulo não é controle, e
   // quem carrega a informação é o texto, apurado acima. O piso de 3:1 da

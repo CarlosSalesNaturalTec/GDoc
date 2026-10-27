@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { UserRole } from '@gdoc/shared';
 import type { FileSummaryResponse, SearchFilesResponse } from '@gdoc/shared';
 import { mockFetch } from './mock-fetch';
+import { SEM_CONTROLE_DOCUMENTAL } from './document-control-fixture';
 import { renderApp } from './render-app';
 
 const COLLABORATOR = { id: 'user-1', unitId: 'unit-1', role: UserRole.COLLABORATOR };
@@ -13,6 +14,7 @@ function file(
   overrides: Partial<FileSummaryResponse> & { id: string; fileName: string },
 ): FileSummaryResponse {
   return {
+    ...SEM_CONTROLE_DOCUMENTAL,
     ownerId: 'user-1',
     folderId: null,
     contentType: 'application/pdf',

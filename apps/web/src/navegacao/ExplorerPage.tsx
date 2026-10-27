@@ -21,6 +21,7 @@ import {
   IconeAuditoria,
   IconeBaixar,
   IconeBaixarVarios,
+  IconeControleDocumental,
   IconeExcluir,
   IconeMaisAcoes,
   IconeMover,
@@ -37,6 +38,16 @@ import { GrantResourceType, MOVE_BATCH_MAX_ITEMS_DEFAULT, UserRole } from '@gdoc
 import { ApiError } from '../lib/api-client';
 import { useSession } from '../auth/session-context';
 import { useNarrowMode } from '../app/responsive';
+import { RotuloDeEstado } from '../app/RotuloDeEstado';
+import { RotuloDeTipoDocumental } from '../app/RotuloDeTipoDocumental';
+import {
+  AUSENTE,
+  DOCUMENT_STATUS_TOM,
+  formatarDataDeRevisao,
+  formatarRevisao,
+  rotuloDeSituacao,
+} from '../shell/document-control-labels';
+import { DocumentControlModal } from './DocumentControlModal';
 import { AuditoriaModal } from '../auditoria/AuditoriaModal';
 import { PermissoesModal } from '../permissoes/PermissoesModal';
 import { PreviewModal } from '../visualizacao/PreviewModal';
@@ -204,6 +215,7 @@ export function ExplorerPage() {
   const [previewingFile, setPreviewingFile] = useState<FileSummaryResponse | null>(null);
   const [managingResource, setManagingResource] = useState<ManagingResource | null>(null);
   const [auditingFile, setAuditingFile] = useState<FileSummaryResponse | null>(null);
+  const [editingControlFile, setEditingControlFile] = useState<FileSummaryResponse | null>(null);
   const [downloadingFolder, setDownloadingFolder] = useState<DownloadingFolder | null>(null);
   const { download, isPending: downloading } = useDownloadFile();
 
@@ -458,16 +470,26 @@ export function ExplorerPage() {
         row.kind === 'folder' ? (
           <Link to={`/pastas/${row.folder.id}`}>{row.folder.name}</Link>
         ) : (
-          <Space>
-            <Button
-              type="link"
-              style={{ padding: 0, height: 'auto' }}
-              onClick={() => setPreviewingFile(row.file)}
-            >
-              {row.file.fileName}
-            </Button>
-            {row.file.status !== 'active' && <Tag>{row.file.status}</Tag>}
-          </Space>
+          <div>
+            <Space>
+              {/* US 10.1 cenário 1: a sigla do tipo vem **junto ao nome**, e é
+                  texto — a cor acompanha, nunca substitui (cenário 2). */}
+              {row.file.documentType && <RotuloDeTipoDocumental tipo={row.file.documentType} />}
+              <Button
+                type="link"
+                style={{ padding: 0, height: 'auto' }}
+                onClick={() => setPreviewingFile(row.file)}
+              >
+                {row.file.fileName}
+              </Button>
+              {row.file.status !== 'active' && <Tag>{row.file.status}</Tag>}
+            </Space>
+            {row.file.documentCode && (
+              <div>
+                <Typography.Text type="secondary">{row.file.documentCode}</Typography.Text>
+              </div>
+            )}
+          </div>
         ),
     },
     {
@@ -480,6 +502,43 @@ export function ExplorerPage() {
       key: 'createdAt',
       render: (_, row) =>
         formatDate(row.kind === 'folder' ? row.folder.createdAt : row.file.createdAt),
+    },
+    // US 10.3 e US 10.4: revisão, responsável, prazo e situação por linha.
+    // Dado ausente aparece como ausência explícita (`AUSENTE`), nunca como
+    // valor presumido — um `Rev. 01` inventado afirmaria um controle que
+    // nunca existiu.
+    {
+      title: 'Revisão',
+      key: 'revision',
+      render: (_, row) =>
+        row.kind === 'file' ? formatarRevisao(row.file.documentRevision) : AUSENTE,
+    },
+    {
+      title: 'Responsável',
+      key: 'responsible',
+      render: (_, row) => (row.kind === 'file' ? (row.file.responsibleSector ?? AUSENTE) : AUSENTE),
+    },
+    {
+      title: 'Próxima revisão',
+      key: 'nextReview',
+      render: (_, row) =>
+        row.kind === 'file' ? formatarDataDeRevisao(row.file.nextReviewAt) : AUSENTE,
+    },
+    {
+      title: 'Situação',
+      key: 'documentStatus',
+      render: (_, row) =>
+        row.kind === 'file' ? (
+          // A situação é a que o **servidor** apurou (web-navegacao): a SPA
+          // não a recalcula a partir da data e do relógio do dispositivo —
+          // dois navegadores com relógios diferentes mostrariam vereditos
+          // diferentes sobre o mesmo documento.
+          <RotuloDeEstado tom={DOCUMENT_STATUS_TOM[row.file.documentStatus]}>
+            {rotuloDeSituacao(row.file)}
+          </RotuloDeEstado>
+        ) : (
+          AUSENTE
+        ),
     },
     {
       title: 'Ações',
@@ -619,6 +678,21 @@ export function ExplorerPage() {
                   onClick={() => setAuditingFile(row.file)}
                 >
                   Auditoria
+                </Button>,
+              ]
+            : []),
+          // US 10.5: a ação é oferecida **só** a quem o servidor autorizaria
+          // (`canEditControl`, resolvido na própria listagem). A SPA não
+          // infere permissão — ausência do veredito é "não oferecer".
+          ...(row.file.canEditControl
+            ? [
+                <Button
+                  key="controle"
+                  size="small"
+                  icon={<IconeControleDocumental />}
+                  onClick={() => setEditingControlFile(row.file)}
+                >
+                  Dados de controle
                 </Button>,
               ]
             : []),
@@ -808,6 +882,7 @@ export function ExplorerPage() {
       />
       <PreviewModal file={previewingFile} onClose={() => setPreviewingFile(null)} />
       <AuditoriaModal file={auditingFile} onClose={() => setAuditingFile(null)} />
+      <DocumentControlModal file={editingControlFile} onClose={() => setEditingControlFile(null)} />
       {downloadingFolder && (
         <DownloadFolderModal
           open

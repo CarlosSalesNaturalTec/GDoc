@@ -11,8 +11,10 @@ import {
 import type {
   BatchUploadItemResult,
   BatchUploadUrlRequest,
+  DocumentCodeInUseResponse,
+  DocumentControlRequiredResponse,
   FileRestoreResponse,
-  FileSummaryResponse,
+  InvalidDocumentTypeResponse,
   MoveBatchItemResult,
   MoveBatchLimitExceededResponse,
   MoveBatchRequest,
@@ -21,38 +23,34 @@ import type {
   RenameFileRequest,
   ReplaceFileRequest,
   StorageQuotaResponse,
+  UpdateDocumentControlRequest,
   UploadUrlRequest,
   ViewUrlResponse,
 } from '@gdoc/shared';
 import { config } from '../config.js';
 import { ensureFolderPath, findFolderById, validateAnchor } from '../lib/folder-tree.js';
 import { canReorganize, hasAccess } from '../lib/access.js';
+import {
+  FILE_DERIVED_COLUMNS,
+  findCodeOwner,
+  isDocumentCodeConflict,
+  parseDocumentControl,
+  toFileSummaryResponse,
+  type FileSummaryRow,
+  type NormalizedDocumentControl,
+} from '../lib/document-control.js';
 import { QUOTA_COLUMNS, resolveQuotaBytes, type QuotaRow } from '../lib/quota.js';
 
-interface FileRow {
-  id: string;
+/**
+ * Linha inteira de `files` mais as expressões derivadas do controle
+ * documental (`FILE_DERIVED_COLUMNS`): as rotas desta camada precisam de
+ * `object_path`/`unit_id`, que o resumo não expõe, e da situação apurada no
+ * `SELECT`, que não é coluna. A projeção para o DTO é a única do sistema —
+ * `toFileSummaryResponse`, em `lib/document-control.ts`.
+ */
+interface FileRow extends FileSummaryRow {
   unit_id: string;
-  owner_id: string;
-  folder_id: string | null;
   object_path: string;
-  file_name: string;
-  content_type: string | null;
-  size_bytes: string | null;
-  status: string;
-  created_at: string;
-}
-
-function toFileSummaryResponse(row: FileRow): FileSummaryResponse {
-  return {
-    id: row.id,
-    ownerId: row.owner_id,
-    folderId: row.folder_id,
-    fileName: row.file_name,
-    contentType: row.content_type,
-    sizeBytes: row.size_bytes === null ? null : Number(row.size_bytes),
-    status: row.status,
-    createdAt: new Date(row.created_at).toISOString(),
-  };
 }
 
 /**
@@ -68,7 +66,10 @@ async function findAccessibleFile(
   permission: Permission,
 ) {
   return ports.database.withTenantTransaction(ctx, async (client) => {
-    const { rows } = await client.query<FileRow>('SELECT * FROM files WHERE id = $1', [fileId]);
+    const { rows } = await client.query<FileRow>(
+      `SELECT *, ${FILE_DERIVED_COLUMNS} FROM files WHERE id = $1`,
+      [fileId],
+    );
     const file = rows[0];
     if (!file) return null;
     const allowed = await hasAccess(client, ctx, GrantResourceType.FILE, file.id, permission);
@@ -252,10 +253,22 @@ export function filesRouter(ports: Ports): Router {
     }
   });
 
+  /**
+   * `POST /files/upload-url` — publicação de **um** documento (US 10.5,
+   * design.md D7 de `controle-documental`). É aqui que a exigência dos dados
+   * de controle liga: tipo, código, revisão e data de próxima revisão são
+   * obrigatórios, e a recusa **nomeia** o que falta.
+   *
+   * O envio em lote e o de pasta usam `POST /files/upload-urls`, que os
+   * dispensa — e é essa divisão em duas rotas que mantém as duas regras
+   * compatíveis: o lote precisa pedir URL para um item só ao repetir um envio
+   * que falhou, e repetir não é publicar um documento novo.
+   */
   router.post('/files/upload-url', async (req, res, next) => {
     try {
       const ctx = req.tenantContext!;
-      const { fileName, contentType, declaredSizeBytes, folderId } = req.body as UploadUrlRequest;
+      const { fileName, contentType, declaredSizeBytes, folderId, documentControl } =
+        req.body as UploadUrlRequest;
 
       if (
         !fileName ||
@@ -267,6 +280,29 @@ export function filesRouter(ports: Ports): Router {
         return;
       }
 
+      const parsed = parseDocumentControl(documentControl, { requireAll: true });
+      if (!parsed.ok) {
+        // Três recusas distinguíveis entre si (web-upload: "indicando o que
+        // corrigir"), nenhuma delas gravando coisa alguma.
+        if (parsed.error === 'document_control_required') {
+          const body: DocumentControlRequiredResponse = {
+            error: 'document_control_required',
+            missing: parsed.missing,
+          };
+          res.status(400).json(body);
+          return;
+        }
+        if (parsed.error === 'invalid_document_type') {
+          const body: InvalidDocumentTypeResponse = { error: 'invalid_document_type' };
+          res.status(400).json(body);
+          return;
+        }
+        res.status(400).json({ error: 'invalid request body' });
+        return;
+      }
+      const control = parsed.value;
+      const documentCode = control.documentCode!;
+
       const objectId = randomUUID();
       const objectPath = ports.storage.buildObjectPath(
         ctx.unitId,
@@ -274,44 +310,112 @@ export function filesRouter(ports: Ports): Router {
         `${objectId}-${fileName}`,
       );
 
-      const outcome = await ports.database.withTenantTransaction(ctx, async (client) => {
-        if (folderId) {
-          // RLS restringe a leitura à unidade do remetente — pasta de outra
-          // unidade não aparece aqui (navegacao spec: "a pasta de destino
-          // SHALL pertencer à mesma unidade do remetente"). Pasta própria
-          // segue livre; pasta de outra pessoa exige grant `upload`
-          // (design.md D3, Épico 4).
-          const anchor = await validateAnchor(client, ctx, folderId);
-          if (!anchor.ok) return { ok: false as const, status: anchor.status };
-        }
+      const outcome = await ports.database
+        .withTenantTransaction(ctx, async (client) => {
+          if (folderId) {
+            // RLS restringe a leitura à unidade do remetente — pasta de outra
+            // unidade não aparece aqui (navegacao spec: "a pasta de destino
+            // SHALL pertencer à mesma unidade do remetente"). Pasta própria
+            // segue livre; pasta de outra pessoa exige grant `upload`
+            // (design.md D3, Épico 4).
+            const anchor = await validateAnchor(client, ctx, folderId);
+            if (!anchor.ok) return { ok: false as const, status: anchor.status };
+          }
 
-        const { rows } = await client.query<{ storage_used_bytes: string } & QuotaRow>(
-          `SELECT ${QUOTA_COLUMNS} FROM users WHERE id = $1`,
-          [ctx.userId],
-        );
-        const currentUsage = Number(rows[0]?.storage_used_bytes ?? '0');
-        if (currentUsage + declaredSizeBytes! > resolveQuotaBytes(rows[0])) {
-          return { ok: false as const, status: 400 as const };
-        }
+          const { rows } = await client.query<{ storage_used_bytes: string } & QuotaRow>(
+            `SELECT ${QUOTA_COLUMNS} FROM users WHERE id = $1`,
+            [ctx.userId],
+          );
+          const currentUsage = Number(rows[0]?.storage_used_bytes ?? '0');
+          if (currentUsage + declaredSizeBytes! > resolveQuotaBytes(rows[0])) {
+            return { ok: false as const, status: 400 as const };
+          }
 
-        await client.query(
-          `INSERT INTO files (id, unit_id, owner_id, folder_id, object_path, file_name, content_type, size_bytes, status)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'pending')`,
-          [
-            objectId,
-            ctx.unitId,
-            ctx.userId,
-            folderId ?? null,
-            objectPath,
-            fileName,
-            contentType,
-            declaredSizeBytes,
-          ],
-        );
-        return { ok: true as const };
-      });
+          // Unicidade do código na unidade (US 10.2, design.md D5). A leitura
+          // resolve o caso comum com erro nomeado; o índice único resolve a
+          // corrida, no `catch` abaixo. RLS filtra por baixo, então o homônimo
+          // de outra unidade não aparece aqui — e nada dele é revelado.
+          const occupant = await findCodeOwner(client, documentCode);
+          // **Retomada**: se o código está preso a um envio `pending` do próprio
+          // solicitante, este pedido é a retomada daquela publicação, não uma
+          // duplicata — a linha é reaproveitada com o objeto novo. Sem isso, um
+          // envio que falhou na transferência deixaria o código travado até o
+          // expurgo da lixeira, e a pessoa ficaria impedida de publicar o
+          // próprio documento de novo.
+          const retomada =
+            occupant !== null && occupant.owner_id === ctx.userId && occupant.status === 'pending'
+              ? occupant.id
+              : null;
+          if (occupant && !retomada) {
+            return { ok: false as const, status: 409 as const, code: documentCode };
+          }
+
+          const controlValues = [
+            control.documentType ?? null,
+            documentCode,
+            control.documentRevision ?? null,
+            control.responsibleSector ?? null,
+            control.nextReviewAt ?? null,
+            control.lifecycleState ?? null,
+          ];
+
+          if (retomada) {
+            await client.query(
+              `UPDATE files SET object_path = $1, file_name = $2, content_type = $3, size_bytes = $4,
+               folder_id = $5, status = 'pending', pending_object_path = NULL,
+               document_type = $6, document_code = $7, document_revision = $8,
+               responsible_sector = $9, next_review_at = $10, lifecycle_state = $11
+             WHERE id = $12`,
+              [
+                objectPath,
+                fileName,
+                contentType,
+                declaredSizeBytes,
+                folderId ?? null,
+                ...controlValues,
+                retomada,
+              ],
+            );
+            return { ok: true as const };
+          }
+
+          await client.query(
+            `INSERT INTO files (id, unit_id, owner_id, folder_id, object_path, file_name, content_type, size_bytes, status,
+             document_type, document_code, document_revision, responsible_sector, next_review_at, lifecycle_state)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'pending', $9, $10, $11, $12, $13, $14)`,
+            [
+              objectId,
+              ctx.unitId,
+              ctx.userId,
+              folderId ?? null,
+              objectPath,
+              fileName,
+              contentType,
+              declaredSizeBytes,
+              ...controlValues,
+            ],
+          );
+          return { ok: true as const };
+        })
+        .catch((err) => {
+          // Corrida entre duas publicações simultâneas do mesmo código: só o
+          // índice único consegue decidir, e o perdedor recebe a mesma recusa
+          // nomeada da checagem acima (design.md D5).
+          if (isDocumentCodeConflict(err)) {
+            return { ok: false as const, status: 409 as const, code: documentCode };
+          }
+          throw err;
+        });
 
       if (!outcome.ok) {
+        if (outcome.status === 409) {
+          const body: DocumentCodeInUseResponse = {
+            error: 'document_code_in_use',
+            code: outcome.code,
+          };
+          res.status(409).json(body);
+          return;
+        }
         const error =
           outcome.status === 404
             ? 'folder not found'
@@ -329,6 +433,19 @@ export function filesRouter(ports: Ports): Router {
     }
   });
 
+  /**
+   * `POST /files/upload-urls` — envio em **lote** e de pasta. Dispensa os
+   * dados de controle por decisão explícita (US 10.5 cenário 2, design.md D7
+   * de `controle-documental`): o que entra por aqui nasce com situação "Sem
+   * controle de revisão" e recebe os dados depois, por
+   * `PATCH /files/:id/document-control`.
+   *
+   * A dispensa não é descuido nem brecha: é a rota do lote, e é também por
+   * ela que um item que falhou na transferência pede URL nova — repetir um
+   * item de um lote de cinquenta não é publicar um documento novo, e exigir
+   * quatro campos nessa repetição quebraria o relato de falha independente
+   * que o envio em lote já entrega.
+   */
   router.post('/files/upload-urls', async (req, res, next) => {
     try {
       const ctx = req.tenantContext!;
@@ -507,7 +624,7 @@ export function filesRouter(ports: Ports): Router {
 
       const updated = await ports.database.withTenantTransaction(ctx, async (client) => {
         const { rows } = await client.query<FileRow>(
-          'UPDATE files SET file_name = $1 WHERE id = $2 RETURNING *',
+          `UPDATE files SET file_name = $1 WHERE id = $2 RETURNING *, ${FILE_DERIVED_COLUMNS}`,
           [fileName, file.id],
         );
         return rows[0]!;
@@ -515,6 +632,115 @@ export function filesRouter(ports: Ports): Router {
 
       await recordAudit(ports, ctx, updated, AuditAction.RENAME);
       res.json(toFileSummaryResponse(updated));
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  /**
+   * `PATCH /files/:id/document-control` — preencher ou corrigir os dados de
+   * controle de um documento já existente (US 10.5, requisito "Dados de
+   * controle podem ser preenchidos ou corrigidos depois").
+   *
+   * Exige a **mesma** permissão requerida para substituir o documento
+   * (`rename`, o verbo que `POST /files/:id/replace-url` já usa) — nenhum
+   * verbo novo entra em `grants` por causa desta change. Não recebe conteúdo
+   * e **não** avança a revisão: quem avança é a substituição, no finalize
+   * (`lib/storage-reconcile.ts`).
+   *
+   * Campo ausente no corpo não é tocado; campo enviado como `null` é limpo.
+   * A distinção é o que permite corrigir o responsável sem apagar a data de
+   * próxima revisão.
+   */
+  router.patch('/files/:id/document-control', async (req, res, next) => {
+    try {
+      const ctx = req.tenantContext!;
+      const parsed = parseDocumentControl(req.body as UpdateDocumentControlRequest, {
+        requireAll: false,
+      });
+      if (!parsed.ok) {
+        if (parsed.error === 'invalid_document_type') {
+          const body: InvalidDocumentTypeResponse = { error: 'invalid_document_type' };
+          res.status(400).json(body);
+          return;
+        }
+        res.status(400).json({ error: 'invalid request body' });
+        return;
+      }
+
+      const control = parsed.value;
+      const campos = Object.keys(control) as (keyof NormalizedDocumentControl)[];
+      if (campos.length === 0) {
+        res.status(400).json({ error: 'invalid request body' });
+        return;
+      }
+
+      const file = await findAccessibleFile(ports, ctx, req.params.id, Permission.RENAME);
+      // Sem o verbo, 403 fail-closed sem distinguir de recurso inexistente —
+      // e, para quem não é admin da unidade, documento obsoleto já resolveu
+      // como inexistente em `hasAccess` (design.md D6).
+      if (!file) {
+        res.status(403).json({ error: 'forbidden' });
+        return;
+      }
+
+      const COLUNA: Record<keyof NormalizedDocumentControl, string> = {
+        documentType: 'document_type',
+        documentCode: 'document_code',
+        documentRevision: 'document_revision',
+        responsibleSector: 'responsible_sector',
+        nextReviewAt: 'next_review_at',
+        lifecycleState: 'lifecycle_state',
+      };
+
+      const outcome = await ports.database
+        .withTenantTransaction(ctx, async (client) => {
+          if (control.documentCode) {
+            const occupant = await findCodeOwner(client, control.documentCode, {
+              excludeFileId: file.id,
+            });
+            if (occupant) {
+              return { ok: false as const, code: control.documentCode };
+            }
+          }
+
+          // `SET` montado só com os campos informados: os nomes de coluna vêm
+          // do mapa acima (constantes internas), e os **valores** sempre por
+          // placeholder — nenhum pedaço de entrada do usuário entra no texto
+          // da query.
+          const params: unknown[] = [];
+          const sets = campos.map((campo) => {
+            params.push(control[campo] ?? null);
+            return `${COLUNA[campo]} = $${params.length}`;
+          });
+          params.push(file.id);
+
+          const { rows } = await client.query<FileRow>(
+            `UPDATE files SET ${sets.join(', ')} WHERE id = $${params.length}
+             RETURNING *, ${FILE_DERIVED_COLUMNS}`,
+            params,
+          );
+          return { ok: true as const, file: rows[0]! };
+        })
+        .catch((err) => {
+          if (isDocumentCodeConflict(err)) {
+            return { ok: false as const, code: control.documentCode! };
+          }
+          throw err;
+        });
+
+      if (!outcome.ok) {
+        const body: DocumentCodeInUseResponse = {
+          error: 'document_code_in_use',
+          code: outcome.code,
+        };
+        res.status(409).json(body);
+        return;
+      }
+
+      // A situação vem reapurada no próprio `RETURNING` (design.md D2): não
+      // existe passo de recálculo, porque a situação nunca foi gravada.
+      res.json(toFileSummaryResponse(outcome.file));
     } catch (err) {
       next(err);
     }
@@ -580,7 +806,7 @@ export function filesRouter(ports: Ports): Router {
 
         for (const id of uniqueIds) {
           const { rows } = await client.query<FileRow>(
-            'SELECT * FROM files WHERE id = $1 AND deleted_at IS NULL',
+            `SELECT *, ${FILE_DERIVED_COLUMNS} FROM files WHERE id = $1 AND deleted_at IS NULL`,
             [id],
           );
           const file = rows[0];
@@ -595,7 +821,7 @@ export function filesRouter(ports: Ports): Router {
           }
 
           const { rows: updated } = await client.query<FileRow>(
-            'UPDATE files SET folder_id = $1 WHERE id = $2 RETURNING *',
+            `UPDATE files SET folder_id = $1 WHERE id = $2 RETURNING *, ${FILE_DERIVED_COLUMNS}`,
             [destinationFolderId, file.id],
           );
           movedFiles.push(updated[0]!);
@@ -630,7 +856,7 @@ export function filesRouter(ports: Ports): Router {
 
       const outcome = await ports.database.withTenantTransaction(ctx, async (client) => {
         const { rows } = await client.query<FileRow>(
-          'SELECT * FROM files WHERE id = $1 AND deleted_at IS NULL',
+          `SELECT *, ${FILE_DERIVED_COLUMNS} FROM files WHERE id = $1 AND deleted_at IS NULL`,
           [req.params.id],
         );
         const file = rows[0];
@@ -659,7 +885,7 @@ export function filesRouter(ports: Ports): Router {
         // Só a localização lógica muda — object_path, size_bytes, owner_id,
         // status e file_name ficam intocados (spec `gestao-arquivos`).
         const { rows: updated } = await client.query<FileRow>(
-          'UPDATE files SET folder_id = $1 WHERE id = $2 RETURNING *',
+          `UPDATE files SET folder_id = $1 WHERE id = $2 RETURNING *, ${FILE_DERIVED_COLUMNS}`,
           [destinationFolderId, file.id],
         );
         return { ok: true as const, file: updated[0]! };
@@ -720,6 +946,12 @@ export function filesRouter(ports: Ports): Router {
         // `status = 'replacing'` (não 'pending') preserva `size_bytes`
         // vigente na linha para o finalize calcular o delta real sem contar
         // em dobro. `folder_id` e `file_name` também são preservados.
+        //
+        // Pela mesma razão a **revisão não avança aqui** (US 10.6, design.md
+        // D8 de `controle-documental`): ela avança junto com a promoção do
+        // ponteiro, no finalize (`lib/storage-reconcile.ts`) — adiantar o
+        // número mostraria `Rev. 02` sobre o conteúdo da `Rev. 01`, e uma
+        // substituição abandonada deixaria a numeração mentindo para sempre.
         await client.query(
           `UPDATE files SET pending_object_path = $1, status = 'replacing' WHERE id = $2`,
           [newObjectPath, file.id],
@@ -758,7 +990,8 @@ export function filesRouter(ports: Ports): Router {
         // Arquivo avulso é sua própria raiz de exclusão (design.md D4);
         // `folder_id`/grants nunca mudam, só a marcação.
         const { rows } = await client.query<FileRow>(
-          `UPDATE files SET deleted_at = now(), deleted_by = $1, trash_root_id = id WHERE id = $2 RETURNING *`,
+          `UPDATE files SET deleted_at = now(), deleted_by = $1, trash_root_id = id WHERE id = $2
+           RETURNING *, ${FILE_DERIVED_COLUMNS}`,
           [ctx.userId, file.id],
         );
         return rows[0]!;
@@ -777,7 +1010,7 @@ export function filesRouter(ports: Ports): Router {
 
       const outcome = await ports.database.withTenantTransaction(ctx, async (client) => {
         const { rows } = await client.query<FileRow & { trash_root_id: string | null }>(
-          'SELECT * FROM files WHERE id = $1 AND deleted_at IS NOT NULL',
+          `SELECT *, ${FILE_DERIVED_COLUMNS} FROM files WHERE id = $1 AND deleted_at IS NOT NULL`,
           [req.params.id],
         );
         const file = rows[0];
@@ -800,6 +1033,27 @@ export function filesRouter(ports: Ports): Router {
         );
         if (!allowed) return { ok: false as const };
 
+        // Épico 10 (design.md D5): o código do documento pode ter sido reusado
+        // enquanto ele estava na lixeira — o índice único recusaria a volta
+        // com um 23505 cru. A recusa nomeada diz **qual** documento ocupa o
+        // código, para a pessoa poder resolver; liberar o duplicado quebraria
+        // a unicidade, e travar o reuso enquanto houvesse documento na lixeira
+        // tornaria um código irrecuperável por até 30 dias sem explicação.
+        if (file.document_code) {
+          const occupant = await findCodeOwner(client, file.document_code, {
+            excludeFileId: file.id,
+          });
+          if (occupant) {
+            return {
+              ok: false as const,
+              codeInUse: {
+                code: file.document_code,
+                occupiedBy: { id: occupant.id, fileName: occupant.file_name },
+              },
+            };
+          }
+        }
+
         // Pai não existe mais como pasta viva (ancestral expurgado ou ainda
         // na lixeira) ⇒ volta para a raiz da unidade, informado na resposta
         // (design.md D5).
@@ -818,13 +1072,23 @@ export function filesRouter(ports: Ports): Router {
 
         const { rows: restored } = await client.query<FileRow>(
           `UPDATE files SET deleted_at = NULL, deleted_by = NULL, trash_root_id = NULL, folder_id = $1
-           WHERE id = $2 RETURNING *`,
+           WHERE id = $2 RETURNING *, ${FILE_DERIVED_COLUMNS}`,
           [targetFolderId, file.id],
         );
         return { ok: true as const, file: restored[0]!, redirectedToRoot };
       });
 
       if (!outcome.ok) {
+        if ('codeInUse' in outcome && outcome.codeInUse) {
+          const { code, occupiedBy } = outcome.codeInUse;
+          const body: DocumentCodeInUseResponse = {
+            error: 'document_code_in_use',
+            code,
+            occupiedBy,
+          };
+          res.status(409).json(body);
+          return;
+        }
         res.status(403).json({ error: 'forbidden' });
         return;
       }

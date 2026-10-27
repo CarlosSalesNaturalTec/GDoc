@@ -4,6 +4,7 @@ import {
   Bell,
   BookOpen,
   Building2,
+  ClipboardList,
   CloudDownload,
   Copy,
   Download,
@@ -106,6 +107,7 @@ export const IconeRestaurar = criarIcone(Undo2, 'IconeRestaurar');
 export const IconeAuditoria = criarIcone(ScrollText, 'IconeAuditoria');
 export const IconePermissoes = criarIcone(Lock, 'IconePermissoes');
 export const IconeMaisAcoes = criarIcone(EllipsisVertical, 'IconeMaisAcoes');
+export const IconeControleDocumental = criarIcone(ClipboardList, 'IconeControleDocumental');
 
 // Envio
 export const IconeEnviar = criarIcone(Upload, 'IconeEnviar');

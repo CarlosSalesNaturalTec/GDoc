@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Alert, App, Button, List, Progress, Space, Typography, Upload } from 'antd';
+import { Alert, App, Button, Form, List, Progress, Space, Typography, Upload } from 'antd';
 import {
   IconeArrastarSoltar,
   IconeEnviar,
@@ -9,13 +9,25 @@ import {
 import type {
   BatchUploadItemRequest,
   BatchUploadUrlRequest,
+  DocumentControlInput,
   StorageQuotaResponse,
 } from '@gdoc/shared';
 import { ApiError } from '../lib/api-client';
 import { useNarrowMode } from '../app/responsive';
+import {
+  DocumentControlFormItems,
+  toDocumentControlInput,
+  type DocumentControlFormValues,
+} from '../navegacao/DocumentControlFormItems';
+import { descreverRecusaDeControle } from '../navegacao/document-control-errors';
 import { putObject } from './put-object';
 import { deriveRelativePath } from './relative-path';
-import { fetchStorageQuota, useInvalidateFolderContents, useRequestUploadUrls } from './queries';
+import {
+  fetchStorageQuota,
+  useInvalidateFolderContents,
+  useRequestUploadUrl,
+  useRequestUploadUrls,
+} from './queries';
 import {
   fatiarEnvio,
   formatarBytes,
@@ -92,6 +104,13 @@ interface FailedItem {
   expiresAt?: string;
   /** Falhas consecutivas de PUT deste item; zerado ao obter URL nova (design.md D5). */
   putFailures: number;
+  /**
+   * Dados de controle, só no envio de **um** documento (Épico 10): o retry
+   * precisa deles para repedir a URL pela rota de publicação, que os exige. O
+   * servidor retoma a própria linha `pending` do mesmo código, então repetir
+   * não vira documento duplicado nem recusa por código em uso.
+   */
+  controle?: DocumentControlInput;
 }
 
 /** Item admitido na fila de transferência (design.md D4). */
@@ -102,6 +121,8 @@ interface QueuedTransfer {
   fileName: string;
   relativePath?: string;
   expiresAt?: string;
+  /** Presente só na publicação de um documento (Épico 10) — ver `FailedItem.controle`. */
+  controle?: DocumentControlInput;
 }
 
 /**
@@ -178,6 +199,20 @@ function urlStillFresh(item: Pick<FailedItem, 'uploadUrl' | 'expiresAt'>): boole
   return Number.isFinite(restante) && restante > URL_EXPIRY_MARGIN_MS;
 }
 
+/**
+ * `true` quando a operação é a publicação de **um** documento, e portanto
+ * exige os dados de controle (Épico 10, design.md D7): exatamente um arquivo,
+ * e não vindo de uma pasta.
+ *
+ * `relativePath` é o que distingue as duas coisas: uma pasta com um único
+ * arquivo dentro continua sendo **uma pasta** — a spec dispensa os dados
+ * "quando o envio abrange vários arquivos ou uma pasta", e a hierarquia que o
+ * item carrega é a prova de que ele veio de uma.
+ */
+function ehPublicacaoDeUmDocumento(selecao: SelectedFile[]): boolean {
+  return selecao.length === 1 && !selecao[0]!.relativePath;
+}
+
 /** Devolve o controle ao navegador entre blocos da apuração (design.md D3). */
 function cederControle(): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, 0));
@@ -215,7 +250,9 @@ export function UploadArea({ destinationFolderId }: UploadAreaProps) {
   const { message, notification } = App.useApp();
   const isNarrow = useNarrowMode();
   const requestUploadUrls = useRequestUploadUrls();
+  const requestUploadUrl = useRequestUploadUrl();
   const invalidate = useInvalidateFolderContents();
+  const [formDeControle] = Form.useForm<DocumentControlFormValues>();
 
   const [fase, setFase] = useState<Fase>({ tipo: 'ocioso' });
   const [progresso, setProgresso] = useState<Progresso>(PROGRESSO_ZERADO);
@@ -327,7 +364,7 @@ export function UploadArea({ destinationFolderId }: UploadAreaProps) {
   }
 
   function startTransfer(transfer: QueuedTransfer) {
-    const { uid, uploadUrl, file, fileName, relativePath, expiresAt } = transfer;
+    const { uid, uploadUrl, file, fileName, relativePath, expiresAt, controle } = transfer;
     setProgresso((prev) => ({ ...prev, arquivoCorrente: displayName({ fileName, relativePath }) }));
     putObject(uploadUrl, file, {
       onProgress: (percent) => registrarBytes(uid, Math.round((file.size * percent) / 100)),
@@ -368,6 +405,7 @@ export function UploadArea({ destinationFolderId }: UploadAreaProps) {
             putFailures: 1,
             uploadUrl,
             expiresAt,
+            controle,
           });
         }
         releaseSlot();
@@ -573,6 +611,67 @@ export function UploadArea({ destinationFolderId }: UploadAreaProps) {
     void abastecer();
   }
 
+  /**
+   * Publicação de **um** documento (Épico 10, US 10.5): a operação carrega
+   * exatamente um arquivo, então os dados de controle são exigidos e a
+   * requisição vai pela rota de publicação, não pela do lote.
+   *
+   * A URL é pedida **antes** de trocar de fase, de propósito: uma recusa por
+   * código em uso ou por dado faltante devolve a pessoa ao formulário com o
+   * que ela digitou, em vez de a jogar num envio que já se sabe inviável.
+   */
+  async function iniciarEnvioDeUmDocumento(
+    selecionado: SelectedFile,
+    controle: DocumentControlInput,
+  ) {
+    const { file } = selecionado;
+    let resposta;
+    try {
+      resposta = await requestUploadUrl.mutateAsync({
+        fileName: file.name,
+        contentType: file.type || 'application/octet-stream',
+        declaredSizeBytes: file.size,
+        folderId: destinationFolderId ?? undefined,
+        documentControl: controle,
+      });
+    } catch (err) {
+      // Código em uso, dado faltante e permissão insuficiente são avisos
+      // distintos (web-upload: "indicando o que corrigir").
+      message.error(descreverRecusaDeControle(err));
+      return;
+    }
+
+    carregadosRef.current = new Map();
+    bytesEnviadosRef.current = 0;
+    setProgresso({
+      bytesTotais: file.size,
+      bytesEnviados: 0,
+      totalArquivos: 1,
+      concluidos: 0,
+      iniciadoEm: Date.now(),
+    });
+    setFalhas([]);
+    setFalhasVisiveis(false);
+    setFase({ tipo: 'enviando' });
+
+    verificarFimRef.current = () => {
+      if (activeRef.current > 0 || queueRef.current.length > 0) return;
+      verificarFimRef.current = null;
+      setFase({ tipo: 'concluido' });
+    };
+
+    enqueueTransfers([
+      {
+        uid: nextUid(),
+        uploadUrl: resposta.uploadUrl,
+        file,
+        fileName: file.name,
+        expiresAt: resposta.expiresAt,
+        controle,
+      },
+    ]);
+  }
+
   /** Reapresenta o painel detalhado com o espaço **recém-consultado** (design.md D7). */
   async function apresentarPausa(naoEnviados: number) {
     try {
@@ -603,8 +702,43 @@ export function UploadArea({ destinationFolderId }: UploadAreaProps) {
           fileName: item.fileName,
           relativePath: item.relativePath,
           expiresAt: item.expiresAt,
+          controle: item.controle,
         },
       ]);
+      return;
+    }
+
+    // Documento publicado pela rota unitária renova a URL pela mesma rota,
+    // com os mesmos dados de controle (Épico 10): o servidor reconhece o
+    // próprio envio pendente daquele código e o retoma, em vez de recusar
+    // por código em uso ou criar um documento duplicado.
+    if (item.controle) {
+      try {
+        const resposta = await requestUploadUrl.mutateAsync({
+          fileName: item.fileName,
+          contentType: item.file.type || 'application/octet-stream',
+          declaredSizeBytes: item.file.size,
+          folderId: destinationFolderId ?? undefined,
+          documentControl: item.controle,
+        });
+        atualizarFalha(uid, {
+          uploadUrl: resposta.uploadUrl,
+          expiresAt: resposta.expiresAt,
+          putFailures: 0,
+        });
+        enqueueTransfers([
+          {
+            uid,
+            uploadUrl: resposta.uploadUrl,
+            file: item.file,
+            fileName: item.fileName,
+            expiresAt: resposta.expiresAt,
+            controle: item.controle,
+          },
+        ]);
+      } catch (err) {
+        message.error(descreverRecusaDeControle(err));
+      }
       return;
     }
 
@@ -783,7 +917,46 @@ export function UploadArea({ destinationFolderId }: UploadAreaProps) {
         </Space>
       )}
 
-      {fase.tipo === 'veredito' && fase.cabe && (
+      {/* Épico 10, design.md D7: a exigência dos dados de controle liga quando
+          a operação carrega **exatamente um** arquivo, e desliga quando
+          carrega vários ou uma pasta. A consequência é explícita no aceite:
+          arrastar um arquivo pede quatro campos; arrastar dois não pede nada.
+          Ligar pela contagem mantém um caminho só — o explorador tem uma
+          única área de soltar, e a pessoa não escolhe um comando antes de
+          arrastar. */}
+      {fase.tipo === 'veredito' && fase.cabe && ehPublicacaoDeUmDocumento(fase.selecao) && (
+        <Alert
+          type="info"
+          showIcon
+          style={{ marginTop: 16, maxWidth: 560 }}
+          message="Dados do documento"
+          description={
+            <Space direction="vertical" size={8} style={{ display: 'flex' }}>
+              <Typography.Text>
+                {fase.selecao[0]!.file.name} — {formatarBytes(somarBytes(fase.selecao))}.
+              </Typography.Text>
+              <Form
+                form={formDeControle}
+                layout="vertical"
+                requiredMark={false}
+                onFinish={(values: DocumentControlFormValues) =>
+                  void iniciarEnvioDeUmDocumento(fase.selecao[0]!, toDocumentControlInput(values))
+                }
+              >
+                <DocumentControlFormItems obrigatorios />
+                <Space>
+                  <Button type="primary" htmlType="submit" loading={requestUploadUrl.isPending}>
+                    Publicar documento
+                  </Button>
+                  <Button onClick={() => setFase({ tipo: 'ocioso' })}>Cancelar</Button>
+                </Space>
+              </Form>
+            </Space>
+          }
+        />
+      )}
+
+      {fase.tipo === 'veredito' && fase.cabe && !ehPublicacaoDeUmDocumento(fase.selecao) && (
         <Alert
           type="info"
           showIcon

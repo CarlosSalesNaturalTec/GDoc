@@ -4,6 +4,7 @@ import type { TenantContext } from '../ports/database-port.js';
 import { AuditAction, GrantResourceType, Permission } from '@gdoc/shared';
 import type {
   CreateFolderRequest,
+  DocumentCodeInUseResponse,
   FolderCycleResponse,
   FolderDownloadManifestEntry,
   FolderDownloadManifestLimitExceededResponse,
@@ -11,7 +12,6 @@ import type {
   FolderNameConflictResponse,
   FolderResponse,
   FolderRestoreResponse,
-  FileSummaryResponse,
   MoveBatchItemResult,
   MoveBatchLimitExceededResponse,
   MoveBatchRequest,
@@ -33,17 +33,12 @@ import {
   type SubtreeManifest,
 } from '../lib/folder-tree.js';
 import { canReorganize, hasAccess, isAdminOfUnit, visibleResourceClause } from '../lib/access.js';
-
-interface FileSummaryRow {
-  id: string;
-  owner_id: string;
-  folder_id: string | null;
-  file_name: string;
-  content_type: string | null;
-  size_bytes: string | null;
-  status: string;
-  created_at: string;
-}
+import {
+  fileSummaryColumns,
+  nonObsoleteClause,
+  toFileSummaryResponse,
+  type FileSummaryRow,
+} from '../lib/document-control.js';
 
 function toFolderResponse(row: FolderRow): FolderResponse {
   return {
@@ -52,19 +47,6 @@ function toFolderResponse(row: FolderRow): FolderResponse {
     ownerId: row.owner_id,
     parentId: row.parent_id,
     name: row.name,
-    createdAt: new Date(row.created_at).toISOString(),
-  };
-}
-
-function toFileSummaryResponse(row: FileSummaryRow): FileSummaryResponse {
-  return {
-    id: row.id,
-    ownerId: row.owner_id,
-    folderId: row.folder_id,
-    fileName: row.file_name,
-    contentType: row.content_type,
-    sizeBytes: row.size_bytes === null ? null : Number(row.size_bytes),
-    status: row.status,
     createdAt: new Date(row.created_at).toISOString(),
   };
 }
@@ -132,10 +114,15 @@ async function listContents(
     params,
   );
 
+  // `nonObsoleteClause` (Épico 10, US 10.7, design.md D6): subtração, nunca
+  // concessão — o documento obsoleto desaparece da listagem de quem não é
+  // admin da unidade, e a situação de cada item vem derivada no próprio
+  // `SELECT`, pelo relógio do banco (`fileSummaryColumns`).
   const folderClause = folderId === null ? 'folder_id IS NULL' : `folder_id = ${anchorClause}`;
   const { rows: files } = await client.query<FileSummaryRow>(
-    `SELECT id, owner_id, folder_id, file_name, content_type, size_bytes, status, created_at
-     FROM files WHERE ${visibleResourceClause(GrantResourceType.FILE, ownerPlaceholder, ctx)} AND ${folderClause} ORDER BY file_name`,
+    `SELECT ${fileSummaryColumns(ctx, ownerPlaceholder)}
+     FROM files WHERE ${visibleResourceClause(GrantResourceType.FILE, ownerPlaceholder, ctx)}
+       AND ${nonObsoleteClause(ctx)} AND ${folderClause} ORDER BY file_name`,
     params,
   );
 
@@ -765,6 +752,41 @@ export function foldersRouter(ports: Ports): Router {
         );
         if (!allowed) return { ok: false as const };
 
+        // Épico 10 (design.md D5 de `controle-documental`): restaurar a pasta
+        // ressuscita os documentos da subárvore, e o código de um deles pode
+        // ter sido reusado nesse intervalo. O índice único recusaria a
+        // escrita com um 23505 cru; a checagem aqui transforma isso na mesma
+        // recusa nomeada do restore de arquivo, dizendo qual documento ocupa
+        // o código. Liberar o duplicado quebraria a unicidade; bloquear o
+        // reuso enquanto houver documento na lixeira tornaria um código
+        // irrecuperável por até 30 dias sem que ninguém entenda por quê.
+        const { rows: conflitos } = await client.query<{
+          document_code: string;
+          occupant_id: string;
+          occupant_name: string;
+        }>(
+          `SELECT d.document_code, o.id AS occupant_id, o.file_name AS occupant_name
+           FROM files d
+           JOIN files o
+             ON o.unit_id = d.unit_id
+            AND lower(o.document_code) = lower(d.document_code)
+            AND o.deleted_at IS NULL
+           WHERE d.trash_root_id = $1 AND d.document_code IS NOT NULL
+           ORDER BY d.file_name
+           LIMIT 1`,
+          [folder.id],
+        );
+        const conflito = conflitos[0];
+        if (conflito) {
+          return {
+            ok: false as const,
+            codeInUse: {
+              code: conflito.document_code,
+              occupiedBy: { id: conflito.occupant_id, fileName: conflito.occupant_name },
+            },
+          };
+        }
+
         // `trash_root_id = raiz` agrupa a pasta e toda a subárvore excluída
         // junto (design.md D4) — restaurar é só limpar a marcação de quem
         // tem esse agrupador, sem walk recursivo (design.md D5).
@@ -786,6 +808,16 @@ export function foldersRouter(ports: Ports): Router {
       });
 
       if (!outcome.ok) {
+        if ('codeInUse' in outcome && outcome.codeInUse) {
+          const { code, occupiedBy } = outcome.codeInUse;
+          const body: DocumentCodeInUseResponse = {
+            error: 'document_code_in_use',
+            code,
+            occupiedBy,
+          };
+          res.status(409).json(body);
+          return;
+        }
         res.status(403).json({ error: 'forbidden' });
         return;
       }

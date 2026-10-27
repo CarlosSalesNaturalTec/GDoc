@@ -9,6 +9,7 @@ import type {
   FolderResponse,
 } from '@gdoc/shared';
 import { mockFetch } from './mock-fetch';
+import { SEM_CONTROLE_DOCUMENTAL } from './document-control-fixture';
 import { renderApp } from './render-app';
 
 const ADMIN = { id: 'admin-1', unitId: 'unit-1', role: UserRole.UNIT_ADMIN };
@@ -29,6 +30,7 @@ function file(
   overrides: Partial<FileSummaryResponse> & { id: string; fileName: string },
 ): FileSummaryResponse {
   return {
+    ...SEM_CONTROLE_DOCUMENTAL,
     ownerId: 'user-1',
     folderId: null,
     contentType: 'application/pdf',
