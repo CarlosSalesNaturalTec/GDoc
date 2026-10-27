@@ -16,6 +16,14 @@ Na página **Arquivos**, há três formas de escolher o que enviar para a pasta 
   essa operação (ver [Limites](../referencia/limites.md)). Use um computador para
   enviar uma pasta inteira.
 
+## Enviar **um** documento pede os dados de controle
+
+Quando a seleção tem **exatamente um arquivo** (e ele não vem de uma pasta), o
+PapelHub pede **tipo, código, revisão e data de próxima revisão** antes de publicar —
+é a publicação de um documento controlado, e não de um arquivo qualquer. Enviar
+**vários** arquivos, ou uma pasta, não pede dado algum. Ver
+[Controle documental](controle-documental.md).
+
 ## Verificação antes de começar
 
 Um envio grande pode levar dezenas de minutos, e por isso **nada é transferido antes

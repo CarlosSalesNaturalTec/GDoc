@@ -156,6 +156,59 @@ registrada. Substituir um arquivo qualquer não inaugura numeração — caso
 contrário, todo o acervo em lote ganharia `Rev. 01` na primeira troca, sugerindo
 um controle que nunca existiu.
 
+### D9 — A contagem da operação vira **duas rotas**, não um parâmetro
+
+D7 liga a exigência pela contagem da operação. Na implementação isso se
+traduziu em duas rotas já existentes, cada uma com um papel: `POST
+/files/upload-url` é a **publicação de um documento** e exige os dados de
+controle; `POST /files/upload-urls` é o **lote e a pasta**, e os dispensa. A
+SPA escolhe a rota pela operação: um arquivo solto → a primeira; vários
+arquivos, ou qualquer arquivo vindo de pasta → a segunda.
+
+*Alternativa considerada:* exigir os dados na rota de lote quando ela
+recebesse exatamente um item. Rejeitada porque o lote **precisa** pedir URL
+para um item só — é assim que ele repete um envio que falhou, item a item. Com
+a exigência presa à contagem de itens da requisição, repetir um item de um
+lote de cinquenta passaria a pedir quatro campos que aquele lote nunca teve, e
+o relato de falha independente (já entregue, e que esta change não pode
+quebrar) cairia junto. "Operação" é o que a pessoa fez, não o número de itens
+de uma requisição HTTP — e a fronteira entre as duas intenções é a rota.
+
+Consequência registrada: uma pasta com um único arquivo dentro **não** pede os
+dados, porque continua sendo uma pasta. O que distingue os dois casos no
+cliente é a hierarquia que o item carrega (`relativePath`).
+
+### D10 — Publicar o mesmo código com envio pendente é **retomada**, não duplicata
+
+O índice único de D5 alcança toda linha não excluída, inclusive a `pending` de
+um envio que ainda não terminou. Sem tratamento, um documento cuja
+transferência falhasse deixaria o próprio código preso até o expurgo da
+lixeira, e a pessoa seria recusada ao tentar publicá-lo de novo — por um
+documento que é o dela, e que não existe.
+
+Por isso a rota de publicação reconhece o caso: código ocupado por envio
+`pending` **do próprio solicitante** faz a linha ser reaproveitada com o objeto
+novo, em vez de recusar. Para qualquer outro ocupante — documento ativo, ou
+pendente de outra pessoa — a recusa é a de D5, nomeada. É também o que permite
+ao cliente renovar a URL assinada de um documento sem inventar uma rota de
+renovação.
+
+### D11 — O veredito de edição vem do servidor, no próprio resumo
+
+A spec `web-navegacao` exige que a ação de editar os dados de controle seja
+oferecida **apenas** a quem o servidor autorizaria, e a mesma capability
+proíbe a SPA de inferir permissão no cliente. As duas regras só são
+conciliáveis se o servidor disser — quem tem concessão sobre documento de
+outra pessoa não é derivável do DTO.
+
+`FileSummaryResponse` ganha então `canEditControl`, no molde exato de
+`FolderContentsResponse.canUpload`: é resolvido pelo mesmo fragmento de
+alcance que a consulta de listagem já monta (agora para o verbo `rename`),
+sai de graça na mesma linha, e aparece **só** nas respostas que listam
+documentos — uma operação sobre um documento só não é usada para decidir o que
+oferecer. Não é linha de defesa: o 403 da rota de edição continua sendo a
+autorização real.
+
 ## Risks / Trade-offs
 
 - **Primeira exceção em `access.ts`, função que é o coração da autorização** →
@@ -190,6 +243,17 @@ um controle que nunca existiu.
 3. API implantada: leitura dos campos, derivação da situação, exigência no
    envio unitário, rota de edição, regra do obsoleto.
 4. SPA implantada: colunas, etiquetas, formulário.
+
+**Observações da implementação:**
+
+- A regra do obsoleto é aplicada também na travessia que monta o **manifesto de
+  download de pasta** (`lib/folder-tree.ts`), além dos três caminhos nomeados
+  no D6: é o quarto lugar por onde bytes de um documento alcançam alguém, e a
+  regra ali subtrai exatamente como nos demais.
+- A coluna `folders.folder_type` é criada pela migração (tasks.md 1.1), mas
+  nenhum requisito desta change a escreve ou apresenta — nenhuma tela a
+  aciona, e por isso ela **não** é documentada como recurso do usuário. Fica
+  disponível para a fatia que trouxer cor e ícone de pasta.
 
 **Rollback:** reverter a aplicação. As colunas podem permanecer no banco sem
 efeito — são nuláveis e nenhuma leitura anterior as consulta. Derrubar o índice

@@ -1,3 +1,5 @@
+import type { DocumentControlFields, DocumentControlInput } from './document-control.js';
+
 /** Ação de acesso a um arquivo — distingue visualizar de baixar na auditoria e no TTL. */
 export const FileAccessAction = {
   VIEW: 'view',
@@ -26,12 +28,25 @@ export type ViewUrlResponse =
   | ({ previewAvailable: true } & SignedUrlResponse)
   | { previewAvailable: false; reason: 'unsupported_format'; download: { available: boolean } };
 
+/**
+ * `POST /files/upload-url` — publicação de **um** documento (design.md D7 do
+ * change `controle-documental`). É a rota em que a exigência dos dados de
+ * controle liga: tipo, código, revisão e data de próxima revisão são
+ * obrigatórios aqui, e dispensados no envio em lote
+ * (`POST /files/upload-urls`), que é a rota do lote e da pasta.
+ *
+ * A divisão em duas rotas é o que mantém as duas regras compatíveis: o lote
+ * precisa pedir URL para **um** item ao repetir um envio que falhou, e essa
+ * repetição não é a publicação de um documento novo.
+ */
 export interface UploadUrlRequest {
   fileName: string;
   contentType: string;
   declaredSizeBytes: number;
   /** Pasta de destino (da unidade do remetente); ausente = raiz da unidade. */
   folderId?: string;
+  /** Dados de controle do documento — exigidos nesta rota (US 10.5 cenário 1). */
+  documentControl?: DocumentControlInput;
 }
 
 export interface UploadUrlResponse {
@@ -82,8 +97,20 @@ export interface GcsObjectMetadata {
   contentType?: string;
 }
 
-/** Resumo de arquivo usado na listagem de conteúdo de pasta (navegação). */
-export interface FileSummaryResponse {
+/**
+ * Resumo de arquivo usado na listagem de conteúdo de pasta (navegação).
+ *
+ * Desde o Épico 10 (change `controle-documental`) o resumo carrega também os
+ * dados de controle do documento e a **situação apurada no servidor**
+ * (`DocumentControlFields`) — ganho aditivo de campos, todos nuláveis exceto
+ * `documentStatus`, que vale `uncontrolled` para o acervo sem controle. Nenhuma
+ * tela existente precisa mudar para continuar funcionando.
+ *
+ * `status` continua descrevendo o ciclo do **upload** (`pending`/`active`/
+ * `replacing`/`over_quota`), nunca a vigência do documento: os dois conceitos
+ * não compartilham campo (design.md, Context).
+ */
+export interface FileSummaryResponse extends DocumentControlFields {
   id: string;
   ownerId: string;
   folderId: string | null;

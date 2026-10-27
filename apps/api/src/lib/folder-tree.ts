@@ -2,6 +2,7 @@ import type { PoolClient } from 'pg';
 import { GrantResourceType, Permission } from '@gdoc/shared';
 import type { TenantContext } from '../ports/database-port.js';
 import { hasAccess, isAdminOfUnit, resourceScopeClause, visibleResourceClause } from './access.js';
+import { nonObsoleteClause } from './document-control.js';
 
 export interface FolderRow {
   id: string;
@@ -294,11 +295,15 @@ async function listSubtreeLevel(
     params,
   );
 
+  // `nonObsoleteClause` (Épico 10, design.md D6): o documento obsoleto também
+  // não entra no pacote de download de pasta de quem não é gestão — a regra é
+  // sobre circulação de bytes, e este é o quarto caminho que os alcança,
+  // ao lado de listagem, busca e acesso direto.
   const folderClause = folderId === null ? 'folder_id IS NULL' : `folder_id = ${anchorClause}`;
   const { rows: files } = await client.query<SubtreeFileRow>(
     `SELECT id, unit_id, owner_id, object_path, file_name, size_bytes,
        (${resourceScopeClause(GrantResourceType.FILE, ownerPlaceholder, ctx, Permission.DOWNLOAD)}) AS allowed
-     FROM files WHERE deleted_at IS NULL AND ${folderClause} ORDER BY file_name`,
+     FROM files WHERE deleted_at IS NULL AND ${nonObsoleteClause(ctx)} AND ${folderClause} ORDER BY file_name`,
     params,
   );
 

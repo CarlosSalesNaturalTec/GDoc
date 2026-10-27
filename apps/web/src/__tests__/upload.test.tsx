@@ -10,6 +10,7 @@ import type {
   StorageQuotaResponse,
 } from '@gdoc/shared';
 import { mockFetch } from './mock-fetch';
+import { SEM_CONTROLE_DOCUMENTAL } from './document-control-fixture';
 import { mockXhr, mockControllableXhr } from './mock-xhr';
 import { renderApp } from './render-app';
 import { mockViewportWidth, NARROW_VIEWPORT } from './viewport';
@@ -35,6 +36,7 @@ function file(
   overrides: Partial<FileSummaryResponse> & { id: string; fileName: string },
 ): FileSummaryResponse {
   return {
+    ...SEM_CONTROLE_DOCUMENTAL,
     ownerId: 'user-1',
     folderId: null,
     contentType: 'application/pdf',
@@ -81,7 +83,16 @@ function corpoDaChamada(call: unknown[]): { items: { fileName: string; relativeP
   return JSON.parse((call[1] as RequestInit).body as string);
 }
 
-/** Atravessa a pré-checagem: aguarda o resumo e confirma o envio (spec `web-upload`). */
+/**
+ * Atravessa a pré-checagem: aguarda o resumo e confirma o envio (spec
+ * `web-upload`).
+ *
+ * Os casos deste arquivo que exercitam o **lote** selecionam sempre dois ou
+ * mais arquivos, porque desde o Épico 10 uma operação de **um** arquivo é a
+ * publicação de um documento: ela pede os dados de controle e vai pela rota
+ * unitária (design.md D7 de `controle-documental`). O caminho de um documento
+ * tem arquivo próprio, `upload-documento.test.tsx`.
+ */
 async function confirmarEnvio(): Promise<void> {
   const confirmar = await screen.findByRole('button', { name: /^enviar$/i });
   await userEvent.click(confirmar);
@@ -263,6 +274,7 @@ describe('Envio de arquivos e pastas (web-upload)', () => {
 
   it('sucesso do PUT invalida a listagem e o arquivo aparece pending, sem polling por active (design.md D6)', async () => {
     const uploaded = makeFile('novo.pdf');
+    const acompanha = makeFile('acompanha.pdf');
     const pendingFile = file({ id: 'file-new', fileName: 'novo.pdf', status: 'pending' });
 
     mockFetch({
@@ -284,18 +296,29 @@ describe('Envio de arquivos e pastas (web-upload)', () => {
               folderId: null,
               expiresAt: '2026-07-21T10:05:00.000Z',
             },
+            {
+              fileName: 'acompanha.pdf',
+              ok: true,
+              uploadUrl: 'https://storage.example/acompanha',
+              objectPath: 'acompanha',
+              folderId: null,
+              expiresAt: '2026-07-21T10:05:00.000Z',
+            },
           ],
         } satisfies BatchUploadUrlResponse,
       },
     });
 
-    mockXhr({ 'https://storage.example/novo': { status: 200 } });
+    mockXhr({
+      'https://storage.example/novo': { status: 200 },
+      'https://storage.example/acompanha': { status: 200 },
+    });
 
     const { container } = renderApp(['/pastas']);
     await screen.findByRole('button', { name: /enviar arquivos/i });
 
     const [filesInput] = fileInputs(container);
-    await userEvent.upload(filesInput!, [uploaded]);
+    await userEvent.upload(filesInput!, [uploaded, acompanha]);
     await confirmarEnvio();
 
     await waitFor(() => expect(screen.getByText('pending')).toBeInTheDocument());
@@ -304,6 +327,7 @@ describe('Envio de arquivos e pastas (web-upload)', () => {
 
   it('destino sem permissão (403 no upload-urls) exibe aviso e não inicia transferência alguma (RF #10)', async () => {
     const a = makeFile('a.txt');
+    const b = makeFile('b.txt');
 
     mockFetch({
       'GET /auth/me': { status: 200, body: IDENTITY },
@@ -317,7 +341,7 @@ describe('Envio de arquivos e pastas (web-upload)', () => {
     await screen.findByRole('button', { name: /enviar arquivos/i });
 
     const [filesInput] = fileInputs(container);
-    await userEvent.upload(filesInput!, [a]);
+    await userEvent.upload(filesInput!, [a, b]);
     await confirmarEnvio();
 
     await screen.findByText('Permissão insuficiente para enviar arquivos neste destino.');
@@ -448,6 +472,7 @@ describe('Envio em lote — fila e vigência da URL (corrige-defeitos-envio-lote
 
   it('repetir com URL vencida pede URL nova em vez de reusar a vencida (design.md D5)', async () => {
     const a = makeFile('vencida.txt');
+    const acompanha = makeFile('acompanha.txt');
 
     mockFetch({
       'GET /auth/me': { status: 200, body: IDENTITY },
@@ -457,7 +482,10 @@ describe('Envio em lote — fila e vigência da URL (corrige-defeitos-envio-lote
         {
           status: 200,
           body: {
-            results: [okResult('vencida.txt', 'https://storage.example/velha', PASSADO)],
+            results: [
+              okResult('vencida.txt', 'https://storage.example/velha', PASSADO),
+              okResult('acompanha.txt', 'https://storage.example/acompanha', PASSADO),
+            ],
           } satisfies BatchUploadUrlResponse,
         },
         {
@@ -474,10 +502,10 @@ describe('Envio em lote — fila e vigência da URL (corrige-defeitos-envio-lote
     await screen.findByRole('button', { name: /enviar arquivos/i });
 
     const [filesInput] = fileInputs(container);
-    await userEvent.upload(filesInput!, [a]);
+    await userEvent.upload(filesInput!, [a, acompanha]);
     await confirmarEnvio();
 
-    await waitFor(() => expect(xhr.inFlight()).toBe(1));
+    await waitFor(() => expect(xhr.inFlight()).toBe(2));
     xhr.failOldest();
     await userEvent.click(await screen.findByRole('button', { name: /ver falhas/i }));
     const repetir = await screen.findByRole('button', { name: /repetir/i });
@@ -493,6 +521,7 @@ describe('Envio em lote — fila e vigência da URL (corrige-defeitos-envio-lote
 
   it('repetir com URL vigente reusa a URL, sem requisição adicional (design.md D5)', async () => {
     const a = makeFile('vigente.txt');
+    const acompanha = makeFile('acompanha.txt');
 
     mockFetch({
       'GET /auth/me': { status: 200, body: IDENTITY },
@@ -501,7 +530,10 @@ describe('Envio em lote — fila e vigência da URL (corrige-defeitos-envio-lote
       'POST /files/upload-urls': {
         status: 200,
         body: {
-          results: [okResult('vigente.txt', 'https://storage.example/mesma', FUTURO)],
+          results: [
+            okResult('vigente.txt', 'https://storage.example/mesma', FUTURO),
+            okResult('acompanha.txt', 'https://storage.example/acompanha', FUTURO),
+          ],
         } satisfies BatchUploadUrlResponse,
       },
     });
@@ -511,27 +543,29 @@ describe('Envio em lote — fila e vigência da URL (corrige-defeitos-envio-lote
     await screen.findByRole('button', { name: /enviar arquivos/i });
 
     const [filesInput] = fileInputs(container);
-    await userEvent.upload(filesInput!, [a]);
+    await userEvent.upload(filesInput!, [a, acompanha]);
     await confirmarEnvio();
 
-    await waitFor(() => expect(xhr.inFlight()).toBe(1));
+    await waitFor(() => expect(xhr.inFlight()).toBe(2));
     xhr.failOldest();
     await userEvent.click(await screen.findByRole('button', { name: /ver falhas/i }));
     const repetir = await screen.findByRole('button', { name: /repetir/i });
 
     const chamadasAntes = uploadUrlCalls().length;
     await userEvent.click(repetir);
-    await waitFor(() => expect(xhr.started()).toBe(2));
+    await waitFor(() => expect(xhr.started()).toBe(3));
 
     expect(uploadUrlCalls()).toHaveLength(chamadasAntes);
     expect(xhr.startedUrls()).toEqual([
       'https://storage.example/mesma',
+      'https://storage.example/acompanha',
       'https://storage.example/mesma',
     ]);
   });
 
   it('recusa por teto vinda do servidor não vira "tente novamente" (rede de segurança, design.md D5)', async () => {
     const a = makeFile('h.txt');
+    const b = makeFile('i.txt');
 
     mockFetch({
       'GET /auth/me': { status: 200, body: IDENTITY },
@@ -547,7 +581,7 @@ describe('Envio em lote — fila e vigência da URL (corrige-defeitos-envio-lote
     await screen.findByRole('button', { name: /enviar arquivos/i });
 
     const [filesInput] = fileInputs(container);
-    await userEvent.upload(filesInput!, [a]);
+    await userEvent.upload(filesInput!, [a, b]);
     await confirmarEnvio();
 
     await screen.findByText('Seleção acima do limite por envio');
@@ -570,6 +604,7 @@ describe('Renovação forçada após falhas consecutivas (design.md D5)', () => 
   it('segunda falha pede URL nova mesmo com expiresAt folgado', async () => {
     const FUTURO = new Date(Date.now() + 3_600_000).toISOString();
     const a = makeFile('teimosa.txt');
+    const acompanha = makeFile('acompanha.txt');
 
     const result = (url: string): BatchUploadItemResult => ({
       fileName: 'teimosa.txt',
@@ -585,7 +620,22 @@ describe('Renovação forçada após falhas consecutivas (design.md D5)', () => 
       'GET /folders/root/contents': { status: 200, body: contents() },
       'GET /files/quota': { status: 200, body: quota() },
       'POST /files/upload-urls': [
-        { status: 200, body: { results: [result('https://storage.example/velha')] } },
+        {
+          status: 200,
+          body: {
+            results: [
+              result('https://storage.example/velha'),
+              {
+                fileName: 'acompanha.txt',
+                ok: true as const,
+                uploadUrl: 'https://storage.example/acompanha',
+                objectPath: 'acompanha.txt',
+                folderId: null,
+                expiresAt: FUTURO,
+              },
+            ],
+          },
+        },
         { status: 200, body: { results: [result('https://storage.example/renovada')] } },
       ],
     });
@@ -595,21 +645,24 @@ describe('Renovação forçada após falhas consecutivas (design.md D5)', () => 
     await screen.findByRole('button', { name: /enviar arquivos/i });
 
     const [filesInput] = fileInputs(container);
-    await userEvent.upload(filesInput!, [a]);
+    await userEvent.upload(filesInput!, [a, acompanha]);
     await confirmarEnvio();
 
     // 1ª falha.
-    await waitFor(() => expect(xhr.inFlight()).toBe(1));
+    await waitFor(() => expect(xhr.inFlight()).toBe(2));
     xhr.failOldest();
+    // O acompanhante conclui: a partir daqui a única transferência em voo é a
+    // do item teimoso, e `failOldest` volta a significar "falha dele".
+    xhr.succeedOldest();
     await userEvent.click(await screen.findByRole('button', { name: /ver falhas/i }));
 
     const pedidosAposEnvio = uploadUrlCalls().length;
 
     // 1º Repetir: URL julgada vigente, então reusa — sem pedir nada.
     await userEvent.click(await screen.findByRole('button', { name: /repetir/i }));
-    await waitFor(() => expect(xhr.started()).toBe(2));
+    await waitFor(() => expect(xhr.started()).toBe(3));
     expect(uploadUrlCalls()).toHaveLength(pedidosAposEnvio);
-    expect(xhr.startedUrls()[1]).toBe('https://storage.example/velha');
+    expect(xhr.startedUrls()[2]).toBe('https://storage.example/velha');
 
     // 2ª falha — a URL "vigente" já falhou duas vezes.
     xhr.failOldest();
@@ -695,6 +748,7 @@ describe('Arrastar e soltar várias pastas (design.md D1)', () => {
   it('em modo estreito a área de soltar não é montada, e o envio de arquivos avulsos segue íntegro', async () => {
     mockViewportWidth(NARROW_VIEWPORT);
     const a = makeFile('avulso.txt');
+    const b = makeFile('avulso2.txt');
 
     mockFetch({
       'GET /auth/me': { status: 200, body: IDENTITY },
@@ -712,12 +766,23 @@ describe('Arrastar e soltar várias pastas (design.md D1)', () => {
               folderId: null,
               expiresAt: new Date(Date.now() + 3_600_000).toISOString(),
             },
+            {
+              fileName: 'avulso2.txt',
+              ok: true,
+              uploadUrl: 'https://storage.example/avulso2',
+              objectPath: 'avulso2',
+              folderId: null,
+              expiresAt: new Date(Date.now() + 3_600_000).toISOString(),
+            },
           ],
         } satisfies BatchUploadUrlResponse,
       },
     });
 
-    mockXhr({ 'https://storage.example/avulso': { status: 200 } });
+    mockXhr({
+      'https://storage.example/avulso': { status: 200 },
+      'https://storage.example/avulso2': { status: 200 },
+    });
     const { container } = renderApp(['/pastas']);
     await screen.findByRole('button', { name: /enviar arquivos/i });
 
@@ -731,10 +796,10 @@ describe('Arrastar e soltar várias pastas (design.md D1)', () => {
     expect(screen.getByRole('button', { name: /enviar pasta/i })).toBeInTheDocument();
 
     const [filesInput] = fileInputs(container);
-    await userEvent.upload(filesInput!, [a]);
+    await userEvent.upload(filesInput!, [a, b]);
     await confirmarEnvio();
 
-    await waitFor(() => expect(screen.queryByText(/^1 de 1 arquivo\(s\)/)).toBeInTheDocument());
+    await waitFor(() => expect(screen.queryByText(/^2 de 2 arquivo\(s\)/)).toBeInTheDocument());
   });
 });
 
@@ -911,6 +976,7 @@ describe('Verificação de viabilidade antes de transferir (design.md D3/D4)', (
 
   it('nada é transferido antes da confirmação, mesmo cabendo', async () => {
     const a = makeFile('confirma.txt');
+    const b = makeFile('confirma2.txt');
 
     mockFetch({
       'GET /auth/me': { status: 200, body: IDENTITY },
@@ -928,6 +994,14 @@ describe('Verificação de viabilidade antes de transferir (design.md D3/D4)', (
               folderId: null,
               expiresAt: new Date(Date.now() + 3_600_000).toISOString(),
             },
+            {
+              fileName: 'confirma2.txt',
+              ok: true,
+              uploadUrl: 'https://storage.example/confirma2',
+              objectPath: 'confirma2',
+              folderId: null,
+              expiresAt: new Date(Date.now() + 3_600_000).toISOString(),
+            },
           ],
         } satisfies BatchUploadUrlResponse,
       },
@@ -938,14 +1012,14 @@ describe('Verificação de viabilidade antes de transferir (design.md D3/D4)', (
     await screen.findByRole('button', { name: /enviar arquivos/i });
 
     const [filesInput] = fileInputs(container);
-    await userEvent.upload(filesInput!, [a]);
+    await userEvent.upload(filesInput!, [a, b]);
 
     await screen.findByText('Confirmar envio');
     expect(uploadUrlCalls()).toHaveLength(0);
     expect(xhr.started()).toBe(0);
 
     await confirmarEnvio();
-    await waitFor(() => expect(xhr.started()).toBe(1));
+    await waitFor(() => expect(xhr.started()).toBe(2));
   });
 });
 

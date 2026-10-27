@@ -76,6 +76,31 @@ export const tonsDeEstado = {
 
 export type TomDeEstado = keyof typeof tonsDeEstado;
 
+/**
+ * Tons da etiqueta de **tipo documental** (Épico 10, US 10.1), um por tipo do
+ * enum `DocumentType` de `@gdoc/shared`.
+ *
+ * Moram aqui pela mesma razão de `tonsDeEstado`: o requisito "Tokens de
+ * apresentação têm origem única" proíbe uma tela declarar cor de marca por
+ * literal, e os presets de cor do design system reprovam no piso de 4,5:1.
+ * Cada par texto/fundo é apurado por cálculo em `__tests__/contraste.test.ts`
+ * — acrescentar um tipo sem acrescentá-lo lá deixa o piso sem guarda.
+ *
+ * A cor **nunca** é a portadora da informação: quem diz o tipo é a sigla, que
+ * acompanha sempre a etiqueta (US 10.1 cenário 2). A cor é redundância, para
+ * quem a distingue.
+ */
+export const tonsDeTipoDocumental = {
+  protocol: { texto: '#025484', fundo: '#E8F1F7', borda: '#9CC0D8' },
+  procedure: { texto: '#067A52', fundo: '#E6F5EF', borda: '#9CD3BE' },
+  policy: { texto: '#5B3A9B', fundo: '#EFE9FA', borda: '#C2B0E4' },
+  form: { texto: '#8A4B00', fundo: '#FDF2E2', borda: '#E8C48C' },
+  flowchart: { texto: '#0F6E70', fundo: '#E2F2F2', borda: '#9FD1D2' },
+  manual: { texto: '#012442', fundo: '#E8EEF3', borda: '#A9BECE' },
+  consent_term: { texto: '#A8071A', fundo: '#FDECEA', borda: '#EBA9A2' },
+  internal_notice: { texto: '#3D4F5C', fundo: '#EDF1F4', borda: '#B4C1CA' },
+} as const;
+
 /** Família dos títulos (guia do cliente); auto-hospedada via `@fontsource` — design.md D5. */
 export const FAMILIA_TITULO = "Lexend, 'Segoe UI', Roboto, Arial, sans-serif";
 

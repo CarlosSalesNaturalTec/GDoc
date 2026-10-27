@@ -1,5 +1,5 @@
 import type { PoolClient } from 'pg';
-import { GrantResourceType, Permission, UserRole } from '@gdoc/shared';
+import { DocumentLifecycleState, GrantResourceType, Permission, UserRole } from '@gdoc/shared';
 import type { TenantContext } from '../ports/database-port.js';
 
 /**
@@ -20,6 +20,13 @@ import type { TenantContext } from '../ports/database-port.js';
  * deliberada é `hasAccess({ includeTrash: true })`, usada só pelas rotas de
  * `restore` (que precisam localizar o próprio recurso excluído) — nunca
  * combinar `includeTrash` com uma rota de conteúdo vivo.
+ *
+ * Épico 10 (controle documental, change `controle-documental`, design.md D6):
+ * documento declarado **obsoleto** resolve como inexistente para quem não é
+ * admin da unidade — ver `hasAccess` abaixo, e `nonObsoleteClause` em
+ * `lib/document-control.ts` para o mesmo corte na listagem e na busca. A
+ * exceção é restritiva por desenho: toda regra nova aqui só pode subtrair
+ * alcance, nunca conceder.
  */
 
 export function resourceTable(resourceType: GrantResourceType): 'folders' | 'files' {
@@ -52,6 +59,16 @@ export function isAdminOfUnit(ctx: TenantContext, resourceUnitId: string): boole
  * banco**, não do processo, para o corte ser consistente entre instâncias.
  * Os ramos de posse e de admin da unidade não têm prazo — só concessão
  * expira.
+ *
+ * Épico 10 (change `controle-documental`, design.md D6): documento declarado
+ * **obsoleto** resolve como inexistente para quem não é administrador da
+ * unidade dele — inclusive para o próprio dono, porque "sai de circulação"
+ * vale para toda pessoa que não é gestão (US 10.7). É a primeira exceção
+ * desta função, e é **restritiva**: subtrai alcance e nunca concede, então
+ * por construção não abre furo de isolamento e preserva o caráter
+ * fail-closed. Vive aqui, e não como filtro em cada rota, porque três rotas
+ * replicando a mesma condição é precisamente como furos nascem — uma rota
+ * nova esqueceria o filtro.
  */
 export async function hasAccess(
   client: PoolClient,
@@ -66,12 +83,28 @@ export async function hasAccess(
   // lixeira — sem a opção, o filtro padrão de `deleted_at IS NULL` faria o
   // próprio item a restaurar resolver como inexistente.
   const deletedFilter = options.includeTrash ? '' : 'AND deleted_at IS NULL';
-  const { rows } = await client.query<{ owner_id: string; unit_id: string }>(
-    `SELECT owner_id, unit_id FROM ${resourceTable(resourceType)} WHERE id = $1 ${deletedFilter}`,
+  // `lifecycle_state` só existe em `files`: pasta não tem ciclo de vida
+  // documental, e pedir a coluna em `folders` quebraria a query.
+  const lifecycleColumn = resourceType === GrantResourceType.FILE ? ', lifecycle_state' : '';
+  const { rows } = await client.query<{
+    owner_id: string;
+    unit_id: string;
+    lifecycle_state?: string | null;
+  }>(
+    `SELECT owner_id, unit_id${lifecycleColumn} FROM ${resourceTable(resourceType)} WHERE id = $1 ${deletedFilter}`,
     [resourceId],
   );
   const resource = rows[0];
   if (!resource) return false;
+  // Antes de qualquer ramo de concessão: a regra do obsoleto é subtração, e
+  // a recusa é indistinguível de recurso inexistente — o mesmo tratamento
+  // que a função já dá a "não existe" e a "não é seu".
+  if (
+    resource.lifecycle_state === DocumentLifecycleState.OBSOLETE &&
+    !isAdminOfUnit(ctx, resource.unit_id)
+  ) {
+    return false;
+  }
   if (resource.owner_id === ctx.userId) return true;
   if (isAdminOfUnit(ctx, resource.unit_id)) return true;
 
