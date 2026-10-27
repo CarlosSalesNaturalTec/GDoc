@@ -12,13 +12,13 @@ import {
   Popconfirm,
   Select,
   Space,
-  Tag,
   Typography,
 } from 'antd';
 import type { Dayjs } from 'dayjs';
 import type { GrantResponse, GrantSubjectsLimitExceededResponse } from '@gdoc/shared';
 import { GrantResourceType, Permission } from '@gdoc/shared';
 import { ApiError } from '../lib/api-client';
+import { RotuloDeEstado } from '../app/RotuloDeEstado';
 import { useSession } from '../auth/session-context';
 import { useAuthorOptions } from '../busca/queries';
 import { formatDate } from '../navegacao/format';
@@ -261,10 +261,12 @@ export function PermissoesModal({
               <div style={{ marginTop: 4, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                 {grants.map((grant) => (
                   <Space key={grant.id}>
-                    <Tag>{VERB_LABEL[grant.permission]}</Tag>
-                    <Tag color={grant.expired ? 'red' : grant.expiresAt ? 'orange' : 'default'}>
+                    <RotuloDeEstado>{VERB_LABEL[grant.permission]}</RotuloDeEstado>
+                    <RotuloDeEstado
+                      tom={grant.expired ? 'negativo' : grant.expiresAt ? 'alerta' : 'neutro'}
+                    >
                       {expiryLabel(grant)}
-                    </Tag>
+                    </RotuloDeEstado>
                     <Popconfirm
                       title="Revogar permissão"
                       description={`Remover "${VERB_LABEL[grant.permission]}" deste colaborador sobre este recurso?`}

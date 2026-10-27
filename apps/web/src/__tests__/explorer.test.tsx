@@ -34,7 +34,10 @@ function file(
 }
 
 function contents(overrides: Partial<FolderContentsResponse> = {}): FolderContentsResponse {
-  return { folder: null, breadcrumb: [], folders: [], files: [], ...overrides };
+  // `canUpload` vem resolvido pelo servidor (design.md D10 de
+  // `identidade-visual-isetes`); o padrão aqui é a pessoa poder enviar, que é
+  // o caso do dono da pasta — os casos de recusa o sobrescrevem.
+  return { folder: null, breadcrumb: [], folders: [], files: [], canUpload: true, ...overrides };
 }
 
 /**
@@ -379,6 +382,11 @@ describe('Explorador de pastas/arquivos (web-navegacao)', () => {
       renderApp(['/pastas']);
 
       await screen.findByText('relatorio.pdf');
+      // O gatilho do menu agrupado só existe no formato estreito: esperá-lo é
+      // esperar o veredito do breakpoint, que chega um render depois da
+      // montagem (ver `viewport.ts`). Só então o que o formato largo tem a
+      // mais pode ser afirmado ausente.
+      const maisAcoes = await screen.findByRole('button', { name: 'Mais ações' });
       const row = screen.getByText('relatorio.pdf').closest('tr')!;
 
       // Visualizar é o verbo central da consulta e permanece direta.
@@ -387,7 +395,7 @@ describe('Explorador de pastas/arquivos (web-navegacao)', () => {
       expect(within(row).queryByRole('button', { name: /renomear/i })).not.toBeInTheDocument();
       expect(within(row).queryByRole('button', { name: /^baixar$/i })).not.toBeInTheDocument();
 
-      await userEvent.click(within(row).getByRole('button', { name: 'Mais ações' }));
+      await userEvent.click(maisAcoes);
 
       // O popup do menu agrupado é renderizado fora da linha, num portal
       // (`.ant-dropdown`) — nenhuma ação foi suprimida, só reagrupada ali.
@@ -414,8 +422,8 @@ describe('Explorador de pastas/arquivos (web-navegacao)', () => {
       renderApp(['/pastas']);
 
       await screen.findByText('descartavel.pdf');
-      const row = screen.getByText('descartavel.pdf').closest('tr')!;
-      await userEvent.click(within(row).getByRole('button', { name: 'Mais ações' }));
+      // `findByRole`: o gatilho agrupado chega um render depois (ver `viewport.ts`).
+      await userEvent.click(await screen.findByRole('button', { name: 'Mais ações' }));
 
       await userEvent.click(await screen.findByRole('button', { name: /excluir/i }));
       // Ainda não excluído: a confirmação do Popconfirm segue exigida.
@@ -437,12 +445,15 @@ describe('Explorador de pastas/arquivos (web-navegacao)', () => {
       renderApp(['/pastas']);
 
       await screen.findByText('Pasta A');
+      // Mesma espera do caso do arquivo: o formato estreito se estabelece um
+      // render depois da montagem (ver `viewport.ts`).
+      const maisAcoes = await screen.findByRole('button', { name: 'Mais ações' });
       const row = screen.getByText('Pasta A').closest('tr')!;
 
       expect(within(row).queryByRole('button', { name: /renomear/i })).not.toBeInTheDocument();
       expect(within(row).queryByRole('button', { name: /mover para/i })).not.toBeInTheDocument();
 
-      await userEvent.click(within(row).getByRole('button', { name: 'Mais ações' }));
+      await userEvent.click(maisAcoes);
 
       await screen.findByText(/mover para/i);
       const menu = within(document.querySelector('.ant-dropdown')!);
@@ -470,5 +481,57 @@ describe('Explorador de pastas/arquivos (web-navegacao)', () => {
       const manifestCalled = calls.some((call) => String(call[0]).includes('/download-manifest'));
       expect(manifestCalled).toBe(false);
     });
+  });
+});
+
+describe('Pasta sem conteúdo orienta em vez de apresentar tabela vazia (web-navegacao)', () => {
+  it('pasta vazia com permissão de envio apresenta mensagem e a ação de enviar', async () => {
+    mockFetch({
+      'GET /auth/me': { status: 200, body: IDENTITY },
+      'GET /folders/root/contents': { status: 200, body: contents({ canUpload: true }) },
+    });
+    renderApp(['/pastas']);
+
+    await screen.findByText(/Esta pasta ainda não tem documentos/);
+    expect(screen.getByRole('button', { name: 'Enviar documento' })).toBeInTheDocument();
+  });
+
+  it('sem permissão de envio, a orientação informa a ausência sem oferecer a ação', async () => {
+    mockFetch({
+      'GET /auth/me': { status: 200, body: IDENTITY },
+      'GET /folders/root/contents': { status: 200, body: contents({ canUpload: false }) },
+    });
+    renderApp(['/pastas']);
+
+    await screen.findByText(/Esta pasta ainda não tem documentos/);
+    expect(screen.queryByRole('button', { name: 'Enviar documento' })).not.toBeInTheDocument();
+  });
+
+  it('pasta com ao menos um item visível lista normalmente, sem a orientação de vazio', async () => {
+    mockFetch({
+      'GET /auth/me': { status: 200, body: IDENTITY },
+      'GET /folders/root/contents': {
+        status: 200,
+        body: contents({ files: [file({ id: 'file-1', fileName: 'contrato.pdf' })] }),
+      },
+    });
+    renderApp(['/pastas']);
+
+    await screen.findByText('contrato.pdf');
+    expect(screen.queryByText(/Esta pasta ainda não tem documentos/)).not.toBeInTheDocument();
+  });
+
+  // A ação da orientação leva à área de envio em vez de reimplementar o
+  // envio: é lá que vivem a pré-checagem de espaço e o relato por item.
+  it('a ação de enviar leva o foco ao gatilho da área de envio', async () => {
+    mockFetch({
+      'GET /auth/me': { status: 200, body: IDENTITY },
+      'GET /folders/root/contents': { status: 200, body: contents({ canUpload: true }) },
+    });
+    renderApp(['/pastas']);
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Enviar documento' }));
+
+    await waitFor(() => expect(document.activeElement?.textContent).toMatch(/Enviar arquivos/i));
   });
 });

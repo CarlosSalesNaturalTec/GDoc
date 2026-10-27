@@ -307,6 +307,21 @@ variable "app_manual_url" {
   default     = ""
 }
 
+variable "app_support_contact" {
+  description = <<-EOT
+    Contato do suporte desta implantação, exibido na tela de login a quem não
+    consegue entrar (change identidade-visual-isetes, design.md D8). É por
+    este caminho que a redefinição de senha efetivamente ocorre — não há
+    auto-atendimento. Texto livre: e-mail, ramal ou ambos, como a implantação
+    preferir. Não é segredo — aparece numa tela pré-autenticação —, mesmo
+    tratamento de app_client_name: env var comum do Cloud Run, não Secret
+    Manager. Vazio (padrão) = nenhum aviso de contato é exibido, sem espaço
+    reservado na tela.
+  EOT
+  type        = string
+  default     = ""
+}
+
 variable "github_repository" {
   description = <<-EOT
     Repositório GitHub ("owner/repo") autorizado a assumir a service account

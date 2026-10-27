@@ -106,6 +106,25 @@ export interface FolderContentsResponse {
   breadcrumb: FolderResponse[];
   folders: FolderResponse[];
   files: FileSummaryResponse[];
+  /**
+   * Veredito do verbo `upload` sobre a pasta corrente, **resolvido pelo
+   * servidor** (change `identidade-visual-isetes`, design.md D10).
+   *
+   * Existe porque o requisito "Pasta sem conteúdo orienta em vez de
+   * apresentar tabela vazia" exige que a ação oferecida respeite "a
+   * permissão já resolvida pelo servidor", e a capability `web-navegacao`
+   * **proíbe** a SPA de inferir permissão no cliente. Sem este campo as duas
+   * regras seriam inconciliáveis: o dono e o admin da unidade são deriváveis
+   * do DTO, mas quem tem a concessão `upload` sobre pasta de outra pessoa
+   * não é — e ficaria sem a ação que o servidor lhe autoriza.
+   *
+   * Não é linha de defesa: o 403 da rota de envio continua sendo a
+   * autorização real. Serve só para a interface não oferecer o que o
+   * servidor recusaria, nem esconder o que ele permitiria. Na raiz da
+   * unidade é sempre `true` — a raiz não é recurso concedível, e enviar para
+   * ela é livre a qualquer pessoa autenticada.
+   */
+  canUpload: boolean;
 }
 
 /** Um arquivo do manifesto de download de pasta (design.md D1/D7 de `download-pasta-zip`). */

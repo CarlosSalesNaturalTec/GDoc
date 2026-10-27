@@ -45,16 +45,26 @@ export interface MyProfileResponse {
 /**
  * Resposta de `GET /auth/public-config` (change `rebranding-doc7-setes`,
  * design.md D4; `manualUrl` acrescentado pela change
- * `acesso-ao-manual-no-shell`, design.md D3) — configuração pública de
+ * `acesso-ao-manual-no-shell`, design.md D3; `supportContact` pela change
+ * `identidade-visual-isetes`, design.md D8) — configuração pública de
  * apresentação da implantação, anônima por natureza (a tela de login é
- * pré-autenticação). Contrato travado a uma **allowlist nominal**: os três
- * campos abaixo, nenhum outro valor de configuração. Acrescentar um quarto
+ * pré-autenticação). Contrato travado a uma **allowlist nominal**: os quatro
+ * campos abaixo, nenhum outro valor de configuração. Acrescentar um quinto
  * campo exige modificar o requisito de `identidade-visual`, não é extensão
- * natural do contrato.
+ * natural do contrato. Todo valor da lista é público por natureza — nenhum
+ * transita pelo `SecretsPort`.
  */
 export interface PublicConfigResponse {
   appName: string;
   clientName: string;
   /** Endereço do manual do usuário publicado (capability `documentacao-usuario`); vazio = sem acesso apresentado. */
   manualUrl: string;
+  /**
+   * Contato do suporte da implantação, exibido na tela de login a quem não
+   * consegue entrar — é por este caminho que a redefinição de senha
+   * efetivamente ocorre, já que não há auto-atendimento. Texto livre
+   * (e-mail, ramal ou ambos), escolha da implantação. Vazio = nenhum aviso
+   * de contato é exibido, sem espaço reservado.
+   */
+  supportContact: string;
 }

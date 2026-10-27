@@ -123,12 +123,18 @@ um esquecimento:
 quarto campo. Exige recompilar `packages/shared` para os consumidores
 enxergarem (`dist/`, não a fonte TS).
 
-**Backend (`apps/api`)**: única alteração é `GET /auth/public-config` passar a
-devolver o contato do suporte, lido de variável de ambiente como os demais
-valores públicos — nunca pelo `SecretsPort`. Nenhuma rota de conteúdo,
-permissão, RLS, auditoria ou byte é tocada; nenhum prefixo de API novo, logo as
-três listas de prefixo (`api-prefixes.ts`, `vite.config.ts`, `locals.tf`)
-permanecem inalteradas.
+**Backend (`apps/api`)**: duas alterações, ambas aditivas.
+`GET /auth/public-config` passa a devolver o contato do suporte, lido de
+variável de ambiente como os demais valores públicos — nunca pelo
+`SecretsPort`. E `GET /folders/:id/contents` passa a devolver `canUpload`, o
+veredito do verbo `upload` sobre a pasta corrente, resolvido pela mesma
+`hasAccess` que a rota de envio usa (design.md D10): sem ele o requisito de
+estado vazio — "a ação oferecida respeita a permissão já resolvida pelo
+servidor" — seria inconciliável com a proibição de `web-navegacao` de inferir
+permissão no cliente. Nenhuma regra de permissão, RLS, auditoria ou byte é
+alterada; nenhuma rota nova e nenhum prefixo de API novo, logo as três listas
+de prefixo (`api-prefixes.ts`, `vite.config.ts`, `locals.tf`) permanecem
+inalteradas.
 
 **Infraestrutura**: nova variável de ambiente da implantação no Cloud Run
 (`infra/terraform`), ao lado de `APP_CLIENT_NAME`.

@@ -1,7 +1,6 @@
 # Colaboradores
 
-Além de tudo que o colaborador faz, o administrador de unidade gerencia **sua própria
-unidade**. Seu alcance é **restrito à unidade** — você não enxerga nem gerencia
+Além de tudo que o colaborador faz, o gestor gerencia **sua própria unidade**. Seu alcance é **restrito à unidade** — você não enxerga nem gerencia
 conteúdo de outras.
 
 ## Cadastrar e editar colaboradores
@@ -15,7 +14,7 @@ Abra **Colaboradores** no menu e clique em **Novo colaborador**. Informe:
 - **Função/cargo**
 - **Área de trabalho**
 - **Observação**
-- **Papel** (Colaborador ou Administrador da unidade)
+- **Papel** (Colaborador ou Gestor)
 
 Confirme em **Cadastrar**. O colaborador passa a poder entrar com essas credenciais.
 
@@ -53,7 +52,7 @@ consultada depois**. Se a senha se perder, é só redefinir de novo.
 
 | Quem edita               | Pode editar                                                      |
 | ------------------------- | ------------------------------------------------------------------ |
-| Administrador da unidade | Colaboradores da própria unidade                                 |
+| Gestor                   | Colaboradores da própria unidade                                 |
 | Administrador global     | Todos, inclusive outros administradores globais e ele mesmo      |
 
 Duas coisas ninguém faz, nem o administrador global: **mudar o próprio papel** e
@@ -71,8 +70,8 @@ próprio acesso — por isso a ação **Desativar** não aparece na sua própria
 
 | Quem redefine            | Pode redefinir de                                                             |
 | ------------------------- | ------------------------------------------------------------------------------ |
-| Administrador da unidade | Colaboradores da própria unidade                                              |
-| Administrador global     | Colaboradores e administradores de unidade                                    |
+| Gestor                   | Colaboradores da própria unidade                                              |
+| Administrador global     | Colaboradores e gestores                                                      |
 | Ninguém                  | Administrador global — a senha dele só muda por ele mesmo, em **Minha conta** |
 
 Quando a ação não é permitida para determinado colaborador, o botão **Redefinir senha**
@@ -90,8 +89,7 @@ alterar o limite de mais ninguém.
 
 !!! info "Só o administrador global"
 
-    A cota é a única coisa na tela de colaboradores que o administrador de unidade
-    não edita. Para ele, o campo nem aparece.
+    A cota é a única coisa na tela de colaboradores que o gestor não edita. Para ele, o campo nem aparece.
 
 No formulário de **Editar** de um colaborador, o campo **Cota de armazenamento**
 funciona como uma chave de duas posições:

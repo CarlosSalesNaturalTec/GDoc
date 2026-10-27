@@ -1,14 +1,16 @@
 import { useState } from 'react';
-import { App, Button, Popconfirm, Result, Space, Spin, Table, Tag } from 'antd';
+import { App, Button, Popconfirm, Result, Space, Spin, Table } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import { PlusOutlined } from '@ant-design/icons';
+import { IconeNovo } from '../app/icons';
 import type { PersonResponse } from '@gdoc/shared';
 import { PersonStatus } from '@gdoc/shared';
 import { UserRole } from '@gdoc/shared';
 import { ApiError } from '../lib/api-client';
 import { useSession } from '../auth/session-context';
 import { useUnits } from '../unidades/queries';
-import { ROLE_LABEL, PessoaFormModal } from './PessoaFormModal';
+import { PessoaFormModal } from './PessoaFormModal';
+import { RotuloDeEstado } from '../app/RotuloDeEstado';
+import { ROLE_LABEL } from '../shell/role-label';
 import { SenhaGeradaModal } from './SenhaGeradaModal';
 import { useResetPersonPassword, useUpdatePerson, useUsers } from './queries';
 
@@ -111,15 +113,15 @@ export function PessoasPage() {
     {
       title: 'Papel',
       key: 'role',
-      render: (_, person) => <Tag>{ROLE_LABEL[person.role]}</Tag>,
+      render: (_, person) => <RotuloDeEstado>{ROLE_LABEL[person.role]}</RotuloDeEstado>,
     },
     {
       title: 'Status',
       key: 'status',
       render: (_, person) => (
-        <Tag color={person.status === PersonStatus.ACTIVE ? 'green' : 'default'}>
+        <RotuloDeEstado tom={person.status === PersonStatus.ACTIVE ? 'positivo' : 'neutro'}>
           {STATUS_LABEL[person.status]}
-        </Tag>
+        </RotuloDeEstado>
       ),
     },
     {
@@ -187,7 +189,7 @@ export function PessoasPage() {
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
-        <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
+        <Button type="primary" icon={<IconeNovo />} onClick={openCreate}>
           Novo colaborador
         </Button>
       </div>

@@ -147,7 +147,18 @@ explorador, por exemplo. O requisito "Iconografia provém de biblioteca única"
 proíbe a coexistência justamente para não deixar essa dívida aberta.
 
 A troca é ampla mas mecânica, e os testes existentes buscam por texto e nome
-acessível, não por ícone — então servem de rede durante a substituição.
+acessível, não por ícone — então servem de rede durante a substituição. A
+exceção foi um teste que localizava o sino da central de notificações pela
+**classe do ícone**; ele passou a localizá-lo pelo nome acessível, que é
+contrato — e o botão, que não tinha nome acessível algum, ganhou um.
+
+O requisito alcança os ícones que a **aplicação** coloca na tela. Os glifos
+internos do design system — seta do seletor, "×" de fechar, marca da caixa de
+seleção — continuam sendo dele: são parte dos seus componentes, não uma
+segunda biblioteca escolhida por nós, e substituí-los exigiria trocar a
+biblioteca de componentes, que a seção **Non-Goals** exclui. O que sai do
+`package.json` é a dependência **direta**; a transitiva do design system
+permanece, por construção.
 
 ### D7 — Um único `ROLE_LABEL`
 
@@ -189,6 +200,45 @@ do design system, logomarca sempre contida em campo escuro, e contraste apurado
 por cálculo no nível AAA. Nenhuma se perde; o que muda é de onde a cor vem e
 qual campo hospeda a logomarca.
 
+### D10 — O veredito de envio da pasta vem do servidor, não de inferência no cliente
+
+O requisito de estado vazio exige que a ação oferecida respeite "a permissão
+**já resolvida pelo servidor**". A capability `web-navegacao` já normatizava o
+outro lado da moeda: "**como os DTOs de listagem não informam os verbos
+concedidos, a SPA NÃO SHALL inferir permissão no cliente**". Com o contrato de
+`GET /folders/:id/contents` como estava, os dois requisitos eram
+inconciliáveis — não havia veredito no DTO, e derivá-lo seria exatamente a
+inferência proibida.
+
+`FolderContentsResponse` passa a carregar `canUpload`, resolvido na rota pela
+**mesma** `hasAccess(..., Permission.UPLOAD)` que a rota de envio usa, na mesma
+transação tenant. Na raiz da unidade é sempre `true`: a raiz não é recurso
+concedível e enviar para ela é livre (design.md D9 de `download-pasta-zip`,
+US 3.3).
+
+*Alternativa considerada:* derivar no cliente a partir do que o DTO já traz —
+`folder === null` para a raiz, `ownerId === identity.id` para o dono, papel
+para o admin. Rejeitada por duas razões, e a segunda é dirimente: a capability
+`web-navegacao` proíbe a inferência; e quem tem a concessão `upload` sobre
+pasta de outra pessoa **não** é derivável desses campos — ficaria sem a ação
+que o servidor lhe autoriza, violando o primeiro cenário do requisito.
+
+Isto corrige o que a seção **Impact** da proposal previa ("nenhuma rota de
+conteúdo é tocada"): a rota de conteúdo é tocada, de forma **aditiva** — um
+campo novo na resposta, nenhuma mudança de autorização, nenhuma rota nova,
+nenhum prefixo novo. O veredito **não** é linha de defesa: o `403` da rota de
+envio continua sendo a autorização real, e `canUpload` serve só para a
+interface não oferecer o que o servidor recusaria nem esconder o que ele
+permitiria.
+
+### D11 — A ação do estado vazio leva à área de envio, não a uma segunda via de envio
+
+O botão da orientação põe o foco no gatilho da área de envio já presente na
+tela, em vez de abrir seu próprio seletor de arquivos. A área de envio carrega
+a pré-checagem de espaço, o fatiamento, a fila de transferências e o relato de
+falha por item — nada disso se reimplementa num botão, e duas superfícies de
+envio na mesma tela deixariam ambíguo qual é a verdadeira.
+
 ## Risks / Trade-offs
 
 - **O item ativo divergir do desenho do cliente** (texto escuro em vez de
@@ -207,6 +257,24 @@ qual campo hospeda a logomarca.
   coleta automatizada** → o campo é texto livre; a implantação pode preferir
   ramal ou formulário interno. Documentar a escolha no manual, não forçar
   `mailto:`.
+- **O piso de 44px de área de acionamento encarece a densidade das tabelas** →
+  `controlHeight` **e** `controlHeightSM` recebem 44 (theme.ts): "pequeno"
+  neste produto passa a significar densidade tipográfica e espaçamento, nunca
+  um alvo de toque menor. As ações por item do explorador ficam mais altas que
+  antes; é o custo direto do item 17 do pedido do cliente, e um teste trava os
+  dois tokens contra um afrouxamento silencioso.
+- **O piso de 44px não alcança alvos em linha dentro de texto** → o nome do
+  arquivo na tabela do explorador é um **link de texto** dentro da célula, não
+  um controle com forma própria; esticá-lo a 44px descaracterizaria a linha da
+  tabela. Fica como exceção deliberada, a mesma que o WCAG reconhece para
+  alvos em linha em meio a texto. O que foi corrigido é o que tem forma de
+  controle: a caixa de seleção, cujo invólucro clicável passa a 44px de altura
+  com a caixa centrada (theme.ts, `ESTILO_GLOBAL`).
+- **Os presets de cor de rótulo do design system reprovam no piso novo** → o
+  verde mede 3,37:1 e o laranja 3,34:1 sobre os próprios fundos. Os rótulos de
+  estado passaram a `RotuloDeEstado`, que recebe um **tom semântico** e tira
+  as três cores dos tokens (`tonsDeEstado`), apurados por cálculo. É o caso
+  concreto do vazamento que esta seção já previa ao falar de tags.
 - **A tela de login carrega dois comportamentos de borda difíceis de testar**
   (rolagem elástica, teclado virtual) que nenhum teste de unidade cobre de fato
   → manter os testes que verificam a pintura da raiz e a fluidez do cartão, que

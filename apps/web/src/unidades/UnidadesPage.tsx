@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { App, Button, Popconfirm, Result, Space, Spin, Table, Tag } from 'antd';
+import { App, Button, Popconfirm, Result, Space, Spin, Table } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import { PlusOutlined } from '@ant-design/icons';
+import { IconeNovo } from '../app/icons';
+import { RotuloDeEstado } from '../app/RotuloDeEstado';
 import type { UnitResponse } from '@gdoc/shared';
 import { UnitStatus } from '@gdoc/shared';
 import { ApiError } from '../lib/api-client';
@@ -71,9 +72,9 @@ export function UnidadesPage() {
       title: 'Status',
       key: 'status',
       render: (_, unit) => (
-        <Tag color={unit.status === UnitStatus.ACTIVE ? 'green' : 'default'}>
+        <RotuloDeEstado tom={unit.status === UnitStatus.ACTIVE ? 'positivo' : 'neutro'}>
           {STATUS_LABEL[unit.status]}
-        </Tag>
+        </RotuloDeEstado>
       ),
     },
     {
@@ -126,7 +127,7 @@ export function UnidadesPage() {
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
-        <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
+        <Button type="primary" icon={<IconeNovo />} onClick={openCreate}>
           Nova unidade
         </Button>
       </div>

@@ -35,7 +35,7 @@ describe('Guarda de rota por papel e shell condicionado ao papel', () => {
     await screen.findByText('Novo colaborador');
     expect(screen.getByText('Colaboradores')).toBeInTheDocument();
     expect(screen.getByText('Painel')).toBeInTheDocument();
-    expect(screen.getByText('Administrador da unidade')).toBeInTheDocument();
+    expect(screen.getByText('Gestor')).toBeInTheDocument();
 
     // nomenclatura-interface: nenhum literal de tela usa "Pessoa"/"Servidor"
     expect(document.body.textContent).not.toMatch(/pessoa|servidor/i);

@@ -7,12 +7,16 @@ type SessionStatus = 'loading' | 'authenticated' | 'anonymous';
 
 // Fallback quando `GET /auth/public-config` falha ou ainda não resolveu
 // (design.md D7/D9; `manualUrl` pela change `acesso-ao-manual-no-shell`,
-// design.md D4): sem identificação de cliente e sem `manualUrl`, o item do
-// manual desaparece do rodapé em vez de apontar para lugar nenhum.
+// design.md D4; `supportContact` pela change `identidade-visual-isetes`,
+// design.md D8): sem identificação de cliente e sem `manualUrl`, o item do
+// manual desaparece do rodapé em vez de apontar para lugar nenhum; sem
+// `supportContact`, o aviso de contato não é exibido — nem como espaço
+// reservado.
 const DEFAULT_PUBLIC_CONFIG: PublicConfigResponse = {
   appName: 'PapelHub',
   clientName: '',
   manualUrl: '',
+  supportContact: '',
 };
 
 interface SessionContextValue {

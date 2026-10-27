@@ -35,9 +35,10 @@ export function authRouter(ports: Ports, appManualUrl: string): Router {
 
   // Configuração pública de apresentação da implantação (change
   // rebranding-doc7-setes, design.md D1/D2/D4; manualUrl acrescentado pela
-  // change acesso-ao-manual-no-shell, design.md D3): sem attachTenantContext
+  // change acesso-ao-manual-no-shell, design.md D3; supportContact pela
+  // change identidade-visual-isetes, design.md D8): sem attachTenantContext
   // — a tela de login é pré-autenticação e precisa desta configuração antes
-  // de haver sessão. Contrato travado a uma allowlist nominal de três
+  // de haver sessão. Contrato travado a uma allowlist nominal de quatro
   // valores; nenhum outro dado de configuração entra aqui. Não abre
   // transação tenant.
   router.get('/auth/public-config', (_req, res) => {
@@ -45,6 +46,7 @@ export function authRouter(ports: Ports, appManualUrl: string): Router {
       appName: 'PapelHub',
       clientName: config.appClientName,
       manualUrl: appManualUrl,
+      supportContact: config.appSupportContact,
     };
     res.json(response);
   });

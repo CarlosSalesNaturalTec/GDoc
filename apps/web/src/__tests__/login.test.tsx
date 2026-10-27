@@ -3,8 +3,10 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import { UserRole } from '@gdoc/shared';
 import { LOGIN_BACKGROUND_COLOR } from '../auth/LoginPage';
+import { paleta } from '../app/theme';
 import { mockFetch } from './mock-fetch';
 import { renderApp } from './render-app';
+import { WIDE_VIEWPORT, mockViewportWidth } from './viewport';
 
 /** Converte hex `#rrggbb` para o formato `rgb(r, g, b)` que o jsdom normaliza em `style.backgroundColor`. */
 function hexToRgb(hex: string) {
@@ -167,25 +169,167 @@ describe('Identidade visual na tela de login (identidade-visual)', () => {
     await waitFor(() => expect(document.title).toBe('PapelHub'));
   });
 
-  it('aplica a cor de marca como fundo da tela de login', async () => {
+  // Recomposto em dois campos (change `identidade-visual-isetes`, design.md
+  // D4): o heading saiu do cartão para o campo escuro, então o fundo deixou
+  // de ser o pai do cartão — a composição é que é a moldura dos dois campos.
+  it('aplica a cor de marca da paleta como fundo da composição e também ao elemento raiz', async () => {
     mockFetch({ 'GET /auth/me': { status: 401 } });
     renderApp(['/login']);
 
-    const card = (await screen.findByRole('heading', { name: 'PapelHub' })).closest('.ant-card');
-    const background = card?.parentElement;
+    const heading = await screen.findByRole('heading', { name: 'PapelHub' });
+    const composicao = heading.closest('div[style*="min-height"]') as HTMLElement | null;
 
-    expect(background?.style.backgroundColor).toBe(hexToRgb(LOGIN_BACKGROUND_COLOR));
+    expect(composicao?.style.backgroundColor).toBe(hexToRgb(LOGIN_BACKGROUND_COLOR));
+    // design.md D4: a raiz continua com uma cor só — é dela que a rolagem
+    // elástica do iOS revela o fundo, e ela segue azul-marinho.
+    expect(document.documentElement.style.backgroundColor).toBe(hexToRgb(LOGIN_BACKGROUND_COLOR));
+  });
+
+  it('a cor de marca vem da paleta da identidade, não mais da amostragem da arte', async () => {
+    expect(LOGIN_BACKGROUND_COLOR).toBe(paleta.marinhoEscuro);
   });
 
   it('o cartão de acesso é fluido com teto, sem largura fixa que estoure telas estreitas', async () => {
     mockFetch({ 'GET /auth/me': { status: 401 } });
     renderApp(['/login']);
 
-    const card = (await screen.findByRole('heading', { name: 'PapelHub' })).closest(
-      '.ant-card',
-    ) as HTMLElement;
+    await screen.findByRole('heading', { name: 'PapelHub' });
+    const card = document.querySelector('.ant-card') as HTMLElement;
 
     expect(card.style.width).toBe('100%');
     expect(card.style.maxWidth).toBe('360px');
+  });
+
+  it('a logomarca permanece contida no campo escuro, e não solta sobre o cartão claro', async () => {
+    mockFetch({ 'GET /auth/me': { status: 401 } });
+    renderApp(['/login']);
+
+    const heading = await screen.findByRole('heading', { name: 'PapelHub' });
+    const logo = document.querySelector('img[src="/logo-papelhub.jpg"]') as HTMLElement;
+    const campoEscuro = heading.parentElement as HTMLElement;
+
+    expect(campoEscuro.contains(logo)).toBe(true);
+    expect(logo.closest('.ant-card')).toBeNull();
+  });
+});
+
+describe('Composição em dois campos da tela de login (identidade-visual)', () => {
+  it('em tela larga apresenta, ao lado do cartão, a proposta de valor do produto', async () => {
+    mockViewportWidth(WIDE_VIEWPORT);
+    mockFetch({ 'GET /auth/me': { status: 401 } });
+    renderApp(['/login']);
+
+    await screen.findByRole('heading', { name: 'PapelHub' });
+    expect(screen.getByText(/repositório de documentos da sua instituição/i)).toBeInTheDocument();
+    expect(screen.getByLabelText('E-mail')).toBeInTheDocument();
+  });
+
+  it('o conteúdo de apresentação não varia por quem acessa — é constante versionada', async () => {
+    mockViewportWidth(WIDE_VIEWPORT);
+    mockFetch({
+      'GET /auth/me': { status: 401 },
+      'GET /auth/public-config': {
+        status: 200,
+        body: { appName: 'PapelHub', clientName: 'SETES', manualUrl: '', supportContact: '' },
+      },
+    });
+    const primeira = renderApp(['/login']);
+    await screen.findByRole('heading', { name: 'PapelHub' });
+    const textoPrimeira = screen.getByText(
+      /repositório de documentos da sua instituição/i,
+    ).textContent;
+    primeira.unmount();
+
+    mockFetch({
+      'GET /auth/me': { status: 401 },
+      'GET /auth/public-config': {
+        status: 200,
+        body: { appName: 'PapelHub', clientName: 'OUTRA', manualUrl: '', supportContact: '' },
+      },
+    });
+    renderApp(['/login']);
+    await screen.findByRole('heading', { name: 'PapelHub' });
+
+    expect(screen.getByText(/repositório de documentos da sua instituição/i).textContent).toBe(
+      textoPrimeira,
+    );
+  });
+
+  it('em 375px os campos empilham, o cartão permanece alcançável e não há rolagem horizontal', async () => {
+    mockViewportWidth(375);
+    mockFetch({ 'GET /auth/me': { status: 401 } });
+    renderApp(['/login']);
+
+    const heading = await screen.findByRole('heading', { name: 'PapelHub' });
+    const composicao = heading.closest('div[style*="min-height"]') as HTMLElement;
+
+    // Empilhamento: a composição passa a coluna, e o cartão de acesso segue
+    // presente e fluido — sem largura fixa que force rolagem horizontal.
+    expect(composicao.style.flexDirection).toBe('column');
+    const card = document.querySelector('.ant-card') as HTMLElement;
+    expect(card.style.width).toBe('100%');
+    expect(screen.getByLabelText('E-mail')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Entrar' })).toBeInTheDocument();
+
+    // O conteúdo de apresentação não empurra o cartão para fora da área
+    // visível: no modo estreito a tela apresenta a marca, não o texto longo.
+    expect(
+      screen.queryByText(/repositório de documentos da sua instituição/i),
+    ).not.toBeInTheDocument();
+  });
+});
+
+describe('Aviso de contato do suporte na tela de login (identidade-visual)', () => {
+  it('contato configurado é apresentado como orientação a quem tem dificuldade para entrar', async () => {
+    mockFetch({
+      'GET /auth/me': { status: 401 },
+      'GET /auth/public-config': {
+        status: 200,
+        body: {
+          appName: 'PapelHub',
+          clientName: '',
+          manualUrl: '',
+          supportContact: 'suporte@setes.org.br',
+        },
+      },
+    });
+    renderApp(['/login']);
+
+    await screen.findByText(/Fale com o suporte: suporte@setes.org.br/);
+  });
+
+  it('sem contato configurado, nenhum aviso é exibido e o login segue plenamente funcional', async () => {
+    mockFetch({
+      'GET /auth/me': { status: 401 },
+      'GET /auth/public-config': {
+        status: 200,
+        body: { appName: 'PapelHub', clientName: '', manualUrl: '', supportContact: '' },
+      },
+      'POST /auth/login': {
+        status: 200,
+        body: { id: 'user-1', unitId: 'unit-1', role: UserRole.COLLABORATOR },
+      },
+    });
+    renderApp(['/login']);
+
+    await screen.findByRole('heading', { name: 'PapelHub' });
+    expect(screen.queryByText(/Fale com o suporte/)).not.toBeInTheDocument();
+
+    await fillAndSubmit('ana@example.com', 'senha-correta');
+    await screen.findByText('Bem-vindo ao PapelHub');
+  });
+
+  // O contato do suporte é o caminho que **de fato** redefine a senha: não há
+  // auto-atendimento no servidor, e a tela não oferece controle inerte.
+  it('a tela não oferece "manter conectado" nem "esqueci minha senha"', async () => {
+    mockFetch({ 'GET /auth/me': { status: 401 } });
+    renderApp(['/login']);
+
+    await screen.findByRole('heading', { name: 'PapelHub' });
+
+    expect(screen.queryByText(/manter.{0,3}(me)? conectad/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
+    expect(screen.queryByText(/esqueci|esqueceu|recuperar senha|redefinir senha/i)).toBeNull();
+    expect(screen.queryByRole('link', { name: /senha/i })).toBeNull();
   });
 });

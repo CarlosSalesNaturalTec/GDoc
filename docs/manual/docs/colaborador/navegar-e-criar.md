@@ -10,6 +10,14 @@ clique.
 Você só vê os itens que **criou** ou que lhe foram **liberados**. Se uma pasta contém
 itens sem permissão para você, eles simplesmente não aparecem.
 
+### Quando a pasta não tem nada a mostrar
+
+Se a pasta não tem nenhum item visível para você, a lista dá lugar a um aviso de que
+**ainda não há documentos ali**. Quando você tem permissão para enviar naquela pasta, o
+aviso traz também o botão **Enviar documento**, que leva direto à área de envio. Sem
+essa permissão, o aviso aparece sozinho — a ação de enviar não é oferecida, porque o
+sistema não ofereceria uma ação que recusaria em seguida.
+
 ## Criar pastas
 
 Dentro de **Arquivos**, clique em **Nova pasta**, dê um nome e confirme. A pasta é

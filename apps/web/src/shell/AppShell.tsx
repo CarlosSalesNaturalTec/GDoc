@@ -2,32 +2,28 @@ import { useMemo, useState } from 'react';
 import { Avatar, Button, Drawer, Dropdown, Layout, Menu, Space, Typography } from 'antd';
 import type { MenuProps } from 'antd';
 import {
-  ApartmentOutlined,
-  DashboardOutlined,
-  DeleteOutlined,
-  FolderOutlined,
-  HomeOutlined,
-  LogoutOutlined,
-  MenuOutlined,
-  ReadOutlined,
-  SearchOutlined,
-  TeamOutlined,
-  UserOutlined,
-} from '@ant-design/icons';
+  IconeArquivos,
+  IconeBuscar,
+  IconeColaboradores,
+  IconeConta,
+  IconeInicio,
+  IconeLixeira,
+  IconeManual,
+  IconeMenu,
+  IconePainel,
+  IconeSair,
+  IconeUnidades,
+} from '../app/icons';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { UserRole } from '@gdoc/shared';
 import { useSession } from '../auth/session-context';
 import { useNarrowMode } from '../app/responsive';
+import { DEGRADE_NAVEGACAO, TAMANHO_MINIMO_TEXTO, paleta } from '../app/theme';
 import { BrandMark } from './BrandMark';
 import { NotificationCenter } from './NotificationCenter';
+import { ROLE_LABEL } from './role-label';
 
 const { Header, Sider, Content } = Layout;
-
-const ROLE_LABEL: Record<UserRole, string> = {
-  [UserRole.COLLABORATOR]: 'Colaborador',
-  [UserRole.UNIT_ADMIN]: 'Administrador da unidade',
-  [UserRole.GLOBAL_ADMIN]: 'Administrador global',
-};
 
 /** Chave do acesso auxiliar ao manual — nunca coincide com um `pathname`, então nunca entra em `selectedKeys`. */
 const MANUAL_KEY = 'manual-do-usuario';
@@ -57,20 +53,20 @@ export function AppShell() {
   // lados — por isso este é o único lugar que monta a lista.
   const items: MenuProps['items'] = useMemo(() => {
     const destinations: MenuProps['items'] = [
-      { key: '/', icon: <HomeOutlined />, label: <Link to="/">Início</Link> },
-      { key: '/pastas', icon: <FolderOutlined />, label: <Link to="/pastas">Arquivos</Link> },
-      { key: '/busca', icon: <SearchOutlined />, label: <Link to="/busca">Buscar</Link> },
-      { key: '/lixeira', icon: <DeleteOutlined />, label: <Link to="/lixeira">Lixeira</Link> },
+      { key: '/', icon: <IconeInicio />, label: <Link to="/">Início</Link> },
+      { key: '/pastas', icon: <IconeArquivos />, label: <Link to="/pastas">Arquivos</Link> },
+      { key: '/busca', icon: <IconeBuscar />, label: <Link to="/busca">Buscar</Link> },
+      { key: '/lixeira', icon: <IconeLixeira />, label: <Link to="/lixeira">Lixeira</Link> },
       ...(isAdmin
         ? [
             {
               key: '/admin/pessoas',
-              icon: <TeamOutlined />,
+              icon: <IconeColaboradores />,
               label: <Link to="/admin/pessoas">Colaboradores</Link>,
             },
             {
               key: '/admin/painel',
-              icon: <DashboardOutlined />,
+              icon: <IconePainel />,
               label: <Link to="/admin/painel">Painel</Link>,
             },
           ]
@@ -79,7 +75,7 @@ export function AppShell() {
         ? [
             {
               key: '/admin/unidades',
-              icon: <ApartmentOutlined />,
+              icon: <IconeUnidades />,
               label: <Link to="/admin/unidades">Unidades</Link>,
             },
           ]
@@ -96,7 +92,7 @@ export function AppShell() {
     if (publicConfig.manualUrl) {
       destinations.push({
         key: MANUAL_KEY,
-        icon: <ReadOutlined />,
+        icon: <IconeManual />,
         title: 'Manual do usuário',
         label: (
           <a
@@ -134,11 +130,11 @@ export function AppShell() {
   const identityMenuItems: MenuProps['items'] = [
     {
       key: 'minha-conta',
-      icon: <UserOutlined />,
+      icon: <IconeConta />,
       label: <Link to="/minha-conta">Minha conta</Link>,
     },
     { type: 'divider' },
-    { key: 'sair', icon: <LogoutOutlined />, label: 'Sair', onClick: handleLogout },
+    { key: 'sair', icon: <IconeSair />, label: 'Sair', onClick: handleLogout },
   ];
 
   if (!identity) return null;
@@ -146,11 +142,28 @@ export function AppShell() {
   return (
     <Layout style={{ minHeight: '100vh' }}>
       {!isNarrow && (
-        <Sider collapsible collapsed={collapsed} onCollapse={setCollapsed}>
+        // Degradê azul-marinho da marca (change `identidade-visual-isetes`,
+        // tasks 3.1): pintado na própria navegação, que é quem cobre a coluna
+        // inteira — topo, menu e rodapé do colapso. O token `siderBg` do
+        // design system fica transparente (theme.ts) para o fundo chapado
+        // dele não vazar por cima. A cor vem dos tokens, nunca de literal.
+        <Sider
+          collapsible
+          collapsed={collapsed}
+          onCollapse={setCollapsed}
+          style={{ background: DEGRADE_NAVEGACAO }}
+        >
           <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
             <div style={{ minHeight: 48, margin: 16 }}>
               {collapsed ? (
-                <div style={{ color: '#fff', fontWeight: 600, fontSize: 18, lineHeight: '24px' }}>
+                <div
+                  style={{
+                    color: paleta.branco,
+                    fontWeight: 600,
+                    fontSize: 18,
+                    lineHeight: '24px',
+                  }}
+                >
                   PH
                 </div>
               ) : (
@@ -162,7 +175,11 @@ export function AppShell() {
                   o colapsado não tem largura para o subtítulo sem truncar. */}
               {!collapsed && publicConfig.clientName && (
                 <div
-                  style={{ color: 'rgba(255, 255, 255, 0.65)', fontSize: 12, lineHeight: '16px' }}
+                  style={{
+                    color: paleta.textoSobreEscuro,
+                    fontSize: TAMANHO_MINIMO_TEXTO,
+                    lineHeight: '18px',
+                  }}
                 >
                   {publicConfig.clientName}
                 </div>
@@ -175,7 +192,7 @@ export function AppShell() {
       <Layout>
         <Header
           style={{
-            background: '#fff',
+            background: paleta.branco,
             display: 'flex',
             alignItems: 'center',
             justifyContent: isNarrow ? 'space-between' : 'flex-end',
@@ -186,7 +203,7 @@ export function AppShell() {
           {isNarrow && (
             <Button
               type="text"
-              icon={<MenuOutlined style={{ fontSize: 18 }} />}
+              icon={<IconeMenu style={{ fontSize: 18 }} />}
               aria-label="Abrir navegação"
               onClick={() => setNavOpen(true)}
             />
@@ -212,9 +229,22 @@ export function AppShell() {
           open={navOpen}
           onClose={() => setNavOpen(false)}
           width={280}
-          styles={{ body: { padding: 0 } }}
+          /* O painel sobreposto é a navegação do modo estreito: recebe o mesmo
+             degradê da coluna lateral (tasks 3.1), sem faixa de outra cor
+             entre o cabeçalho e o menu. */
+          styles={{
+            body: { padding: 0, background: DEGRADE_NAVEGACAO },
+            header: { background: DEGRADE_NAVEGACAO, borderBottom: 'none' },
+            content: { background: DEGRADE_NAVEGACAO },
+          }}
         >
-          <Menu mode="inline" selectedKeys={[selectedKey]} items={items} onClick={handleNavClick} />
+          <Menu
+            theme="dark"
+            mode="inline"
+            selectedKeys={[selectedKey]}
+            items={items}
+            onClick={handleNavClick}
+          />
         </Drawer>
       )}
     </Layout>

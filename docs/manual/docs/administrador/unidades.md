@@ -1,7 +1,7 @@
 # Unidades (administrador global)
 
-O administrador global faz tudo que o administrador de unidade faz, porém com
-alcance sobre **todas as unidades**.
+O administrador global faz tudo que o gestor faz, porém com alcance sobre
+**todas as unidades**.
 
 ## Administrar unidades
 
@@ -22,7 +22,7 @@ ativas aparecem na lista). Esse campo só existe no **cadastro** — a unidade n
 alterada pela edição. A lista de [Colaboradores](pessoas.md) ganha uma coluna **Unidade**,
 para você distinguir contas de unidades diferentes.
 
-Você também define quem é **administrador de unidade** e acompanha o
+Você também define quem é **gestor** da unidade e acompanha o
 [painel](painel.md) e a [auditoria](auditoria.md) no âmbito global.
 
 !!! note "Isolamento preservado mesmo com alcance global"

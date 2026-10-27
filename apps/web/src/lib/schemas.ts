@@ -81,6 +81,11 @@ export const folderContentsResponseSchema: z.ZodType<FolderContentsResponse> = z
   breadcrumb: z.array(folderResponseSchema),
   folders: z.array(folderResponseSchema),
   files: z.array(fileSummaryResponseSchema),
+  // Veredito de `upload` resolvido pelo servidor (design.md D10 de
+  // `identidade-visual-isetes`). Resolve como `false` quando ausente — uma
+  // API mais antiga que a SPA simplesmente não oferece a ação na orientação
+  // de pasta vazia, em vez de oferecê-la sem respaldo.
+  canUpload: z.boolean().catch(false),
 });
 
 /** Espelha `SignedUrlResponse` (design.md D7, `web-visualizacao`). */
@@ -327,6 +332,12 @@ export const publicConfigResponseSchema: z.ZodType<PublicConfigResponse> = z.obj
   appName: z.string(),
   clientName: z.string(),
   manualUrl: z.union([z.literal(''), z.url({ protocol: /^https?$/ })]),
+  // Texto livre (e-mail, ramal ou ambos) — a implantação escolhe a forma, e
+  // a SPA não impõe `mailto:` (design.md D8 de `identidade-visual-isetes`).
+  // Ausente numa API mais antiga que a SPA resolve como vazio, que é o mesmo
+  // caso de "não configurado": o campo é opcional em ambas as pontas por
+  // construção (design.md, Migration Plan).
+  supportContact: z.string().catch(''),
 });
 
 /** Espelha `FolderDownloadManifestEntry` (design.md D1/D7, `download-pasta-zip`). */

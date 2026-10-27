@@ -75,7 +75,10 @@ describe('Central de notificações do shell (change expiracao-permissoes)', () 
     renderApp(['/pastas']);
     await waitFor(() => expect(screen.getByText('1')).toBeInTheDocument());
 
-    const bell = document.querySelector('.anticon-bell')!.closest('button') as HTMLElement;
+    // Localizado pelo **nome acessível**, não pela classe do ícone: a
+    // biblioteca de ícones é detalhe de apresentação (change
+    // `identidade-visual-isetes`), o nome acessível é contrato.
+    const bell = screen.getByRole('button', { name: 'Notificações' });
     await userEvent.click(bell);
 
     await screen.findByText('Marcar como lida');

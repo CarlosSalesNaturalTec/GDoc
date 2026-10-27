@@ -1,11 +1,11 @@
 import { useRef, useState } from 'react';
 import { Alert, App, Button, List, Progress, Space, Typography, Upload } from 'antd';
 import {
-  FolderOpenOutlined,
-  InboxOutlined,
-  ReloadOutlined,
-  UploadOutlined,
-} from '@ant-design/icons';
+  IconeArrastarSoltar,
+  IconeEnviar,
+  IconeEnviarPasta,
+  IconeTentarNovamente,
+} from '../app/icons';
 import type {
   BatchUploadItemRequest,
   BatchUploadUrlRequest,
@@ -704,7 +704,7 @@ export function UploadArea({ destinationFolderId }: UploadAreaProps) {
           beforeUpload={handleBeforeUpload}
           disabled={emAndamento}
         >
-          <Button icon={<UploadOutlined />} disabled={emAndamento}>
+          <Button icon={<IconeEnviar />} disabled={emAndamento}>
             Enviar arquivos
           </Button>
         </Upload>
@@ -723,7 +723,7 @@ export function UploadArea({ destinationFolderId }: UploadAreaProps) {
           disabled={emAndamento}
         >
           <Button
-            icon={<FolderOpenOutlined />}
+            icon={<IconeEnviarPasta />}
             disabled={emAndamento}
             onClick={(e) => {
               if (isNarrow) {
@@ -764,7 +764,7 @@ export function UploadArea({ destinationFolderId }: UploadAreaProps) {
           style={{ marginTop: 16, maxWidth: 560 }}
         >
           <p className="ant-upload-drag-icon">
-            <InboxOutlined />
+            <IconeArrastarSoltar />
           </p>
           <p className="ant-upload-text">Arraste pastas e arquivos para cá</p>
           <p className="ant-upload-hint">
@@ -911,7 +911,7 @@ export function UploadArea({ destinationFolderId }: UploadAreaProps) {
                     <Button
                       key="retry"
                       size="small"
-                      icon={<ReloadOutlined />}
+                      icon={<IconeTentarNovamente />}
                       onClick={() => retryItem(item.uid)}
                     >
                       Repetir
