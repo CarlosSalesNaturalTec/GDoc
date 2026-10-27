@@ -44,40 +44,39 @@ degrada esse efeito para `useEffect` de propósito (para não emitir aviso de SS
 
 - Eliminar o duplo render de componentes internos do design system que leiam breakpoint por
   conta própria. Este change governa o hook da aplicação, não o Ant Design.
-- Substituir `Grid.useBreakpoint` como fonte do veredito **contínuo** (reação a
-  redimensionamento e a rotação de tela), que já funciona.
+- Mudar o limiar ou a sua origem: o veredito contínuo passa a vir da `MediaQueryList`
+  diretamente, mas o valor que a define continua sendo o token do design system.
 - Remover os `waitFor`/`findBy` dos testes de modo estreito (ver D3).
 
 ## Decisions
 
-### D1 — Semente síncrona a partir do token, com o observador seguindo como está
+### D1 — Snapshot síncrono da `MediaQueryList`, com a consulta derivada do token
 
-`useNarrowMode` passa a ler o token do design system e a semear o primeiro render com o
-resultado de `matchMedia` sobre esse mesmo token, entregando a semente ao segundo parâmetro
-de `Grid.useBreakpoint` (`defaultScreens`), que é precisamente o valor do primeiro render.
-Do segundo render em diante nada muda: quem manda é o observador do design system.
-
-Em forma, não em código final:
+`useNarrowMode` lê o token `screenLG` do design system, monta a consulta de mídia a partir
+dele — `(min-width: ${screenLG}px)`, a mesma forma que o design system usa para `lg` — e a
+consome por `useSyncExternalStore`: `getSnapshot` é o `matches` da `MediaQueryList`, logo
+síncrono no primeiro render; `subscribe` é o evento `change` da mesma `MediaQueryList`, que
+mantém a reação a redimensionamento e rotação de tela.
 
 ```
-token.screenLG ──▶ matchMedia(`(min-width: ${screenLG}px)`) ──▶ { lg: matches }
-                                                                     │
-                                        Grid.useBreakpoint(true, ────┘ )
-                                           render #1: a semente
-                                           render #2+: o observador
+token.screenLG ──▶ matchMedia(`(min-width: ${screenLG}px)`)
+                        │                    │
+      getSnapshot ──────┘                    └────── subscribe('change')
+      veredito já no render #1                       reação contínua
 ```
 
-**Por que não escrever o limiar à mão:** o valor continua vindo de `screenLG`. A query é
+**Por que não semear `Grid.useBreakpoint`, que era a primeira escolha:** o hook aceita
+`defaultScreens` — o valor do primeiro render — mas isso **não é público**. A superfície
+exportada declara `useBreakpoint(): ScreenMap`, sem parâmetros
+(`antd/lib/grid/index.d.ts`); os dois argumentos existem só no módulo interno
+`antd/lib/grid/hooks/useBreakpoint`, que teria de ser importado por caminho profundo — uma
+dependência de órgão interno de biblioteca, sem garantia entre versões, para economizar as
+oito linhas do leitor. Descartada na implementação, com o motivo registrado aqui.
+
+**Por que não escrever o limiar à mão:** o valor continua vindo de `screenLG`. A consulta é
 montada a partir do token, e não ao lado dele — é a mesma derivação que o design system faz
-internamente para `lg`, não um segundo limiar.
-
-**Alternativa considerada — `useSyncExternalStore` próprio sobre `matchMedia`**, dispensando
-`Grid.useBreakpoint` inteiramente: dá snapshot síncrono por construção e não depende do
-comportamento interno do Ant Design. Descartada por desproporção: substitui um mecanismo que
-funciona (a reação contínua) para resolver apenas o instante inicial, e assumiria por conta
-própria a subscrição a mudança de largura — mais código sob nossa guarda, sem ganho de
-comportamento. Fica como o caminho a seguir se o `defaultScreens` do design system deixar de
-existir numa major futura.
+internamente para `lg`, não um segundo limiar. O que deixa de vir do design system é o
+*mecanismo de subscrição*, não o limiar.
 
 **Alternativa considerada — manter o hook e viver com os `waitFor`:** é o estado que este
 change existe para encerrar. O contorno é correto para quem o escreve sabendo do problema, e
@@ -109,13 +108,13 @@ divergência apareceria como veredito que muda sozinho entre o primeiro e o segu
 
 ## Risks / Trade-offs
 
-- **O `defaultScreens` de `Grid.useBreakpoint` é parâmetro de um hook exportado, não contrato
-  escrito em pedra** → se uma major do Ant Design o remover ou mudar sua semântica, a trava
-  do D4 reprova de forma ruidosa na atualização, com a alternativa do D1
-  (`useSyncExternalStore` próprio) já desenhada e o comportamento de hoje como piso.
-- **A semente duplica, em um ponto, a forma da query que o design system monta internamente**
-  → é só o breakpoint `lg`, derivado do mesmo token `screenLG`, e o D4 trava a coerência nas
-  duas bordas.
+- **A subscrição a mudança de largura passa a ser nossa** → são duas linhas sobre o evento
+  `change`, o mesmo mecanismo que o design system usa internamente; o caminho de
+  redimensionamento em runtime não é coberto por teste, porque o `matchMedia` simulado da
+  suíte não emite eventos (nem antes deste change emitia).
+- **A consulta duplica, em um ponto, a forma que o design system monta internamente** → é só
+  o breakpoint `lg`, derivado do mesmo token `screenLG`, e o D4 trava a coerência nas duas
+  bordas.
 - **Ganho invisível ao usuário** → em produção ninguém vê o render descartado desaparecer; o
   retorno é trabalho de render economizado em aparelho fraco e uma classe de teste frágil
   encerrada. Assumido de propósito: é mudança de mecanismo, não de interface.

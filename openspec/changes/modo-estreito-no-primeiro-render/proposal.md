@@ -34,10 +34,10 @@ que nenhum autor de teste controla.
   estreito é boa prática de teste assíncrono de qualquer modo, e removê-los só devolveria
   fragilidade a troco de nada.
 - Fora de escopo: o valor do limiar (`lg`, 992px) e a decisão D1 de
-  `responsividade-mobile-tablet`, que seguem como estão; a troca do design system ou do
-  `Grid.useBreakpoint` por mecanismo próprio de `matchMedia`, que custaria a sincronia com
-  os tokens; e qualquer alteração nos componentes que consomem o hook — a assinatura
-  (`(): boolean`) não muda, e nenhum deles é tocado.
+  `responsividade-mobile-tablet`, que seguem como estão; a troca do design system como
+  **origem do limiar** — a consulta de mídia continua derivada do token `screenLG`; e
+  qualquer alteração nos componentes que consomem o hook — a assinatura (`(): boolean`) não
+  muda, e nenhum deles é tocado.
 
 ## Capabilities
 
