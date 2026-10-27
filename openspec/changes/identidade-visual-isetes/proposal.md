@@ -75,8 +75,7 @@ um esquecimento:
   "Minhas Pastas", árvore lateral e Recentes** (itens 3, 4, 5, 7, 9 e parte do
   8): change seguinte, `shell-e-inicio`.
 - **Tipo e sigla por documento, revisão, situação e metadados no envio** (itens
-  6, 10, 12): change `controle-documental`, que depende de um épico novo no PRD
-  — não há US sobre revisão ou vigência documental hoje.
+  6, 10, 12): change `controle-documental`, que implementa o Épico 10 do PRD.
 - **Favoritos, leitura obrigatória com ciência, notificações novas e tour
   guiado** (itens 8-parcial, 11, 13, 14): fora de todas as changes desta rodada.
 - **Versão para celular** (item 18): já entregue pela change arquivada

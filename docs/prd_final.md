@@ -9,7 +9,7 @@ O **objetivo principal** do GDoc é entregar um repositório de arquivos corpora
 ## 2. Personas
 
 * **Administrador Global:** responsável pela plataforma como um todo. Enxerga todas as unidades e todos os arquivos, cadastra e desativa pessoas, define administradores de unidade, configura permissões e consome os registros de auditoria e o painel gerencial. Sua dor é a falta de controle centralizado e de comprovação de quem acessou o quê.
-* **Administrador de Unidade:** gerencia apenas a sua própria unidade — as pessoas, as pastas e as permissões daquela unidade. Não enxerga o conteúdo das demais unidades. Sua dor é depender de uma área central para tarefas cotidianas de liberação de acesso do seu time.
+* **Administrador de Unidade** (apresentado na interface como **Gestor**)**:** gerencia apenas a sua própria unidade — as pessoas, as pastas e as permissões daquela unidade. Não enxerga o conteúdo das demais unidades. Sua dor é depender de uma área central para tarefas cotidianas de liberação de acesso do seu time.
 * **Colaborador (Usuário Comum):** envia e consome arquivos no dia a dia. Só enxerga os arquivos e pastas que criou ou para os quais recebeu permissão explícita. Quando envia um arquivo, torna-se o dono dele e pode consultar quem o acessou. Sua dor é encontrar rapidamente o material certo e ter certeza de que documentos sensíveis não estão expostos a quem não deveria vê-los.
 
 ## 3. Escopo do MVP
@@ -30,6 +30,8 @@ O **objetivo principal** do GDoc é entregar um repositório de arquivos corpora
   * Painel (dashboard) com cartões de estatísticas principais e gráficos de quantidade de arquivos por tipo, envios por mês e espaço utilizado versus disponível, acessível pelo menu lateral.
   * Busca por nome e filtros por data, tipo de arquivo (imagens, vídeos, áudios, PDFs, entre outros) e autor na página de arquivos, com botão para limpar filtros.
   * Visualização, sem necessidade de baixar, de PDFs, imagens, vídeos, áudios, arquivos de texto e documentos de escritório (Word, Excel, PowerPoint).
+  * Controle documental: cada documento pode carregar tipo (com sigla e cor), código único por unidade, revisão, setor responsável e data de próxima revisão; a situação (Vigente, A vencer, Em revisão, Revisão vencida, Obsoleto ou Sem controle de revisão) é apurada pelo relógio do servidor no momento da consulta. Os dados de controle são exigidos no envio de um documento e dispensados no envio em lote ou de pasta. Substituir o arquivo avança a revisão. Documentos marcados como obsoletos deixam de ser apresentados a Colaboradores.
+  * Tela inicial orientada ao trabalho: identificação da pessoa, atalhos conforme o perfil, acesso rápido às pastas de primeiro nível permitidas e lista dos documentos alterados recentemente, sempre limitada ao que a pessoa pode acessar e à sua unidade.
 
 * **Fora de Escopo (nesta versão):**
   * Login por conta Google ou integração com o login corporativo existente (o MVP usa usuário e senha próprios).
@@ -39,6 +41,10 @@ O **objetivo principal** do GDoc é entregar um repositório de arquivos corpora
   * Histórico de versões navegável de um arquivo (substituir troca o arquivo vigente; versões anteriores não ficam disponíveis para consulta).
   * Compartilhamento de arquivos entre unidades diferentes.
   * Notificações fora do contexto de expiração de permissão (ex.: aviso a cada novo compartilhamento recebido).
+  * Leitura obrigatória com registro de ciência (confirmação datada de que a pessoa leu um documento).
+  * Marcação de documentos como favoritos e lista pessoal de favoritos.
+  * Tour guiado de primeiro acesso.
+  * Busca pelo conteúdo interno dos arquivos (a busca alcança nome e código do documento, não o texto dentro do PDF ou do documento de escritório).
 
 ## 4. Histórias de Usuário e Critérios de Aceitação
 
@@ -385,6 +391,161 @@ O **objetivo principal** do GDoc é entregar um repositório de arquivos corpora
       * **Quando** tento visualizá-lo
       * **Então** o sistema informa que a pré-visualização não está disponível e oferece o download, respeitando minhas permissões.
 
+### Épico 10: Controle Documental
+
+> Este épico transforma o repositório de arquivos num repositório de **documentos controlados**: cada documento passa a carregar tipo, código, revisão, responsável e prazo de próxima revisão, e a aplicação passa a dizer, de relance, se ele ainda vale. Decorre de solicitação direta do cliente (Instituto SETES) e preserva uma fronteira já fixada no Escopo do MVP: **avançar a revisão não cria histórico navegável** — a versão anterior continua indisponível para consulta, como em qualquer substituição.
+
+* **US 10.1:** Como Colaborador, eu quero classificar um documento por tipo para que eu o identifique de relance na listagem, sem abrir o arquivo.
+  * **Critérios de Aceitação:**
+    * *Cenário 1 — Tipo exibido como sigla e cor:*
+      * **Dado** que um documento foi classificado com um dos tipos previstos (Protocolo, Procedimento, Política/Norma, Formulário/Checklist, Fluxograma, Manual, Termo de Consentimento ou Comunicado Interno)
+      * **Quando** visualizo a listagem da pasta que o contém
+      * **Então** vejo a sigla do tipo junto ao nome do documento, acompanhada da cor correspondente àquele tipo.
+    * *Cenário 2 — A cor nunca é a única portadora da informação:*
+      * **Dado** que um documento exibe a etiqueta do seu tipo
+      * **Quando** consulto a listagem sem distinguir cores
+      * **Então** a sigla do tipo permanece legível por si só, sem que eu dependa da cor para saber de que tipo se trata.
+    * *Cenário 3 — Documento sem classificação:*
+      * **Dado** que um arquivo foi enviado sem tipo informado
+      * **Quando** visualizo a listagem
+      * **Então** ele aparece normalmente, sem etiqueta de tipo, e continua acessível conforme minhas permissões.
+
+* **US 10.2:** Como Colaborador, eu quero que cada documento controlado tenha um código próprio para que eu o encontre e o cite sem ambiguidade.
+  * **Critérios de Aceitação:**
+    * *Cenário 1 — Busca pelo código:*
+      * **Dado** que existe na minha unidade um documento de código `PRT-NSP-001` a que tenho acesso
+      * **Quando** informo esse código na busca
+      * **Então** o documento correspondente é encontrado.
+    * *Cenário 2 — Código repetido na mesma unidade é recusado:*
+      * **Dado** que já existe na minha unidade um documento com o código que informei
+      * **Quando** tento publicar outro documento com o mesmo código
+      * **Então** o envio é recusado com aviso claro de código já em uso, e nenhum documento é publicado.
+    * *Cenário 3 — O mesmo código em unidades diferentes não conflita:*
+      * **Dado** que outra unidade possui um documento com o código que informei
+      * **Quando** publico um documento com esse código na minha unidade
+      * **Então** a publicação é aceita, pois o código é único dentro de cada unidade, e em nenhum momento o documento da outra unidade me é revelado.
+
+* **US 10.3:** Como Colaborador, eu quero ver a revisão vigente e o responsável por cada documento para que eu saiba com quem falar e qual versão estou lendo.
+  * **Critérios de Aceitação:**
+    * *Cenário 1 — Revisão e responsável na listagem:*
+      * **Dado** que tenho permissão de visualizar um documento controlado
+      * **Quando** abro a pasta que o contém
+      * **Então** vejo, naquela linha, a revisão vigente e o setor responsável pelo documento.
+    * *Cenário 2 — Documento sem esses dados:*
+      * **Dado** que um arquivo foi enviado sem revisão nem responsável informados
+      * **Quando** o vejo na listagem
+      * **Então** os campos aparecem vazios de forma explícita, sem número de revisão presumido.
+
+* **US 10.4:** Como Gestor, eu quero ver a situação de cada documento para que eu identifique o que está vencido ou prestes a vencer sem precisar conferir datas uma a uma.
+  * **Critérios de Aceitação:**
+    * *Cenário 1 — Documento dentro do prazo:*
+      * **Dado** que um documento tem data de próxima revisão a mais de 60 dias
+      * **Quando** o consulto
+      * **Então** sua situação é apresentada como **Vigente**.
+    * *Cenário 2 — Documento a vencer:*
+      * **Dado** que a data de próxima revisão de um documento ocorre dentro dos próximos 60 dias
+      * **Quando** o consulto
+      * **Então** sua situação é apresentada como **A vencer**, indicando em quantos dias vence.
+    * *Cenário 3 — Documento com revisão vencida:*
+      * **Dado** que a data de próxima revisão de um documento já passou
+      * **Quando** o consulto
+      * **Então** sua situação é apresentada como **Revisão vencida**.
+    * *Cenário 4 — Documento declarado em revisão:*
+      * **Dado** que o responsável declarou que o documento está em elaboração ou revisão
+      * **Quando** o consulto
+      * **Então** sua situação é apresentada como **Em revisão**, independentemente da data de próxima revisão.
+    * *Cenário 5 — Documento sem controle de revisão:*
+      * **Dado** que um arquivo não tem data de próxima revisão informada
+      * **Quando** o consulto
+      * **Então** sua situação é apresentada como **Sem controle de revisão**, e ele não é contabilizado entre os documentos a vencer nem entre os vencidos.
+    * *Cenário 6 — A virada de prazo não depende de rotina:*
+      * **Dado** que um documento vence a revisão no instante seguinte
+      * **Quando** o consulto após esse instante, sem que nenhuma rotina programada tenha sido executada
+      * **Então** sua situação já é apresentada como **Revisão vencida**, pois é apurada pelo relógio do servidor no momento da consulta.
+
+* **US 10.5:** Como Gestor, eu quero que os dados de controle sejam exigidos ao publicar um documento para que a unidade não acumule documentos sem rastreio.
+  * **Critérios de Aceitação:**
+    * *Cenário 1 — Envio de um documento exige os dados:*
+      * **Dado** que estou enviando um único documento
+      * **Quando** confirmo a publicação sem informar tipo, código, revisão e data de próxima revisão
+      * **Então** o sistema recusa a publicação e indica quais dados faltam.
+    * *Cenário 2 — Envio em lote não exige os dados:*
+      * **Dado** que estou enviando vários arquivos de uma vez, ou uma pasta inteira
+      * **Quando** confirmo o envio sem informar dados de controle
+      * **Então** os arquivos são enviados normalmente e ficam com situação **Sem controle de revisão**, podendo receber os dados depois.
+    * *Cenário 3 — Acervo anterior não é invalidado:*
+      * **Dado** que a unidade já possuía arquivos enviados antes da existência do controle documental
+      * **Quando** navego por eles
+      * **Então** permanecem acessíveis conforme minhas permissões, com situação **Sem controle de revisão**, sem que nenhum deles se torne inválido ou inacessível.
+
+* **US 10.6:** Como Gestor, eu quero que substituir o arquivo avance a revisão para que a numeração acompanhe a realidade do documento.
+  * **Critérios de Aceitação:**
+    * *Cenário 1 — Substituição avança a revisão:*
+      * **Dado** que tenho permissão de substituir um documento controlado que está na revisão 01
+      * **Quando** substituo o arquivo por uma nova versão
+      * **Então** o documento passa a constar na revisão 02, mantendo código, tipo e responsável.
+    * *Cenário 2 — A revisão anterior não fica disponível para consulta:*
+      * **Dado** que um documento teve sua revisão avançada
+      * **Quando** procuro a revisão anterior
+      * **Então** ela não está disponível, pois o sistema mantém apenas a versão vigente — comportamento já previsto no escopo do MVP.
+    * *Cenário 3 — Sem permissão de substituir, a revisão não avança:*
+      * **Dado** que não tenho permissão de substituir um documento
+      * **Quando** tento substituí-lo
+      * **Então** a ação é recusada e a revisão permanece como estava.
+
+* **US 10.7:** Como Gestor, eu quero que documentos obsoletos saiam de circulação para que ninguém siga um procedimento substituído.
+  * **Critérios de Aceitação:**
+    * *Cenário 1 — Colaborador não alcança documento obsoleto:*
+      * **Dado** que um documento foi marcado como obsoleto
+      * **Quando** um Colaborador navega pela pasta, busca pelo nome ou pelo código, ou acessa o endereço direto do documento
+      * **Então** em nenhum desses caminhos o documento lhe é apresentado, nem sua pré-visualização.
+    * *Cenário 2 — Gestor continua enxergando o obsoleto:*
+      * **Dado** que um documento foi marcado como obsoleto
+      * **Quando** um Gestor da unidade consulta a pasta
+      * **Então** o documento aparece, claramente identificado como **Obsoleto**.
+    * *Cenário 3 — Obsolescência não atravessa unidades:*
+      * **Dado** que um Gestor consulta documentos obsoletos
+      * **Quando** faz essa consulta
+      * **Então** enxerga apenas os da própria unidade, sem que a condição de obsoleto abra qualquer acesso a conteúdo de outra unidade.
+
+### Épico 11: Orientação na Tela Inicial
+
+> Este épico trata da tela de entrada como ponto de partida do trabalho, e não como boas-vindas decorativa. Decorre de solicitação direta do cliente.
+
+* **US 11.1:** Como Colaborador, eu quero que a tela inicial me diga quem sou, onde estou e o que posso fazer para que eu comece a trabalhar sem procurar no menu.
+  * **Critérios de Aceitação:**
+    * *Cenário 1 — Identificação pessoal:*
+      * **Dado** que acabei de entrar no sistema
+      * **Quando** a tela inicial é apresentada
+      * **Então** vejo meu nome, minha função e minha unidade, e não um identificador interno.
+    * *Cenário 2 — Atalhos conforme o meu perfil:*
+      * **Dado** que estou na tela inicial
+      * **Quando** consulto os atalhos oferecidos
+      * **Então** vejo apenas os que meu perfil pode executar, sem atalho que resulte em recusa ao ser acionado.
+    * *Cenário 3 — Acesso rápido às pastas principais:*
+      * **Dado** que tenho acesso a pastas de primeiro nível da minha unidade
+      * **Quando** estou na tela inicial
+      * **Então** vejo cartões para essas pastas, restritos às que posso abrir.
+
+* **US 11.2:** Como Colaborador, eu quero ver os documentos alterados recentemente para que eu acompanhe o que mudou sem vasculhar pastas.
+  * **Critérios de Aceitação:**
+    * *Cenário 1 — Últimas alterações:*
+      * **Dado** que documentos a que tenho acesso foram publicados, substituídos, renomeados ou movidos recentemente
+      * **Quando** abro a tela inicial
+      * **Então** vejo esses documentos ordenados da alteração mais recente para a mais antiga, com a data da alteração.
+    * *Cenário 2 — A lista respeita a permissão:*
+      * **Dado** que um documento a que **não** tenho acesso foi alterado
+      * **Quando** consulto os documentos recentes
+      * **Então** ele não aparece na lista, nem seu nome, nem sua pasta.
+    * *Cenário 3 — A lista não atravessa unidades:*
+      * **Dado** que documentos de outra unidade foram alterados
+      * **Quando** consulto os documentos recentes
+      * **Então** nenhum deles aparece, qualquer que seja o meu papel.
+    * *Cenário 4 — Sem alterações recentes:*
+      * **Dado** que nenhum documento a que tenho acesso foi alterado
+      * **Quando** abro a tela inicial
+      * **Então** a área de recentes informa a ausência de alterações, em vez de permanecer vazia sem explicação.
+
 ## 5. Requisitos Funcionais
 
 1. Autenticação por usuário e senha; contas criadas exclusivamente pela área administrativa, sem autocadastro.
@@ -405,6 +566,14 @@ O **objetivo principal** do GDoc é entregar um repositório de arquivos corpora
 16. Painel gerencial com cartões de estatísticas e gráficos de arquivos por tipo, envios por mês e espaço utilizado versus disponível, respeitando o alcance do administrador.
 17. Busca por nome e filtros combináveis por data, tipo de arquivo e autor, com botão para limpar filtros, sempre limitados aos itens permitidos.
 18. Visualização sem download de PDFs, imagens, vídeos, áudios, arquivos de texto e documentos de escritório (Word, Excel, PowerPoint); mensagem clara quando não houver pré-visualização.
+19. Classificação de documento por tipo, entre os tipos previstos, apresentada na listagem como sigla acompanhada de cor; a sigla é sempre legível por si só, sem que a cor seja a única portadora da informação.
+20. Código de documento único por unidade, utilizável como critério de busca; o mesmo código em unidades distintas não conflita e nunca revela conteúdo de outra unidade.
+21. Revisão vigente, setor responsável e data de próxima revisão registrados por documento e apresentados na listagem.
+22. Situação do documento apurada no momento da consulta, pelo relógio do servidor, a partir da data de próxima revisão e do estado declarado, sem depender de rotina programada: Vigente, A vencer (dentro de 60 dias), Em revisão, Revisão vencida, Obsoleto ou Sem controle de revisão.
+23. Dados de controle exigidos no envio de um documento e dispensados no envio em lote ou de pasta; o acervo anterior permanece acessível com situação Sem controle de revisão, sem invalidação.
+24. Substituição de arquivo avança a revisão do documento, preservando código, tipo e responsável; versões anteriores continuam indisponíveis para consulta, conforme o escopo do MVP.
+25. Documento marcado como obsoleto deixa de ser apresentado a Colaboradores por navegação, busca ou link direto, permanecendo visível a perfis de gestão da própria unidade e nunca atravessando o isolamento entre unidades.
+26. Tela inicial com identificação da pessoa, atalhos filtrados pelo perfil, acesso rápido às pastas de primeiro nível permitidas e lista de documentos alterados recentemente, restrita às permissões da pessoa e à sua unidade.
 
 ## 6. Requisitos Não Funcionais
 
