@@ -40,7 +40,10 @@ function file(
 }
 
 function contents(overrides: Partial<FolderContentsResponse> = {}): FolderContentsResponse {
-  return { folder: null, breadcrumb: [], folders: [], files: [], ...overrides };
+  // `canUpload` vem resolvido pelo servidor (design.md D10 de
+  // `identidade-visual-isetes`); o padrão aqui é a pessoa poder enviar, que é
+  // o caso do dono da pasta — os casos de recusa o sobrescrevem.
+  return { folder: null, breadcrumb: [], folders: [], files: [], canUpload: true, ...overrides };
 }
 
 function audit(overrides: Partial<AuditQueryResponse> = {}): AuditQueryResponse {

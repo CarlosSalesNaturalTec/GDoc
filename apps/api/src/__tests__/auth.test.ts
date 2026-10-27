@@ -327,8 +327,8 @@ describe('Autenticação: /auth/login, /auth/logout, /auth/me', () => {
     });
   });
 
-  describe('GET /auth/public-config (change rebranding-doc7-setes; manualUrl pela change acesso-ao-manual-no-shell, corrige-alcance-do-manual)', () => {
-    it('responde 200 sem cookie de sessão, com apenas appName, clientName e manualUrl (design.md D4, D3 de acesso-ao-manual-no-shell)', async () => {
+  describe('GET /auth/public-config (change rebranding-doc7-setes; manualUrl pela change acesso-ao-manual-no-shell, corrige-alcance-do-manual; supportContact pela change identidade-visual-isetes)', () => {
+    it('responde 200 sem cookie de sessão, com apenas appName, clientName, manualUrl e supportContact (design.md D4, D3 de acesso-ao-manual-no-shell, D8 de identidade-visual-isetes)', async () => {
       const app = createApp(ports);
       const res = await request(app).get('/auth/public-config');
 
@@ -344,13 +344,56 @@ describe('Autenticação: /auth/login, /auth/logout, /auth/me', () => {
       // tautológico apontado na proposal). A trava desta rota é o contrato:
       // exatamente estas três chaves, nenhum outro dado de configuração.
       // Alteração deliberada de contrato (design.md D3) — manter a asserção
-      // por chaves exatas, nunca afrouxar para `toMatchObject`.
+      // por chaves exatas, nunca afrouxar para `toMatchObject`. `supportContact`
+      // é o quarto e último valor da allowlist nominal (change
+      // identidade-visual-isetes, design.md D8): um quinto exige modificar o
+      // requisito de `identidade-visual`, não é extensão natural do contrato.
       expect(res.body).toEqual({
         appName: 'PapelHub',
         clientName: config.appClientName,
         manualUrl: CANONICAL_MANUAL_URL,
+        supportContact: config.appSupportContact,
       });
-      expect(Object.keys(res.body)).toEqual(['appName', 'clientName', 'manualUrl']);
+      expect(Object.keys(res.body)).toEqual([
+        'appName',
+        'clientName',
+        'manualUrl',
+        'supportContact',
+      ]);
+    });
+
+    // Os dois casos normatizados pelo requisito "Contato do suporte é
+    // configurado por implantação" (tasks 4.3). A variável é lida no
+    // carregamento de `config`, então o teste manipula o valor resolvido —
+    // é o mesmo caminho que o Cloud Run percorre ao injetar a env var.
+    it('devolve o contato do suporte configurado pela implantação', async () => {
+      const original = config.appSupportContact;
+      config.appSupportContact = 'suporte@setes.org.br';
+      try {
+        const res = await request(createApp(ports)).get('/auth/public-config');
+
+        expect(res.status).toBe(200);
+        expect(res.body.supportContact).toBe('suporte@setes.org.br');
+      } finally {
+        config.appSupportContact = original;
+      }
+    });
+
+    it('contato ausente é devolvido vazio, mantendo a forma da resposta estável', async () => {
+      const original = config.appSupportContact;
+      config.appSupportContact = '';
+      try {
+        const res = await request(createApp(ports)).get('/auth/public-config');
+
+        expect(res.status).toBe(200);
+        expect(res.body.supportContact).toBe('');
+        // Vazio é **ausência de valor**, nunca ausência da chave: a forma da
+        // resposta não muda, para o consumidor não precisar distinguir os
+        // dois casos.
+        expect(Object.keys(res.body)).toContain('supportContact');
+      } finally {
+        config.appSupportContact = original;
+      }
     });
 
     it('APP_MANUAL_URL inválida (esquema não http/https) derruba createApp no arranque, nomeando a variável', () => {

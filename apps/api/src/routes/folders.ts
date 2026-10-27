@@ -302,6 +302,10 @@ export function foldersRouter(ports: Ports): Router {
         breadcrumb: [],
         folders: folders.map(toFolderResponse),
         files: files.map(toFileSummaryResponse),
+        // A raiz da unidade não é recurso concedível (design.md D9, US 3.3):
+        // enviar para ela é livre a qualquer pessoa autenticada, então não há
+        // `view`/`upload` a resolver aqui.
+        canUpload: true,
       });
     } catch (err) {
       next(err);
@@ -331,7 +335,20 @@ export function foldersRouter(ports: Ports): Router {
 
         const breadcrumb = await buildBreadcrumb(client, folder);
         const { folders, files } = await listContents(client, ctx, folder.id);
-        return { status: 200 as const, folder, breadcrumb, folders, files };
+        // Veredito de `upload` sobre a pasta corrente, resolvido **aqui**, na
+        // mesma transação tenant e pela mesma `hasAccess` que a rota de envio
+        // usa (change `identidade-visual-isetes`, design.md D10). A SPA não
+        // infere permissão no cliente — a capability `web-navegacao` proíbe —,
+        // e sem este veredito a orientação de pasta vazia esconderia a ação de
+        // quem tem a concessão `upload` sobre pasta de outra pessoa.
+        const canUpload = await hasAccess(
+          client,
+          ctx,
+          GrantResourceType.FOLDER,
+          folder.id,
+          Permission.UPLOAD,
+        );
+        return { status: 200 as const, folder, breadcrumb, folders, files, canUpload };
       });
 
       if (outcome.status !== 200) {
@@ -344,6 +361,7 @@ export function foldersRouter(ports: Ports): Router {
         breadcrumb: outcome.breadcrumb.map(toFolderResponse),
         folders: outcome.folders.map(toFolderResponse),
         files: outcome.files.map(toFileSummaryResponse),
+        canUpload: outcome.canUpload,
       });
     } catch (err) {
       next(err);

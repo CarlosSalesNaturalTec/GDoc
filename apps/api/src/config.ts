@@ -222,4 +222,12 @@ export const config = {
   // acesso (design.md D3). Validado (esquema http/https) no arranque de
   // `createApp` (app.ts), não aqui — design.md D5.
   appManualUrl: resolveManualUrl(process.env.APP_MANUAL_URL),
+
+  // Contato do suporte exibido na tela de login (change
+  // identidade-visual-isetes, design.md D8) — dado público, servido por
+  // GET /auth/public-config ao lado de APP_CLIENT_NAME e **sem** passar pelo
+  // SecretsPort: aparece numa tela pré-autenticação, logo é público por
+  // natureza. Texto livre (e-mail, ramal ou ambos), para a implantação
+  // escolher. Vazio/ausente ⇒ nenhum aviso de contato é exibido.
+  appSupportContact: optional('APP_SUPPORT_CONTACT', ''),
 };

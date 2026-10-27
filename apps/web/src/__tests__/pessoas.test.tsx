@@ -128,7 +128,7 @@ describe('Gestão de pessoas da SPA (web-pessoas)', () => {
     const row = screen.getByText('Beltrano Silva').closest('tr')!;
     expect(within(row).getByText('beltrano@example.com')).toBeInTheDocument();
     expect(within(row).getByText('Analista')).toBeInTheDocument();
-    expect(within(row).getByText('Administrador da unidade')).toBeInTheDocument();
+    expect(within(row).getByText('Gestor')).toBeInTheDocument();
     expect(within(row).getByText('Ativo')).toBeInTheDocument();
 
     // pessoa sem nome cai no e-mail
@@ -325,7 +325,7 @@ describe('Gestão de pessoas da SPA (web-pessoas)', () => {
     );
     expect(within(dropdown).queryByText('Colaborador')).not.toBeInTheDocument();
     expect(within(dropdown).queryByText('Administrador global')).not.toBeInTheDocument();
-    expect(within(dropdown).getByText('Administrador da unidade')).toBeInTheDocument();
+    expect(within(dropdown).getByText('Gestor')).toBeInTheDocument();
     await userEvent.keyboard('{Escape}');
     await userEvent.click(within(selfDialog).getByRole('button', { name: 'Cancelar' }));
 

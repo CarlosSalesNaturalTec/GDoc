@@ -1,12 +1,7 @@
 import { useState } from 'react';
 import { Button, DatePicker, Empty, Input, Result, Select, Space, Spin, Table } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import {
-  ClearOutlined,
-  CloudDownloadOutlined,
-  EyeOutlined,
-  SearchOutlined,
-} from '@ant-design/icons';
+import { IconeBaixarVarios, IconeBuscar, IconeLimparFiltros, IconeVisualizar } from '../app/icons';
 import type { Dayjs } from 'dayjs';
 import type { FileCategory, FileSummaryResponse, SearchFilesQuery } from '@gdoc/shared';
 import { UserRole, fileCategory } from '@gdoc/shared';
@@ -124,12 +119,12 @@ export function BuscaPage() {
       key: 'actions',
       render: (_, file) => (
         <Space>
-          <Button size="small" icon={<EyeOutlined />} onClick={() => setPreviewingFile(file)}>
+          <Button size="small" icon={<IconeVisualizar />} onClick={() => setPreviewingFile(file)}>
             Visualizar
           </Button>
           <Button
             size="small"
-            icon={<CloudDownloadOutlined />}
+            icon={<IconeBaixarVarios />}
             loading={downloading}
             onClick={() => download(file.id)}
           >
@@ -182,15 +177,10 @@ export function BuscaPage() {
             onChange={(value) => setFilters((prev) => ({ ...prev, author: value }))}
           />
         )}
-        <Button
-          type="primary"
-          icon={<SearchOutlined />}
-          disabled={!canSearch}
-          onClick={handleSearch}
-        >
+        <Button type="primary" icon={<IconeBuscar />} disabled={!canSearch} onClick={handleSearch}>
           Buscar
         </Button>
-        <Button icon={<ClearOutlined />} onClick={handleClear}>
+        <Button icon={<IconeLimparFiltros />} onClick={handleClear}>
           Limpar filtros
         </Button>
       </Space>

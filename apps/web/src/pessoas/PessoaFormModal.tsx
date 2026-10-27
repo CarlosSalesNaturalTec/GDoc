@@ -4,6 +4,7 @@ import type { PersonResponse } from '@gdoc/shared';
 import { UserRole } from '@gdoc/shared';
 import { ApiError } from '../lib/api-client';
 import { useSession } from '../auth/session-context';
+import { ROLE_LABEL } from '../shell/role-label';
 import { useUnits } from '../unidades/queries';
 import { useCreatePerson, useUpdatePerson } from './queries';
 import { formatFileSize } from '../navegacao/format';
@@ -38,12 +39,6 @@ interface PessoaFormValues {
   /** Exceção nominal em GB; convertida para bytes no envio. */
   storageQuotaGb?: number | null;
 }
-
-export const ROLE_LABEL: Record<UserRole, string> = {
-  [UserRole.COLLABORATOR]: 'Colaborador',
-  [UserRole.UNIT_ADMIN]: 'Administrador da unidade',
-  [UserRole.GLOBAL_ADMIN]: 'Administrador global',
-};
 
 const ROLE_RANK: Record<UserRole, number> = {
   [UserRole.COLLABORATOR]: 0,

@@ -1,5 +1,6 @@
-import { Badge, Button, Dropdown, Empty, List, Tag, Typography } from 'antd';
-import { BellOutlined } from '@ant-design/icons';
+import { Badge, Button, Dropdown, Empty, List, Typography } from 'antd';
+import { IconeNotificacoes } from '../app/icons';
+import { RotuloDeEstado } from '../app/RotuloDeEstado';
 import type { NotificationResponse } from '@gdoc/shared';
 import { GrantResourceType, NotificationKind } from '@gdoc/shared';
 import { VERB_LABEL } from '../permissoes/PermissoesModal';
@@ -97,11 +98,7 @@ export function NotificationCenter() {
             >
               <List.Item.Meta
                 title={
-                  !notification.readAt && (
-                    <Tag color="blue" style={{ marginRight: 4 }}>
-                      Nova
-                    </Tag>
-                  )
+                  !notification.readAt && <RotuloDeEstado tom="informativo">Nova</RotuloDeEstado>
                 }
                 description={
                   <>
@@ -130,7 +127,14 @@ export function NotificationCenter() {
       }}
     >
       <Badge count={unreadCount ?? 0} size="small">
-        <Button type="text" icon={<BellOutlined style={{ fontSize: 18 }} />} />
+        {/* O ícone é `aria-hidden` (módulo único de ícones), então o nome
+            acessível tem de vir do próprio controle — sem ele este botão não
+            tem nome algum para tecnologia assistiva. */}
+        <Button
+          type="text"
+          aria-label="Notificações"
+          icon={<IconeNotificacoes style={{ fontSize: 18 }} />}
+        />
       </Badge>
     </Dropdown>
   );

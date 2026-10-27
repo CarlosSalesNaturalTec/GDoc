@@ -52,10 +52,16 @@ pasta** (`PATCH /folders/:id`), **excluir arquivo** (`DELETE /files/:id`) e
 exclusão SHALL ser confirmada pelo usuário antes de ser enviada. Ao concluir com
 sucesso, a SPA SHALL refletir o novo estado recarregando a listagem da pasta
 corrente; ao mover com sucesso, o item movido SHALL deixar de aparecer na
-listagem de origem. Como os DTOs de listagem não informam os verbos concedidos, a
-SPA NÃO SHALL inferir permissão no cliente: SHALL oferecer a ação e, quando o
-servidor responder **403**, exibir um aviso de **permissão insuficiente**, sem
-aplicar a mudança.
+listagem de origem. Como os DTOs de listagem **não informam os verbos concedidos
+sobre cada item**, a SPA NÃO SHALL inferir no cliente a permissão dessas ações
+por item: SHALL oferecê-las e, quando o servidor responder **403**, exibir um
+aviso de **permissão insuficiente**, sem aplicar a mudança.
+
+A proibição é de **inferir**, não de refletir: onde a resposta do servidor já
+trouxer um veredito de permissão explícito, a SPA SHALL respeitá-lo em vez de
+oferecer a ação — é o caso do veredito de envio da pasta corrente, que a
+capability `navegacao` normatiza. O que a SPA NÃO SHALL fazer é derivar um
+veredito a partir de posse, papel ou qualquer outro campo da resposta.
 
 A recusa de mover por **ciclo** e a recusa por **nome já existente no destino**
 SHALL produzir avisos **distinguíveis entre si e distinguíveis do aviso de
@@ -286,3 +292,27 @@ Referência: PRD US 4.2 (cenário 1); design.md D6.
   API responde 403
 - **THEN** a SPA exibe um bloqueio de acesso e nenhum conteúdo ou nome de item
   da pasta é mostrado
+
+### Requirement: Pasta sem conteúdo orienta em vez de apresentar tabela vazia
+
+A SPA SHALL apresentar, numa pasta sem itens visíveis à pessoa, uma mensagem
+que explique a ausência e ofereça o próximo passo disponível, em vez da tabela
+vazia herdada do design system. A ação oferecida SHALL respeitar a permissão
+já resolvida pelo servidor — nenhuma ação que a pessoa não possa executar SHALL
+ser apresentada.
+
+#### Scenario: Pasta vazia apresenta mensagem e ação de envio
+- **WHEN** uma pessoa com permissão de envio abre uma pasta que não contém
+  nenhum item
+- **THEN** a tela apresenta mensagem informando que ainda não há documentos ali
+  e oferece a ação de enviar documento
+
+#### Scenario: Sem permissão de envio, a orientação não oferece a ação
+- **WHEN** uma pessoa sem permissão de envio abre uma pasta que não contém
+  nenhum item
+- **THEN** a tela informa que não há documentos ali, sem oferecer a ação de
+  enviar
+
+#### Scenario: Pasta com itens não apresenta a orientação de vazio
+- **WHEN** uma pessoa abre uma pasta que contém ao menos um item visível
+- **THEN** a listagem é apresentada normalmente, sem a mensagem de pasta vazia

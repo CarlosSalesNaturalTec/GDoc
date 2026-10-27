@@ -1,10 +1,11 @@
 import type { Key, ReactNode } from 'react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   App,
   Breadcrumb,
   Button,
   Dropdown,
+  Empty,
   List,
   Popconfirm,
   Result,
@@ -16,19 +17,20 @@ import {
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import {
-  AuditOutlined,
-  CloudDownloadOutlined,
-  DeleteOutlined,
-  DownloadOutlined,
-  EditOutlined,
-  EyeOutlined,
-  FileOutlined,
-  FolderAddOutlined,
-  FolderOutlined,
-  LockOutlined,
-  MoreOutlined,
-  SwapOutlined,
-} from '@ant-design/icons';
+  IconeArquivo,
+  IconeAuditoria,
+  IconeBaixar,
+  IconeBaixarVarios,
+  IconeExcluir,
+  IconeMaisAcoes,
+  IconeMover,
+  IconeNovaPasta,
+  IconePasta,
+  IconePermissoes,
+  IconeEnviar,
+  IconeRenomear,
+  IconeVisualizar,
+} from '../app/icons';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import type { FileSummaryResponse, FolderResponse, MoveBatchItemResult } from '@gdoc/shared';
 import { GrantResourceType, MOVE_BATCH_MAX_ITEMS_DEFAULT, UserRole } from '@gdoc/shared';
@@ -148,7 +150,7 @@ function GroupedActions({ actions }: { actions: ReactNode[] }) {
         </Space>
       )}
     >
-      <Button size="small" icon={<MoreOutlined />} aria-label="Mais ações" />
+      <Button size="small" icon={<IconeMaisAcoes />} aria-label="Mais ações" />
     </Dropdown>
   );
 }
@@ -204,6 +206,17 @@ export function ExplorerPage() {
   const [auditingFile, setAuditingFile] = useState<FileSummaryResponse | null>(null);
   const [downloadingFolder, setDownloadingFolder] = useState<DownloadingFolder | null>(null);
   const { download, isPending: downloading } = useDownloadFile();
+
+  // A ação da orientação de pasta vazia não duplica a área de envio: leva a
+  // ela. Duas superfícies de envio na mesma tela confundiriam qual é a
+  // verdadeira, e a área já carrega a pré-checagem de espaço, o fatiamento e
+  // o relato de falha por item — nada disso se reimplementa num botão.
+  const areaDeEnvioRef = useRef<HTMLDivElement>(null);
+  function focarAreaDeEnvio() {
+    const gatilho = areaDeEnvioRef.current?.querySelector('button');
+    gatilho?.scrollIntoView?.({ block: 'nearest' });
+    gatilho?.focus();
+  }
 
   // Seleção múltipla (US 2.4, design.md D3 do change `mover-itens-em-lote`):
   // escopada à pasta corrente, esvaziada ao navegar — entrar em subpasta,
@@ -436,7 +449,7 @@ export function ExplorerPage() {
       title: 'Tipo',
       key: 'type',
       width: 56,
-      render: (_, row) => (row.kind === 'folder' ? <FolderOutlined /> : <FileOutlined />),
+      render: (_, row) => (row.kind === 'folder' ? <IconePasta /> : <IconeArquivo />),
     },
     {
       title: 'Nome',
@@ -477,7 +490,7 @@ export function ExplorerPage() {
             <Button
               key="baixar"
               size="small"
-              icon={<DownloadOutlined />}
+              icon={<IconeBaixar />}
               onClick={() =>
                 handleOpenDownloadFolder({ folderId: row.folder.id, folderName: row.folder.name })
               }
@@ -487,7 +500,7 @@ export function ExplorerPage() {
             <Button
               key="renomear"
               size="small"
-              icon={<EditOutlined />}
+              icon={<IconeRenomear />}
               onClick={() =>
                 setRenamingItem({ id: row.folder.id, name: row.folder.name, kind: 'folder' })
               }
@@ -497,7 +510,7 @@ export function ExplorerPage() {
             <Button
               key="mover"
               size="small"
-              icon={<SwapOutlined />}
+              icon={<IconeMover />}
               onClick={() =>
                 setMovingItems([{ id: row.folder.id, name: row.folder.name, kind: 'folder' }])
               }
@@ -509,7 +522,7 @@ export function ExplorerPage() {
                   <Button
                     key="permissoes"
                     size="small"
-                    icon={<LockOutlined />}
+                    icon={<IconePermissoes />}
                     onClick={() =>
                       setManagingResource({
                         resourceType: GrantResourceType.FOLDER,
@@ -530,7 +543,7 @@ export function ExplorerPage() {
               cancelText="Cancelar"
               onConfirm={() => handleDeleteChildFolder(row.folder.id)}
             >
-              <Button danger size="small" icon={<DeleteOutlined />}>
+              <Button danger size="small" icon={<IconeExcluir />}>
                 Excluir
               </Button>
             </Popconfirm>,
@@ -550,7 +563,7 @@ export function ExplorerPage() {
           <Button
             key="baixar"
             size="small"
-            icon={<CloudDownloadOutlined />}
+            icon={<IconeBaixarVarios />}
             loading={downloading}
             onClick={() => download(row.file.id)}
           >
@@ -559,7 +572,7 @@ export function ExplorerPage() {
           <Button
             key="renomear"
             size="small"
-            icon={<EditOutlined />}
+            icon={<IconeRenomear />}
             onClick={() =>
               setRenamingItem({ id: row.file.id, name: row.file.fileName, kind: 'file' })
             }
@@ -569,7 +582,7 @@ export function ExplorerPage() {
           <Button
             key="mover"
             size="small"
-            icon={<SwapOutlined />}
+            icon={<IconeMover />}
             onClick={() =>
               setMovingItems([{ id: row.file.id, name: row.file.fileName, kind: 'file' }])
             }
@@ -581,7 +594,7 @@ export function ExplorerPage() {
                 <Button
                   key="permissoes"
                   size="small"
-                  icon={<LockOutlined />}
+                  icon={<IconePermissoes />}
                   onClick={() =>
                     setManagingResource({
                       resourceType: GrantResourceType.FILE,
@@ -602,7 +615,7 @@ export function ExplorerPage() {
                 <Button
                   key="auditoria"
                   size="small"
-                  icon={<AuditOutlined />}
+                  icon={<IconeAuditoria />}
                   onClick={() => setAuditingFile(row.file)}
                 >
                   Auditoria
@@ -617,7 +630,7 @@ export function ExplorerPage() {
             cancelText="Cancelar"
             onConfirm={() => handleDeleteFile(row.file.id)}
           >
-            <Button danger size="small" icon={<DeleteOutlined />}>
+            <Button danger size="small" icon={<IconeExcluir />}>
               Excluir
             </Button>
           </Popconfirm>,
@@ -628,7 +641,11 @@ export function ExplorerPage() {
         // agrupado abaixo do limiar — nenhuma ação é suprimida, só reagrupada.
         return (
           <Space>
-            <Button size="small" icon={<EyeOutlined />} onClick={() => setPreviewingFile(row.file)}>
+            <Button
+              size="small"
+              icon={<IconeVisualizar />}
+              onClick={() => setPreviewingFile(row.file)}
+            >
               Visualizar
             </Button>
             {isNarrow ? <GroupedActions actions={secondaryActions} /> : secondaryActions}
@@ -674,7 +691,7 @@ export function ExplorerPage() {
         <Breadcrumb items={breadcrumbItems} style={{ whiteSpace: 'nowrap' }} />
       </div>
       <Space wrap style={{ marginBottom: 16 }}>
-        <Button type="primary" icon={<FolderAddOutlined />} onClick={() => setNewFolderOpen(true)}>
+        <Button type="primary" icon={<IconeNovaPasta />} onClick={() => setNewFolderOpen(true)}>
           Nova pasta
         </Button>
         {/* Oferecida uniformemente, inclusive na raiz da unidade — a recusa
@@ -682,7 +699,7 @@ export function ExplorerPage() {
             (design.md D9). Abaixo do limiar, a recusa é por dispositivo
             (design.md D5 de `responsividade-mobile-tablet`). */}
         <Button
-          icon={<DownloadOutlined />}
+          icon={<IconeBaixar />}
           onClick={() =>
             handleOpenDownloadFolder({
               folderId: currentFolderId,
@@ -700,13 +717,15 @@ export function ExplorerPage() {
             cancelText="Cancelar"
             onConfirm={handleDeleteCurrentFolder}
           >
-            <Button danger icon={<DeleteOutlined />}>
+            <Button danger icon={<IconeExcluir />}>
               Excluir esta pasta
             </Button>
           </Popconfirm>
         )}
       </Space>
-      <UploadArea destinationFolderId={currentFolderId} />
+      <div ref={areaDeEnvioRef}>
+        <UploadArea destinationFolderId={currentFolderId} />
+      </div>
       {/* Barra de ação em lote (US 2.4, design.md D3/D8 do change
           `mover-itens-em-lote`): visível a partir de um item selecionado,
           alcançável também abaixo do ponto de ruptura — a seleção não é
@@ -719,22 +738,50 @@ export function ExplorerPage() {
               ? '1 item selecionado'
               : `${selectedItems.length} itens selecionados`}
           </Typography.Text>
-          <Button icon={<SwapOutlined />} onClick={handleOpenBatchMove}>
+          <Button icon={<IconeMover />} onClick={handleOpenBatchMove}>
             Mover selecionados
           </Button>
         </Space>
       )}
-      <Table<Row>
-        rowKey="key"
-        columns={columns}
-        dataSource={rows}
-        pagination={false}
-        scroll={{ x: 'max-content' }}
-        rowSelection={{
-          selectedRowKeys,
-          onChange: (keys) => setSelectedRowKeys(keys),
-        }}
-      />
+      {/* Estado vazio orientado (capability `web-navegacao`, requisito "Pasta
+          sem conteúdo orienta em vez de apresentar tabela vazia"): no lugar da
+          tabela vazia herdada do design system — cabeçalho de colunas sobre
+          nenhuma linha —, a tela diz o que está acontecendo e qual é o próximo
+          passo.
+
+          A ação de envio é oferecida **só** quando o servidor já resolveu que
+          a pessoa pode enviar (`canUpload`, design.md D10). A SPA não infere
+          permissão no cliente: ela reflete o veredito que veio no DTO. */}
+      {rows.length === 0 ? (
+        <Empty
+          image={Empty.PRESENTED_IMAGE_SIMPLE}
+          description={
+            <Typography.Text type="secondary">
+              {data.canUpload
+                ? 'Esta pasta ainda não tem documentos. Envie o primeiro para começar.'
+                : 'Esta pasta ainda não tem documentos.'}
+            </Typography.Text>
+          }
+        >
+          {data.canUpload && (
+            <Button type="primary" icon={<IconeEnviar />} onClick={focarAreaDeEnvio}>
+              Enviar documento
+            </Button>
+          )}
+        </Empty>
+      ) : (
+        <Table<Row>
+          rowKey="key"
+          columns={columns}
+          dataSource={rows}
+          pagination={false}
+          scroll={{ x: 'max-content' }}
+          rowSelection={{
+            selectedRowKeys,
+            onChange: (keys) => setSelectedRowKeys(keys),
+          }}
+        />
+      )}
       <NewFolderModal
         open={newFolderOpen}
         submitting={createFolder.isPending}
