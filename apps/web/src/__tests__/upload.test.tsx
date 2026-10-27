@@ -723,7 +723,11 @@ describe('Arrastar e soltar várias pastas (design.md D1)', () => {
 
     // Arrastar e soltar não existe em aparelho de toque: a área não é
     // anunciada. Os dois botões permanecem.
-    expect(container.querySelector('.ant-upload-drag')).toBeNull();
+    //
+    // `waitFor` e não asserção síncrona: o botão esperado acima já existe no
+    // primeiro render, que é o do formato largo (ver `viewport.ts`) — a área
+    // de soltar só desaparece no render seguinte.
+    await waitFor(() => expect(container.querySelector('.ant-upload-drag')).toBeNull());
     expect(screen.getByRole('button', { name: /enviar pasta/i })).toBeInTheDocument();
 
     const [filesInput] = fileInputs(container);

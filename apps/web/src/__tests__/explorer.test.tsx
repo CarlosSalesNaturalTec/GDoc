@@ -382,6 +382,11 @@ describe('Explorador de pastas/arquivos (web-navegacao)', () => {
       renderApp(['/pastas']);
 
       await screen.findByText('relatorio.pdf');
+      // O gatilho do menu agrupado só existe no formato estreito: esperá-lo é
+      // esperar o veredito do breakpoint, que chega um render depois da
+      // montagem (ver `viewport.ts`). Só então o que o formato largo tem a
+      // mais pode ser afirmado ausente.
+      const maisAcoes = await screen.findByRole('button', { name: 'Mais ações' });
       const row = screen.getByText('relatorio.pdf').closest('tr')!;
 
       // Visualizar é o verbo central da consulta e permanece direta.
@@ -390,7 +395,7 @@ describe('Explorador de pastas/arquivos (web-navegacao)', () => {
       expect(within(row).queryByRole('button', { name: /renomear/i })).not.toBeInTheDocument();
       expect(within(row).queryByRole('button', { name: /^baixar$/i })).not.toBeInTheDocument();
 
-      await userEvent.click(within(row).getByRole('button', { name: 'Mais ações' }));
+      await userEvent.click(maisAcoes);
 
       // O popup do menu agrupado é renderizado fora da linha, num portal
       // (`.ant-dropdown`) — nenhuma ação foi suprimida, só reagrupada ali.
@@ -417,8 +422,8 @@ describe('Explorador de pastas/arquivos (web-navegacao)', () => {
       renderApp(['/pastas']);
 
       await screen.findByText('descartavel.pdf');
-      const row = screen.getByText('descartavel.pdf').closest('tr')!;
-      await userEvent.click(within(row).getByRole('button', { name: 'Mais ações' }));
+      // `findByRole`: o gatilho agrupado chega um render depois (ver `viewport.ts`).
+      await userEvent.click(await screen.findByRole('button', { name: 'Mais ações' }));
 
       await userEvent.click(await screen.findByRole('button', { name: /excluir/i }));
       // Ainda não excluído: a confirmação do Popconfirm segue exigida.
@@ -440,12 +445,15 @@ describe('Explorador de pastas/arquivos (web-navegacao)', () => {
       renderApp(['/pastas']);
 
       await screen.findByText('Pasta A');
+      // Mesma espera do caso do arquivo: o formato estreito se estabelece um
+      // render depois da montagem (ver `viewport.ts`).
+      const maisAcoes = await screen.findByRole('button', { name: 'Mais ações' });
       const row = screen.getByText('Pasta A').closest('tr')!;
 
       expect(within(row).queryByRole('button', { name: /renomear/i })).not.toBeInTheDocument();
       expect(within(row).queryByRole('button', { name: /mover para/i })).not.toBeInTheDocument();
 
-      await userEvent.click(within(row).getByRole('button', { name: 'Mais ações' }));
+      await userEvent.click(maisAcoes);
 
       await screen.findByText(/mover para/i);
       const menu = within(document.querySelector('.ant-dropdown')!);
