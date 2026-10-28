@@ -106,10 +106,17 @@ estado de pasta vazia, reaproveitada em vez de duplicada — **condicionado a
 sem permissão, nada acontece nunca. Assim o atalho não conduz a uma recusa, e o
 cliente não antecipou decisão alguma: quem decidiu foi o servidor.
 
-Atendido o pedido, o parâmetro é removido do endereço **substituindo** a entrada
+Chegado o veredito, o parâmetro é removido do endereço **substituindo** a entrada
 do histórico (sem empilhar nova). Sem isso, recarregar a tela ou voltar a ela
 roubaria o foco de quem já está trabalhando na pasta — e o endereço guardado nos
 favoritos carregaria para sempre um pedido que fazia sentido uma única vez.
+
+O parâmetro sai **tenha o pedido sido atendido ou não**. A primeira versão só o
+removia no caso atendido, e a verificação na app mostrou o que isso deixava para
+trás: numa pasta sem envio permitido o parâmetro sobrevivia no endereço, de onde
+uma revalidação que trocasse `canUpload` faria o foco saltar para a área de envio
+muito depois do clique que o pediu. O pedido se consome quando o veredito chega,
+que é o momento em que ele foi efetivamente decidido.
 
 ### D6 — A filtragem dos atalhos continua por papel, nunca por `canUpload`
 

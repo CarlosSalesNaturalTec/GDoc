@@ -120,6 +120,78 @@ describe('Tela inicial (US 11.1 e 11.2)', () => {
   });
 
   /**
+   * "Cartão da tela inicial é acionável em toda a sua área" (change
+   * `cartoes-de-atalho-acionaveis`, design.md D7).
+   *
+   * O que estende a área acionável é o **link ser ancestral do cartão**: é
+   * isso que a verificação afirma, nas duas seções de cartões. Antes desta
+   * change o `<a>` era filho do cartão e cobria só o texto do rótulo — o
+   * `closest('a')` de um cartão devolvia `null`, e é por aí que uma regressão
+   * para o markup antigo reprova. O ambiente de teste não calcula geometria,
+   * de modo que um clique simulado não mediria área: mediria propagação de
+   * evento, que é consequência desta mesma estrutura.
+   */
+  it('cada cartão de atalho está contido no seu link, com o rótulo por nome acessível', async () => {
+    mockViewportWidth(WIDE_VIEWPORT);
+    mockFetch({
+      ...ROTAS_DA_TELA_INICIAL,
+      'GET /auth/me': {
+        status: 200,
+        body: { ...COLABORADOR, role: UserRole.GLOBAL_ADMIN, fullName: 'Ana Gestora' },
+      },
+    });
+
+    renderApp(['/']);
+
+    const atalhos = (await screen.findByText('O que você pode fazer')).closest(
+      '.ant-card',
+    ) as HTMLElement;
+
+    for (const atalho of atalhosDoPapel(UserRole.GLOBAL_ADMIN)) {
+      // O nome acessível é o rótulo curto, nunca rótulo + descrição
+      // concatenados (design.md D2) — a descrição é texto do cartão, não parte
+      // do nome do destino.
+      const link = within(atalhos).getByRole('link', { name: atalho.rotulo });
+      expect(link).toHaveAttribute('href', atalho.destino);
+      // A descrição está **dentro** do link, logo acionar sobre ela conduz ao
+      // destino; e o cartão que o `hoverable` apresenta como acionável é o que
+      // o link envolve.
+      const cartao = within(atalhos)
+        .getByText(atalho.descricao)
+        .closest('.ant-card') as HTMLElement;
+      expect(cartao.closest('a')).toBe(link);
+    }
+  });
+
+  it('cada cartão de pasta está contido no seu link (acesso rápido)', async () => {
+    mockViewportWidth(WIDE_VIEWPORT);
+    mockFetch({
+      ...ROTAS_DA_TELA_INICIAL,
+      'GET /auth/me': { status: 200, body: COLABORADOR },
+      'GET /folders/root/contents': {
+        status: 200,
+        body: {
+          folder: null,
+          breadcrumb: [],
+          folders: [pasta('folder-1', 'Protocolos')],
+          files: [],
+          canUpload: true,
+        },
+      },
+    });
+
+    renderApp(['/']);
+
+    const cartoes = (await screen.findByText('Suas pastas')).closest('.ant-card') as HTMLElement;
+    // Sem `aria-label` aqui (design.md D2): o ícone é decorativo, então o nome
+    // acessível do link continua a ser o nome da pasta.
+    const link = await within(cartoes).findByRole('link', { name: 'Protocolos' });
+    expect(link).toHaveAttribute('href', '/pastas/folder-1');
+    const cartao = within(cartoes).getByText('Protocolos').closest('.ant-card') as HTMLElement;
+    expect(cartao.closest('a')).toBe(link);
+  });
+
+  /**
    * "Atalho apresentado conduz a uma ação executável, sem recusa por
    * permissão" (US 11.1, cenário 2). A guarda de rota redireciona para `/`
    * quem chega fora do seu papel — então um atalho que recusasse apareceria
@@ -127,20 +199,34 @@ describe('Tela inicial (US 11.1 e 11.2)', () => {
    * oferecido devolve a pessoa ao ponto de partida.
    */
   it.each([
-    [UserRole.COLLABORATOR, ['/pastas', '/lixeira']],
-    [UserRole.UNIT_ADMIN, ['/pastas', '/lixeira', '/admin/pessoas', '/admin/painel']],
+    [UserRole.COLLABORATOR, ['/pastas?enviar=1', '/pastas', '/lixeira']],
+    [
+      UserRole.UNIT_ADMIN,
+      ['/pastas?enviar=1', '/pastas', '/lixeira', '/admin/pessoas', '/admin/painel'],
+    ],
     [
       UserRole.GLOBAL_ADMIN,
-      ['/pastas', '/lixeira', '/admin/pessoas', '/admin/painel', '/admin/unidades'],
+      [
+        '/pastas?enviar=1',
+        '/pastas',
+        '/lixeira',
+        '/admin/pessoas',
+        '/admin/painel',
+        '/admin/unidades',
+      ],
     ],
   ])(
     'todo atalho oferecido a %s é alcançável, sem recusa por permissão',
     async (role, destinos) => {
       // Os destinos declarados no caso são exatamente os de `atalhosDoPapel` —
       // se um atalho novo entrar sem entrar aqui, a comparação abaixo acusa.
-      expect([...new Set(atalhosDoPapel(role).map((a) => a.destino))].sort()).toEqual(
-        [...destinos].sort(),
-      );
+      const oferecidos = atalhosDoPapel(role).map((a) => a.destino);
+      expect([...new Set(oferecidos)].sort()).toEqual([...destinos].sort());
+      // Nenhum destino se repete entre atalhos: dois cartões de texto
+      // diferente levando ao mesmo ponto de partida é o que esta change
+      // desfez ("Enviar documentos" e "Ver documentos" apontavam ambos para
+      // `/pastas`, e o de envio não enviava).
+      expect(oferecidos).toHaveLength(new Set(oferecidos).size);
 
       for (const destino of destinos) {
         mockViewportWidth(WIDE_VIEWPORT);

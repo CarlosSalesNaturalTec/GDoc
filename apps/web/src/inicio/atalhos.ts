@@ -24,12 +24,30 @@ export interface Atalho {
 
 const ADMINS = [UserRole.UNIT_ADMIN, UserRole.GLOBAL_ADMIN] as const;
 
+/**
+ * Pedido de envio levado ao explorador pelo próprio endereço (design.md D4 do
+ * change `cartoes-de-atalho-acionaveis`), no mesmo idioma de `/busca?q=`.
+ *
+ * Até esta change o atalho de envio apontava para `/pastas` — o mesmo destino
+ * de "Ver documentos" —, de modo que dois cartões de texto diferente tinham
+ * comportamento igual e o de envio não enviava: deixava a área de envio por
+ * localizar na tela. Rota própria (`/pastas/enviar`) está descartada por
+ * colidir com `/pastas/:folderId`, que capturaria `enviar` como identificador
+ * de pasta; estado de navegação do roteador não apareceria no endereço, e um
+ * cartão sem `href` do destino deixaria de sobreviver a recarregar e a abrir
+ * em nova aba.
+ *
+ * Quem atende o pedido é o explorador, e **só** depois do veredito de envio
+ * do servidor (design.md D5) — aqui ele é apenas anunciado.
+ */
+export const PARAM_PEDIDO_DE_ENVIO = 'enviar';
+
 export const ATALHOS: readonly Atalho[] = [
   {
     chave: 'enviar',
     rotulo: 'Enviar documentos',
     descricao: 'Publicar arquivos ou uma pasta inteira.',
-    destino: '/pastas',
+    destino: `/pastas?${PARAM_PEDIDO_DE_ENVIO}=1`,
   },
   {
     chave: 'documentos',

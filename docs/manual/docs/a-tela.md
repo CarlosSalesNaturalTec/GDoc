@@ -18,7 +18,8 @@ clique, a "quem sou, onde estou e o que mudou":
   unidade continuam aparecendo.
 - **O que você pode fazer**: atalhos para as ações do dia a dia. Você vê
   **apenas** os atalhos que o seu perfil pode executar — nenhum atalho exibido
-  resulta em recusa ao ser acionado.
+  resulta em recusa ao ser acionado. O atalho **Enviar documentos** leva você
+  direto à área de envio, já pronta para uso, quando você pode enviar ali.
 - **Suas pastas**: cartões para as pastas de primeiro nível da sua unidade que
   você pode abrir. Pasta a que você não tem acesso não aparece nem é
   mencionada. Se não houver nenhuma, a área diz isso em vez de ficar vazia.
@@ -26,6 +27,11 @@ clique, a "quem sou, onde estou e o que mudou":
   publicados, substituídos, renomeados ou movidos nos últimos dias, do mais
   recente para o mais antigo, com a data da alteração, o tipo, o código, a
   situação e a pasta onde estão. "Ver todos" leva ao item **Recentes** do menu.
+
+!!! tip "Os cartões são clicáveis por inteiro"
+    Nas duas áreas de cartões — **O que você pode fazer** e **Suas pastas** —
+    basta clicar ou tocar em qualquer ponto do cartão: o título, a descrição ou
+    o espaço em volta. Não é preciso acertar o texto.
 
 !!! note "A lista de recentes não amplia o seu acesso"
     Só aparecem documentos que você já alcançaria navegando. Documento sem

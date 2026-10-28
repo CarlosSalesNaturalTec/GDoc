@@ -537,3 +537,113 @@ describe('Pasta sem conteúdo orienta em vez de apresentar tabela vazia (web-nav
     await waitFor(() => expect(document.activeElement?.textContent).toMatch(/Enviar arquivos/i));
   });
 });
+
+/**
+ * Pedido de envio recebido no endereço (change `cartoes-de-atalho-acionaveis`,
+ * design.md D4/D5): é o que faz o atalho "Enviar documentos" da tela inicial
+ * conduzir ao envio, e não a uma tela onde o envio ainda precise ser
+ * localizado. O gatilho da área de envio é o mesmo a que a orientação de pasta
+ * vazia leva, acima — não há segunda superfície de envio.
+ */
+describe('Explorador atende ao pedido de envio recebido no endereço (web-navegacao)', () => {
+  /**
+   * O gatilho da área de envio — o mesmo a que a orientação de pasta vazia
+   * leva. A área de envio é renderizada independentemente de `canUpload` (a
+   * recusa vem do servidor na emissão da URL assinada), então o gatilho existe
+   * nos dois casos e a pergunta é só se ele recebeu o foco.
+   */
+  function gatilhoDeEnvio(): HTMLElement {
+    return screen.getByRole('button', { name: /Enviar arquivos/i });
+  }
+
+  it('com permissão de envio, a área de envio recebe a pessoa', async () => {
+    mockFetch({
+      'GET /auth/me': { status: 200, body: IDENTITY },
+      'GET /folders/root/contents': { status: 200, body: contents({ canUpload: true }) },
+    });
+    renderApp(['/pastas?enviar=1']);
+
+    await waitFor(() => expect(gatilhoDeEnvio()).toHaveFocus());
+  });
+
+  it('sem permissão de envio, o pedido não desloca a pessoa', async () => {
+    mockFetch({
+      'GET /auth/me': { status: 200, body: IDENTITY },
+      'GET /folders/root/contents': { status: 200, body: contents({ canUpload: false }) },
+    });
+    const { router } = renderApp(['/pastas?enviar=1']);
+
+    // A tela apresenta o conteúdo da pasta normalmente...
+    await screen.findByText(/Esta pasta ainda não tem documentos/);
+    // ...e o foco não foi para o gatilho de envio. O veredito é o do servidor
+    // (`canUpload`), nunca uma inferência do cliente: é isso que impede o
+    // atalho de conduzir a uma recusa.
+    expect(gatilhoDeEnvio()).not.toHaveFocus();
+
+    // O parâmetro sai do endereço mesmo na recusa: um pedido latente ali
+    // faria o foco saltar para a área de envio se uma revalidação trocasse
+    // `canUpload` — muito depois do clique que o pediu.
+    await waitFor(() => expect(router.state.location.search).not.toContain('enviar'));
+  });
+
+  it('o pedido só é atendido depois que o veredito do servidor chega', async () => {
+    // O conteúdo da pasta — e com ele `canUpload` — demora. Enquanto não
+    // chega, o cliente não decide nada: nem atende o pedido, nem o descarta.
+    let liberar!: (r: Response) => void;
+    const contentsPendente = new Promise<Response>((resolve) => {
+      liberar = resolve;
+    });
+    mockFetch({
+      'GET /auth/me': { status: 200, body: IDENTITY },
+      'GET /folders/root/contents': { status: 200, body: contents({ canUpload: true }) },
+    });
+    const comRotas = globalThis.fetch;
+    globalThis.fetch = ((input: RequestInfo | URL, init?: RequestInit) => {
+      const url = typeof input === 'string' ? input : input.toString();
+      if (new URL(url, 'http://localhost').pathname === '/folders/root/contents') {
+        return contentsPendente;
+      }
+      return comRotas(input, init);
+    }) as typeof fetch;
+
+    const { router } = renderApp(['/pastas?enviar=1']);
+
+    // Enquanto o conteúdo não chega, a tela está em carregamento: o pedido
+    // continua intocado no endereço e não há sequer área de envio a focar.
+    await waitFor(() => expect(document.querySelector('.ant-spin')).toBeInTheDocument());
+    expect(router.state.location.search).toContain('enviar');
+    expect(screen.queryByRole('button', { name: /Enviar arquivos/i })).not.toBeInTheDocument();
+
+    liberar(
+      new Response(JSON.stringify(contents({ canUpload: true })), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    );
+
+    // Chegado o veredito, e só então, o pedido é atendido.
+    await waitFor(() => expect(gatilhoDeEnvio()).toHaveFocus());
+    globalThis.fetch = comRotas;
+  });
+
+  it('o pedido não se repete depois de atendido', async () => {
+    mockFetch({
+      'GET /auth/me': { status: 200, body: IDENTITY },
+      'GET /folders/root/contents': { status: 200, body: contents({ canUpload: true }) },
+    });
+    const { router } = renderApp(['/pastas?enviar=1']);
+
+    await waitFor(() => expect(gatilhoDeEnvio()).toHaveFocus());
+
+    // O parâmetro sai do endereço assim que é atendido: sem isso, recarregar a
+    // tela ou voltar a ela pelo histórico roubaria o foco de quem já está
+    // trabalhando na pasta, e o endereço guardado nos favoritos carregaria
+    // para sempre um pedido que fazia sentido uma única vez.
+    await waitFor(() => expect(router.state.location.search).not.toContain('enviar'));
+
+    // Movido o foco para outro lugar, nada o traz de volta ao envio: a
+    // condição do efeito depende do parâmetro, que já não está no endereço.
+    gatilhoDeEnvio().blur();
+    expect(gatilhoDeEnvio()).not.toHaveFocus();
+  });
+});
