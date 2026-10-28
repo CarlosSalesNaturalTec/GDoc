@@ -32,7 +32,7 @@ import {
   IconeRenomear,
   IconeVisualizar,
 } from '../app/icons';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import type { FileSummaryResponse, FolderResponse, MoveBatchItemResult } from '@gdoc/shared';
 import { GrantResourceType, MOVE_BATCH_MAX_ITEMS_DEFAULT, UserRole } from '@gdoc/shared';
 import { ApiError } from '../lib/api-client';
@@ -53,6 +53,7 @@ import { PermissoesModal } from '../permissoes/PermissoesModal';
 import { PreviewModal } from '../visualizacao/PreviewModal';
 import { useDownloadFile } from '../visualizacao/useDownloadFile';
 import { UploadArea } from '../upload/UploadArea';
+import { PARAM_PEDIDO_DE_ENVIO } from '../inicio/atalhos';
 import { DownloadFolderModal } from './DownloadFolderModal';
 import {
   useCreateFolder,
@@ -229,6 +230,42 @@ export function ExplorerPage() {
     gatilho?.scrollIntoView?.({ block: 'nearest' });
     gatilho?.focus();
   }
+
+  // Pedido de envio vindo do endereço (change `cartoes-de-atalho-acionaveis`,
+  // design.md D5): o atalho "Enviar documentos" da tela inicial conduz ao
+  // envio em si, e não a uma tela onde o envio ainda precise ser localizado.
+  //
+  // A condição é `data?.canUpload`, não o papel: quem decide se há envio
+  // naquela pasta é o servidor, e o veredito chega no DTO de conteúdo. Até ele
+  // chegar nada acontece; sem permissão nada acontece nunca — é assim que um
+  // atalho apresentado não conduz a uma recusa (`tela-inicial`, cenário
+  // "O atalho de envio não conduz a uma recusa"). O cliente não antecipa
+  // permissão aqui, como não antecipa em nenhum outro ponto da tela.
+  //
+  // Chegado o veredito, o parâmetro sai do endereço **substituindo** a entrada
+  // de histórico — tenha o pedido sido atendido ou não. Sem isso, recarregar a
+  // tela ou voltar a ela roubaria o foco de quem já está trabalhando na pasta,
+  // e um endereço guardado nos favoritos carregaria para sempre um pedido que
+  // fazia sentido uma única vez. Sair também na recusa é o que impede um
+  // pedido de ficar latente: a verificação na app mostrou o parâmetro
+  // sobrevivendo numa pasta sem envio permitido, de onde uma revalidação que
+  // trocasse `canUpload` faria o foco saltar para a área de envio muito depois
+  // do clique que o pediu.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const pedidoDeEnvio = searchParams.get(PARAM_PEDIDO_DE_ENVIO) !== null;
+  const vereditoDeEnvio = data?.canUpload;
+  useEffect(() => {
+    if (!pedidoDeEnvio || vereditoDeEnvio === undefined) return;
+    if (vereditoDeEnvio) focarAreaDeEnvio();
+    setSearchParams(
+      (atual) => {
+        const proximo = new URLSearchParams(atual);
+        proximo.delete(PARAM_PEDIDO_DE_ENVIO);
+        return proximo;
+      },
+      { replace: true },
+    );
+  }, [pedidoDeEnvio, vereditoDeEnvio, setSearchParams]);
 
   // Seleção múltipla (US 2.4, design.md D3 do change `mover-itens-em-lote`):
   // escopada à pasta corrente, esvaziada ao navegar — entrar em subpasta,
