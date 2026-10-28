@@ -10,7 +10,8 @@ import { PessoasPage } from '../pessoas/PessoasPage';
 import { UnidadesPage } from '../unidades/UnidadesPage';
 import { PainelPage } from '../painel/PainelPage';
 import { MinhaContaPage } from '../conta/MinhaContaPage';
-import { HomePage } from './HomePage';
+import { InicioPage } from '../inicio/InicioPage';
+import { RecentesPage } from '../inicio/RecentesPage';
 
 /**
  * Guarda por papel aninhada (design.md D6): as próximas fatias só declaram a
@@ -26,10 +27,12 @@ export const routes: RouteObject[] = [
       {
         element: <AppShell />,
         children: [
-          { path: '/', element: <HomePage /> },
+          { path: '/', element: <InicioPage /> },
           { path: '/pastas', element: <ExplorerPage /> },
           { path: '/pastas/:folderId', element: <ExplorerPage /> },
           { path: '/busca', element: <BuscaPage /> },
+          // Destino "Recentes" da navegação (change `shell-e-inicio`).
+          { path: '/recentes', element: <RecentesPage /> },
           { path: '/lixeira', element: <LixeiraPage /> },
           // "Minha conta" (US 1.3, `web-minha-conta`): acessível a qualquer
           // papel autenticado — não é item de administração, então não entra

@@ -444,10 +444,10 @@ export function ExplorerPage() {
   const breadcrumbItems = useMemo(() => {
     if (!data) return [];
     if (data.folder === null) {
-      return [{ title: 'Arquivos' }];
+      return [{ title: 'Documentos' }];
     }
     return [
-      { title: <Link to="/pastas">Arquivos</Link> },
+      { title: <Link to="/pastas">Documentos</Link> },
       ...data.breadcrumb.map((crumb) => ({
         key: crumb.id,
         title: <Link to={`/pastas/${crumb.id}`}>{crumb.name}</Link>,
@@ -777,7 +777,7 @@ export function ExplorerPage() {
           onClick={() =>
             handleOpenDownloadFolder({
               folderId: currentFolderId,
-              folderName: data.folder?.name ?? 'Arquivos',
+              folderName: data.folder?.name ?? 'Documentos',
             })
           }
         >

@@ -1,5 +1,10 @@
 import { Router } from 'express';
-import type { ChangePasswordRequest, MyProfileResponse, PublicConfigResponse } from '@gdoc/shared';
+import type {
+  AuthenticatedIdentity,
+  ChangePasswordRequest,
+  MyProfileResponse,
+  PublicConfigResponse,
+} from '@gdoc/shared';
 import type { LoginRequest } from '@gdoc/shared';
 import type { Ports } from '../ports/index.js';
 import { config } from '../config.js';
@@ -18,6 +23,8 @@ interface UserAuthRow {
   role: string;
   status: string;
   password_hash: string;
+  full_name: string | null;
+  unit_name: string;
 }
 
 /**
@@ -63,7 +70,10 @@ export function authRouter(ports: Ports, appManualUrl: string): Router {
         { unitId: BOOTSTRAP_UNIT, userId: BOOTSTRAP_UNIT, role: 'global_admin' },
         async (client) => {
           const { rows } = await client.query<UserAuthRow>(
-            'SELECT id, unit_id, role, status, password_hash FROM users WHERE email = $1',
+            `SELECT u.id, u.unit_id, u.role, u.status, u.password_hash,
+                    u.full_name, un.name AS unit_name
+             FROM users u JOIN units un ON un.id = u.unit_id
+             WHERE u.email = $1`,
             [email],
           );
           return rows[0] ?? null;
@@ -87,7 +97,17 @@ export function authRouter(ports: Ports, appManualUrl: string): Router {
         ...sessionCookieOptions(),
         maxAge: config.authSessionTtlSeconds * 1000,
       });
-      res.json({ id: user.id, unitId: user.unit_id, role: user.role });
+      // Nome e unidade vêm da **mesma** leitura que autenticou (change
+      // `shell-e-inicio`, design.md D3) — não há segunda consulta, e o login
+      // devolve a identidade na mesma forma de `GET /auth/me`.
+      const identity: AuthenticatedIdentity = {
+        id: user.id,
+        unitId: user.unit_id,
+        role: user.role as AuthenticatedIdentity['role'],
+        fullName: user.full_name ?? '',
+        unitName: user.unit_name,
+      };
+      res.json(identity);
     } catch (err) {
       next(err);
     }
@@ -98,9 +118,21 @@ export function authRouter(ports: Ports, appManualUrl: string): Router {
     res.status(204).end();
   });
 
+  // Identidade da sessão corrente. Nome e unidade vêm de `identityDisplay`,
+  // populado pela própria releitura por requisição de `attachTenantContext`
+  // (change `shell-e-inicio`, design.md D3): nenhum dos dois sai do token, por
+  // isso um nome alterado no cadastro aparece já na requisição seguinte.
   router.get('/auth/me', attachTenantContext(ports), (req, res) => {
     const ctx = req.tenantContext!;
-    res.json({ id: ctx.userId, unitId: ctx.unitId, role: ctx.role });
+    const display = req.identityDisplay!;
+    const identity: AuthenticatedIdentity = {
+      id: ctx.userId,
+      unitId: ctx.unitId,
+      role: ctx.role,
+      fullName: display.fullName,
+      unitName: display.unitName,
+    };
+    res.json(identity);
   });
 
   // Alteração da própria senha (US 1.3). Qualquer papel autenticado, sem

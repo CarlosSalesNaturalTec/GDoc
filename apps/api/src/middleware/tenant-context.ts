@@ -3,9 +3,23 @@ import type { TenantContext } from '../ports/database-port.js';
 import type { Ports } from '../ports/index.js';
 import { SESSION_COOKIE_NAME } from '../lib/session-cookie.js';
 
+/**
+ * Nome da pessoa e da sua unidade, resolvidos na **mesma** releitura que
+ * popula `tenantContext` (change `shell-e-inicio`, design.md D3). Separado de
+ * `TenantContext` de propósito: aquele é o contexto de isolamento que vai para
+ * o `SET LOCAL` de toda transação, e não é lugar de dado de apresentação.
+ *
+ * `fullName` vazio = conta sem nome cadastrado; nunca o identificador interno.
+ */
+export interface IdentityDisplay {
+  fullName: string;
+  unitName: string;
+}
+
 declare module 'express-serve-static-core' {
   interface Request {
     tenantContext?: TenantContext;
+    identityDisplay?: IdentityDisplay;
   }
 }
 
@@ -19,6 +33,12 @@ const BOOTSTRAP_UNIT = '00000000-0000-0000-0000-000000000000';
  * confiados do token — para que desativar uma conta encerre o acesso de
  * imediato, mesmo com uma sessão ainda não expirada em mãos (US 1.2,
  * cenário 3; design.md Decisão D1).
+ *
+ * O nome da pessoa e o da sua unidade saem da **mesma** leitura, em
+ * `req.identityDisplay` (change `shell-e-inicio`, design.md D3): é o que faz
+ * um nome alterado no cadastro aparecer na requisição seguinte sem novo login,
+ * pela mesma razão que a releitura existe. Nenhum round-trip extra — só duas
+ * colunas e um `JOIN` na consulta que já acontecia.
  *
  * A resolução em si roda dentro de uma transação com contexto de bypass
  * (papel `global_admin`) porque, neste ponto, ainda não sabemos a unidade
@@ -51,9 +71,15 @@ export function attachTenantContext(ports: Ports) {
             role: string;
             status: string;
             password_changed_at: string;
-          }>('SELECT id, unit_id, role, status, password_changed_at FROM users WHERE id = $1', [
-            claims.sub,
-          ]);
+            full_name: string | null;
+            unit_name: string;
+          }>(
+            `SELECT u.id, u.unit_id, u.role, u.status, u.password_changed_at,
+                    u.full_name, un.name AS unit_name
+             FROM users u JOIN units un ON un.id = u.unit_id
+             WHERE u.id = $1`,
+            [claims.sub],
+          );
           return rows[0];
         },
       );
@@ -79,6 +105,12 @@ export function attachTenantContext(ports: Ports) {
         unitId: identity.unit_id,
         userId: identity.id,
         role: identity.role as TenantContext['role'],
+      };
+      // Conta sem nome cadastrado resolve para vazio, nunca para o
+      // identificador (capability `autenticacao`, cenário 3).
+      req.identityDisplay = {
+        fullName: identity.full_name ?? '',
+        unitName: identity.unit_name,
       };
       next();
     } catch (err) {

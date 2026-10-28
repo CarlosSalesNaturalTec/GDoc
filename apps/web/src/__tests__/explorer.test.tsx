@@ -79,9 +79,9 @@ describe('Explorador de pastas/arquivos (web-navegacao)', () => {
     expect(screen.queryByRole('link', { name: 'Pasta A' })).not.toBeInTheDocument();
     expect(screen.getByText('Pasta A')).toBeInTheDocument(); // agora só na trilha, sem link
 
-    // "Arquivos" também é item do menu lateral — escopa à trilha (`<nav>`).
+    // "Documentos" também é item do menu lateral — escopa à trilha (`<nav>`).
     const breadcrumb = screen.getByRole('navigation');
-    await userEvent.click(within(breadcrumb).getByRole('link', { name: 'Arquivos' }));
+    await userEvent.click(within(breadcrumb).getByRole('link', { name: 'Documentos' }));
 
     await screen.findByRole('link', { name: 'Pasta A' });
     expect(screen.queryByText('relatorio.pdf')).not.toBeInTheDocument();

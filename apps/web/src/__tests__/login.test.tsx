@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { UserRole } from '@gdoc/shared';
 import { LOGIN_BACKGROUND_COLOR } from '../auth/LoginPage';
 import { paleta } from '../app/theme';
-import { mockFetch } from './mock-fetch';
+import { mockFetch, ROTAS_DA_TELA_INICIAL } from './mock-fetch';
 import { renderApp } from './render-app';
 import { WIDE_VIEWPORT, mockViewportWidth } from './viewport';
 
@@ -26,6 +26,7 @@ async function fillAndSubmit(email: string, password: string) {
 describe('Login (US 1.2)', () => {
   it('credenciais válidas navegam ao shell autenticado (cenário 1)', async () => {
     mockFetch({
+      ...ROTAS_DA_TELA_INICIAL,
       'GET /auth/me': { status: 401 },
       'POST /auth/login': {
         status: 200,
@@ -37,11 +38,12 @@ describe('Login (US 1.2)', () => {
     await screen.findByRole('heading', { name: 'PapelHub' });
     await fillAndSubmit('ana@example.com', 'senha-correta');
 
-    await screen.findByText('Bem-vindo ao PapelHub');
+    await screen.findByText('O que você pode fazer');
   });
 
   it('credenciais inválidas mostram mensagem genérica e permanecem no login (cenário 2)', async () => {
     mockFetch({
+      ...ROTAS_DA_TELA_INICIAL,
       'GET /auth/me': { status: 401 },
       'POST /auth/login': { status: 401, body: { error: 'invalid credentials' } },
     });
@@ -56,6 +58,7 @@ describe('Login (US 1.2)', () => {
 
   it('conta desativada mostra aviso específico, distinto da mensagem genérica (cenário 3)', async () => {
     mockFetch({
+      ...ROTAS_DA_TELA_INICIAL,
       'GET /auth/me': { status: 401 },
       'POST /auth/login': { status: 403, body: { error: 'account disabled' } },
     });
@@ -70,6 +73,7 @@ describe('Login (US 1.2)', () => {
 
   it('recusa por falta de capacidade (429) orienta a tentar de novo, sem acusar a credencial', async () => {
     mockFetch({
+      ...ROTAS_DA_TELA_INICIAL,
       'GET /auth/me': { status: 401 },
       // O 429 do Cloud Run não traz JSON nosso — o corpo é o `Rate
       // exceeded.` em texto puro do Google Front End.
@@ -90,6 +94,7 @@ describe('Login (US 1.2)', () => {
 describe('Identidade visual na tela de login (identidade-visual)', () => {
   it('identificação do cliente configurada aparece abaixo do heading, que mantém o nome acessível puro', async () => {
     mockFetch({
+      ...ROTAS_DA_TELA_INICIAL,
       'GET /auth/me': { status: 401 },
       'GET /auth/public-config': {
         status: 200,
@@ -104,6 +109,7 @@ describe('Identidade visual na tela de login (identidade-visual)', () => {
 
   it('sem identificação de cliente configurada, nenhum subtítulo aparece e o login segue funcional', async () => {
     mockFetch({
+      ...ROTAS_DA_TELA_INICIAL,
       'GET /auth/me': { status: 401 },
       'GET /auth/public-config': {
         status: 200,
@@ -120,11 +126,12 @@ describe('Identidade visual na tela de login (identidade-visual)', () => {
     expect(screen.queryByText('SETES')).not.toBeInTheDocument();
 
     await fillAndSubmit('ana@example.com', 'senha-correta');
-    await screen.findByText('Bem-vindo ao PapelHub');
+    await screen.findByText('O que você pode fazer');
   });
 
   it('falha ao obter a identidade visual não bloqueia o bootstrap nem o login', async () => {
     mockFetch({
+      ...ROTAS_DA_TELA_INICIAL,
       'GET /auth/me': { status: 401 },
       'GET /auth/public-config': { status: 500, body: { error: 'unavailable' } },
       'POST /auth/login': {
@@ -138,11 +145,12 @@ describe('Identidade visual na tela de login (identidade-visual)', () => {
     expect(screen.queryByText('SETES')).not.toBeInTheDocument();
 
     await fillAndSubmit('ana@example.com', 'senha-correta');
-    await screen.findByText('Bem-vindo ao PapelHub');
+    await screen.findByText('O que você pode fazer');
   });
 
   it('título do documento compõe "PapelHub - SETES" com identificação configurada', async () => {
     mockFetch({
+      ...ROTAS_DA_TELA_INICIAL,
       'GET /auth/me': { status: 401 },
       'GET /auth/public-config': {
         status: 200,
@@ -157,6 +165,7 @@ describe('Identidade visual na tela de login (identidade-visual)', () => {
 
   it('sem identificação de cliente, o título do documento permanece "PapelHub"', async () => {
     mockFetch({
+      ...ROTAS_DA_TELA_INICIAL,
       'GET /auth/me': { status: 401 },
       'GET /auth/public-config': {
         status: 200,
@@ -227,6 +236,7 @@ describe('Composição em dois campos da tela de login (identidade-visual)', () 
   it('o conteúdo de apresentação não varia por quem acessa — é constante versionada', async () => {
     mockViewportWidth(WIDE_VIEWPORT);
     mockFetch({
+      ...ROTAS_DA_TELA_INICIAL,
       'GET /auth/me': { status: 401 },
       'GET /auth/public-config': {
         status: 200,
@@ -241,6 +251,7 @@ describe('Composição em dois campos da tela de login (identidade-visual)', () 
     primeira.unmount();
 
     mockFetch({
+      ...ROTAS_DA_TELA_INICIAL,
       'GET /auth/me': { status: 401 },
       'GET /auth/public-config': {
         status: 200,
@@ -282,6 +293,7 @@ describe('Composição em dois campos da tela de login (identidade-visual)', () 
 describe('Aviso de contato do suporte na tela de login (identidade-visual)', () => {
   it('contato configurado é apresentado como orientação a quem tem dificuldade para entrar', async () => {
     mockFetch({
+      ...ROTAS_DA_TELA_INICIAL,
       'GET /auth/me': { status: 401 },
       'GET /auth/public-config': {
         status: 200,
@@ -300,6 +312,7 @@ describe('Aviso de contato do suporte na tela de login (identidade-visual)', () 
 
   it('sem contato configurado, nenhum aviso é exibido e o login segue plenamente funcional', async () => {
     mockFetch({
+      ...ROTAS_DA_TELA_INICIAL,
       'GET /auth/me': { status: 401 },
       'GET /auth/public-config': {
         status: 200,
@@ -316,7 +329,7 @@ describe('Aviso de contato do suporte na tela de login (identidade-visual)', () 
     expect(screen.queryByText(/Fale com o suporte/)).not.toBeInTheDocument();
 
     await fillAndSubmit('ana@example.com', 'senha-correta');
-    await screen.findByText('Bem-vindo ao PapelHub');
+    await screen.findByText('O que você pode fazer');
   });
 
   // O contato do suporte é o caminho que **de fato** redefine a senha: não há

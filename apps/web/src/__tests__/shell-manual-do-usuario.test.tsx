@@ -1,7 +1,7 @@
 import { screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { UserRole } from '@gdoc/shared';
-import { mockFetch } from './mock-fetch';
+import { mockFetch, ROTAS_DA_TELA_INICIAL } from './mock-fetch';
 import { renderApp } from './render-app';
 
 const MANUAL_URL = 'https://carlossalesnaturaltec.github.io/GDoc/';
@@ -25,6 +25,7 @@ const MANUAL_URL = 'https://carlossalesnaturaltec.github.io/GDoc/';
 describe('Acesso ao manual como último item da navegação (responsividade-mobile-tablet)', () => {
   it('item presente com href, target e rel corretos quando manualUrl está configurada', async () => {
     mockFetch({
+      ...ROTAS_DA_TELA_INICIAL,
       'GET /auth/me': {
         status: 200,
         body: { id: 'user-1', unitId: 'unit-1', role: UserRole.COLLABORATOR },
@@ -46,6 +47,7 @@ describe('Acesso ao manual como último item da navegação (responsividade-mobi
 
   it('item ausente quando manualUrl chega vazia (degradação de configuração, não mais estado alcançável em produção)', async () => {
     mockFetch({
+      ...ROTAS_DA_TELA_INICIAL,
       'GET /auth/me': {
         status: 200,
         body: { id: 'user-1', unitId: 'unit-1', role: UserRole.COLLABORATOR },
@@ -63,6 +65,7 @@ describe('Acesso ao manual como último item da navegação (responsividade-mobi
 
   it('item ausente quando a configuração pública falha', async () => {
     mockFetch({
+      ...ROTAS_DA_TELA_INICIAL,
       'GET /auth/me': {
         status: 200,
         body: { id: 'user-1', unitId: 'unit-1', role: UserRole.COLLABORATOR },
@@ -77,6 +80,7 @@ describe('Acesso ao manual como último item da navegação (responsividade-mobi
 
   it('não varia por papel: presente também para unit_admin', async () => {
     mockFetch({
+      ...ROTAS_DA_TELA_INICIAL,
       'GET /auth/me': {
         status: 200,
         body: { id: 'user-1', unitId: 'unit-1', role: UserRole.UNIT_ADMIN },
@@ -97,6 +101,7 @@ describe('Acesso ao manual como último item da navegação (responsividade-mobi
 
   it('nunca recebe marcação de seleção, em qualquer rota', async () => {
     mockFetch({
+      ...ROTAS_DA_TELA_INICIAL,
       'GET /auth/me': {
         status: 200,
         body: { id: 'user-1', unitId: 'unit-1', role: UserRole.COLLABORATOR },
@@ -117,6 +122,7 @@ describe('Acesso ao manual como último item da navegação (responsividade-mobi
 
   it('ocupa a última posição da navegação, depois de todos os destinos internos (design.md D3)', async () => {
     mockFetch({
+      ...ROTAS_DA_TELA_INICIAL,
       'GET /auth/me': {
         status: 200,
         body: { id: 'user-1', unitId: 'unit-1', role: UserRole.COLLABORATOR },

@@ -118,6 +118,15 @@ papel do usuário corrente e a ação de logout, e uma área de conteúdo onde a
 demais fatias montam suas telas. Os itens de navegação SHALL respeitar o papel
 do usuário (itens de administração só aparecem para administradores).
 
+A identidade apresentada SHALL ser o **nome da pessoa**, e NÃO SHALL ser um
+identificador interno nem um fragmento dele. Conta sem nome cadastrado SHALL
+recorrer a um tratamento genérico, nunca ao identificador.
+
+O conjunto de destinos internos SHALL cobrir a tela inicial, os documentos, os
+recentes e a lixeira, acrescidos dos destinos de administração permitidos ao
+papel. A busca NÃO SHALL ocupar um destino da navegação, por estar
+permanentemente acessível no cabeçalho (ver capability `web-busca`).
+
 A identidade no cabeçalho SHALL ser um **menu** que reúne o acesso a "Minha conta"
 (rota `/minha-conta`, ver capability `web-minha-conta`) e a ação de logout. O acesso
 a "Minha conta" SHALL ser oferecido a **qualquer** papel, inclusive `collaborator`,
@@ -201,3 +210,18 @@ substituída por design.md D2/D3 do change `responsividade-mobile-tablet`.
 - **WHEN** uma pessoa aciona o acesso auxiliar no painel sobreposto
 - **THEN** o recurso externo é aberto fora da aplicação e o painel permanece como
   estava, por não ter havido navegação interna
+
+#### Scenario: A identidade apresentada é o nome, não o identificador
+- **WHEN** uma pessoa autenticada visualiza o shell
+- **THEN** a identidade apresentada é o seu nome, e em nenhum lugar do shell
+  aparece o identificador interno da sua conta ou parte dele
+
+#### Scenario: Conta sem nome recorre a tratamento genérico
+- **WHEN** uma pessoa cuja conta não tem nome cadastrado visualiza o shell
+- **THEN** a identidade é apresentada por um tratamento genérico, sem recorrer
+  ao identificador interno
+
+#### Scenario: A busca não ocupa destino da navegação
+- **WHEN** uma pessoa autenticada percorre os destinos da navegação
+- **THEN** não encontra a busca entre eles, por estar permanentemente acessível
+  no cabeçalho

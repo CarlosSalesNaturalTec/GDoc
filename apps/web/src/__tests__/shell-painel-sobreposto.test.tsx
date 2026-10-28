@@ -2,7 +2,7 @@ import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import { UserRole } from '@gdoc/shared';
-import { mockFetch } from './mock-fetch';
+import { mockFetch, ROTAS_DA_TELA_INICIAL } from './mock-fetch';
 import { renderApp } from './render-app';
 import { mockViewportWidth, NARROW_VIEWPORT, WIDE_VIEWPORT } from './viewport';
 
@@ -29,10 +29,7 @@ describe('Painel sobreposto de navegação (responsividade-mobile-tablet)', () =
         status: 200,
         body: { appName: 'PapelHub', clientName: '', manualUrl: MANUAL_URL },
       },
-      'GET /folders/root/contents': {
-        status: 200,
-        body: { folder: null, breadcrumb: [], folders: [], files: [] },
-      },
+      ...ROTAS_DA_TELA_INICIAL,
     });
 
     mockViewportWidth(WIDE_VIEWPORT);
@@ -50,10 +47,13 @@ describe('Painel sobreposto de navegação (responsividade-mobile-tablet)', () =
     );
 
     expect(narrowItems).toEqual(wideItems);
+    // Conjunto de destinos da change `shell-e-inicio`: a busca saiu da
+    // navegação (está no cabeçalho), "Arquivos" virou "Documentos" e
+    // "Recentes" entrou — com o manual sempre na última posição.
     expect(wideItems).toEqual([
       'Início',
-      'Arquivos',
-      'Buscar',
+      'Documentos',
+      'Recentes',
       'Lixeira',
       'Colaboradores',
       'Painel',
@@ -70,17 +70,14 @@ describe('Painel sobreposto de navegação (responsividade-mobile-tablet)', () =
         status: 200,
         body: { appName: 'PapelHub', clientName: '', manualUrl: MANUAL_URL },
       },
-      'GET /folders/root/contents': {
-        status: 200,
-        body: { folder: null, breadcrumb: [], folders: [], files: [] },
-      },
+      ...ROTAS_DA_TELA_INICIAL,
     });
 
     renderApp(['/']);
-    await screen.findByText('Bem-vindo ao PapelHub');
+    await screen.findByText('O que você pode fazer');
 
     await userEvent.click(await screen.findByRole('button', { name: 'Abrir navegação' }));
-    const drawerLink = await screen.findByRole('link', { name: 'Arquivos' });
+    const drawerLink = await screen.findByRole('link', { name: 'Documentos' });
     await userEvent.click(drawerLink);
 
     await screen.findByText('Nova pasta');
@@ -95,14 +92,11 @@ describe('Painel sobreposto de navegação (responsividade-mobile-tablet)', () =
         status: 200,
         body: { appName: 'PapelHub', clientName: '', manualUrl: MANUAL_URL },
       },
-      'GET /folders/root/contents': {
-        status: 200,
-        body: { folder: null, breadcrumb: [], folders: [], files: [] },
-      },
+      ...ROTAS_DA_TELA_INICIAL,
     });
 
     renderApp(['/']);
-    await screen.findByText('Bem-vindo ao PapelHub');
+    await screen.findByText('O que você pode fazer');
 
     await userEvent.click(await screen.findByRole('button', { name: 'Abrir navegação' }));
     const manualLink = await screen.findByRole('link', {
@@ -113,7 +107,7 @@ describe('Painel sobreposto de navegação (responsividade-mobile-tablet)', () =
     // Não há navegação interna a refletir — a aplicação permanece na Início,
     // e o painel continua aberto.
     expect(document.querySelector('.ant-drawer-open')).toBeInTheDocument();
-    expect(screen.getByText('Bem-vindo ao PapelHub')).toBeInTheDocument();
+    expect(screen.getByText('O que você pode fazer')).toBeInTheDocument();
   });
 
   it('acima do limiar, não há gatilho de navegação no cabeçalho — o Sider permanece como hoje', async () => {
@@ -123,10 +117,7 @@ describe('Painel sobreposto de navegação (responsividade-mobile-tablet)', () =
         status: 200,
         body: { id: 'user-1', unitId: 'unit-1', role: UserRole.COLLABORATOR },
       },
-      'GET /folders/root/contents': {
-        status: 200,
-        body: { folder: null, breadcrumb: [], folders: [], files: [] },
-      },
+      ...ROTAS_DA_TELA_INICIAL,
     });
 
     renderApp(['/pastas']);

@@ -1,6 +1,6 @@
 # Enviar arquivos
 
-Na página **Arquivos**, há três formas de escolher o que enviar para a pasta atual:
+Na página **Documentos**, há três formas de escolher o que enviar para a pasta atual:
 
 - **Arrastar e soltar** — arraste **várias pastas e arquivos de uma vez** para a área
   de envio e solte. A estrutura de subpastas de **cada** pasta solta é recriada igual

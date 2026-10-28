@@ -1,7 +1,7 @@
 # Conceder e revogar permissões
 
 As permissões são geridas **por recurso** (pasta ou arquivo), na própria página
-**Arquivos**. Na linha do item, clique em **Permissões**:
+**Documentos**. Na linha do item, clique em **Permissões**:
 
 1. Escolha **um ou mais colaboradores** — o campo aceita seleção múltipla, com busca
    por nome.
