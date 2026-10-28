@@ -5,11 +5,28 @@ export interface LoginRequest {
   password: string;
 }
 
-/** Identidade da sessão corrente — devolvida por login e por `GET /auth/me`. */
+/**
+ * Identidade da sessão corrente — devolvida por login e por `GET /auth/me`.
+ *
+ * `fullName` e `unitName` entram pela change `shell-e-inicio` (design.md D3):
+ * são resolvidos na **mesma releitura por requisição** que alimenta o contexto
+ * de tenant, nunca a partir do token — é isso que faz o nome alterado no
+ * cadastro aparecer na requisição seguinte, sem novo login, e o que impede um
+ * nome congelado numa sessão de longa duração.
+ *
+ * `fullName` é `string`, não `string | null` como em `MyProfileResponse`:
+ * conta sem nome cadastrado devolve **vazio**, mantendo a forma da resposta
+ * estável. Vazio nunca é substituído pelo identificador interno — a interface
+ * recorre a um tratamento genérico (capability `web-shell-e-auth`).
+ */
 export interface AuthenticatedIdentity {
   id: string;
   unitId: string;
   role: UserRole;
+  /** Nome da pessoa; vazio = conta sem nome cadastrado. */
+  fullName: string;
+  /** Nome da unidade da pessoa. */
+  unitName: string;
 }
 
 /**

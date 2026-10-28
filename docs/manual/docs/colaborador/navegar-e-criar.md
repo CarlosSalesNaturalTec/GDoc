@@ -2,7 +2,7 @@
 
 ## Navegar
 
-Abra **Arquivos** no menu. Você vê suas pastas e arquivos em formato de lista, no
+Abra **Documentos** no menu. Você vê suas pastas e arquivos em formato de lista, no
 estilo "explorador de arquivos". Clique em uma pasta para entrar nela; use a **trilha
 de navegação** (breadcrumb) no topo para voltar a qualquer nível anterior com um
 clique.
@@ -20,7 +20,7 @@ sistema não ofereceria uma ação que recusaria em seguida.
 
 ## Criar pastas
 
-Dentro de **Arquivos**, clique em **Nova pasta**, dê um nome e confirme. A pasta é
+Dentro de **Documentos**, clique em **Nova pasta**, dê um nome e confirme. A pasta é
 criada no local onde você está.
 
 !!! note "Renomear e mover pastas não existem nesta versão"

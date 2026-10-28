@@ -1,12 +1,16 @@
 # Buscar e filtrar
 
-No menu **Buscar**, procure por **nome** ou pelo **código do documento** — o mesmo
-campo alcança os dois, sem diferenciar maiúsculas de minúsculas — e combine filtros de
-**data** e **tipo de arquivo** (imagens, vídeos, áudios, PDFs etc.). Sobre o código,
-ver [Controle documental](controle-documental.md).
+A busca começa pelo campo **Buscar documentos** do **cabeçalho**, disponível em
+qualquer tela: digite o termo e pressione Enter. Você chega à tela de resultados
+com o termo já aplicado.
 
-A busca só é executada quando você **pede explicitamente** — clicando em **Buscar** ou
-teclando Enter no campo de nome — e exige **ao menos um critério** preenchido; sem
+Ali, procure por **nome** ou pelo **código do documento** — o mesmo campo alcança
+os dois, sem diferenciar maiúsculas de minúsculas — e combine filtros de **data** e
+**tipo de arquivo** (imagens, vídeos, áudios, PDFs etc.). Sobre o código, ver
+[Controle documental](controle-documental.md).
+
+A busca só é executada quando você **pede explicitamente** — clicando em **Buscar**
+ou teclando Enter, no cabeçalho ou na própria tela de resultados — e exige **ao menos um critério** preenchido; sem
 isso, a tela apenas convida você a informar um filtro. Só aparecem itens que atendem a
 todos os critérios **e** que você tem permissão de ver. O botão **Limpar filtros**
 volta a tela ao estado inicial.

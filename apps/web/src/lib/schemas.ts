@@ -21,6 +21,8 @@ import type {
   NotificationResponse,
   PersonResponse,
   PublicConfigResponse,
+  RecentDocumentResponse,
+  RecentDocumentsResponse,
   ResetPasswordResponse,
   SearchFilesResponse,
   SignedUrlResponse,
@@ -55,6 +57,13 @@ export const authenticatedIdentitySchema: z.ZodType<AuthenticatedIdentity> = z.o
   id: z.string(),
   unitId: z.string(),
   role: z.enum([UserRole.COLLABORATOR, UserRole.UNIT_ADMIN, UserRole.GLOBAL_ADMIN]),
+  // Nome e unidade (change `shell-e-inicio`, Migration Plan): `.catch('')`
+  // pela mesma razão de `canUpload` — uma API mais antiga que a SPA não traz
+  // os campos novos, e a sessão precisa continuar resolvendo. Vazio é o
+  // mesmo valor que a API devolve para conta sem nome, e a interface já tem
+  // tratamento genérico para ele: nunca se recorre ao identificador interno.
+  fullName: z.string().catch(''),
+  unitName: z.string().catch(''),
 });
 
 /** Espelha `FolderResponse` (design.md D8, `web-navegacao`). */
@@ -217,6 +226,20 @@ export const storageQuotaResponseSchema: z.ZodType<StorageQuotaResponse> = z.obj
 /** Espelha `SearchFilesResponse` (design.md D6, `web-busca`), reusando `fileSummaryResponseSchema`. */
 export const searchFilesResponseSchema: z.ZodType<SearchFilesResponse> = z.object({
   files: z.array(fileSummaryResponseSchema),
+});
+
+/**
+ * Espelha `RecentDocumentsResponse` (change `shell-e-inicio`, US 11.2),
+ * estendendo `fileSummaryResponseSchema` com o instante derivado da alteração
+ * e o nome da pasta que contém o documento.
+ */
+export const recentDocumentResponseSchema: z.ZodType<RecentDocumentResponse> =
+  fileSummaryResponseSchema.and(
+    z.object({ changedAt: z.string(), folderName: z.string().nullable() }),
+  );
+
+export const recentDocumentsResponseSchema: z.ZodType<RecentDocumentsResponse> = z.object({
+  documents: z.array(recentDocumentResponseSchema),
 });
 
 /**

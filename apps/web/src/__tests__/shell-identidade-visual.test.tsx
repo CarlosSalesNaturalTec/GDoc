@@ -2,12 +2,13 @@ import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import { UserRole } from '@gdoc/shared';
-import { mockFetch } from './mock-fetch';
+import { mockFetch, ROTAS_DA_TELA_INICIAL } from './mock-fetch';
 import { renderApp } from './render-app';
 
 describe('Identidade visual no shell (identidade-visual)', () => {
   it('identificação do cliente aparece no estado expandido e some no colapsado, mantendo a marca abreviada', async () => {
     mockFetch({
+      ...ROTAS_DA_TELA_INICIAL,
       'GET /auth/me': {
         status: 200,
         body: { id: 'user-1', unitId: 'unit-1', role: UserRole.COLLABORATOR },
@@ -31,6 +32,7 @@ describe('Identidade visual no shell (identidade-visual)', () => {
 
   it('no shell expandido, a logomarca tem nome acessível igual ao nome da aplicação', async () => {
     mockFetch({
+      ...ROTAS_DA_TELA_INICIAL,
       'GET /auth/me': {
         status: 200,
         body: { id: 'user-1', unitId: 'unit-1', role: UserRole.COLLABORATOR },
@@ -47,6 +49,7 @@ describe('Identidade visual no shell (identidade-visual)', () => {
 
   it('no shell colapsado, nenhuma logomarca é exibida — só a abreviação em texto', async () => {
     mockFetch({
+      ...ROTAS_DA_TELA_INICIAL,
       'GET /auth/me': {
         status: 200,
         body: { id: 'user-1', unitId: 'unit-1', role: UserRole.COLLABORATOR },

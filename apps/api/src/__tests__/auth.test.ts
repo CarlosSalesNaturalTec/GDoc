@@ -71,7 +71,13 @@ describe('Autenticação: /auth/login, /auth/logout, /auth/me', () => {
       .send({ email: 'ativo@test.dev', password: 'correct-password' });
 
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ id: activeUserId, unitId, role: 'collaborator' });
+    expect(res.body).toEqual({
+      id: activeUserId,
+      unitId,
+      role: 'collaborator',
+      fullName: 'Pessoa Ativa',
+      unitName: 'Unidade Auth',
+    });
 
     const setCookie = res.headers['set-cookie'];
     expect(setCookie).toBeDefined();
@@ -118,9 +124,90 @@ describe('Autenticação: /auth/login, /auth/logout, /auth/me', () => {
       .set('Cookie', await sessionCookieFor(ports, activeUserId));
 
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ id: activeUserId, unitId, role: 'collaborator' });
+    expect(res.body).toEqual({
+      id: activeUserId,
+      unitId,
+      role: 'collaborator',
+      fullName: 'Pessoa Ativa',
+      unitName: 'Unidade Auth',
+    });
     expect(res.body.password).toBeUndefined();
     expect(res.body.passwordHash).toBeUndefined();
+  });
+
+  /**
+   * Identidade com nome e unidade (change `shell-e-inicio`, capability
+   * `autenticacao`; US 11.1). Os três cenários normatizados — o requisito
+   * existe porque o shell apresentava os dois primeiros caracteres do
+   * identificador interno como identidade da pessoa.
+   */
+  describe('Identidade devolvida à interface carrega nome e unidade (US 11.1)', () => {
+    it('o login devolve a identidade na mesma forma de /auth/me, com nome e unidade', async () => {
+      const app = createApp(ports);
+      const res = await request(app)
+        .post('/auth/login')
+        .send({ email: 'ativo@test.dev', password: 'correct-password' });
+
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({
+        id: activeUserId,
+        unitId,
+        role: 'collaborator',
+        fullName: 'Pessoa Ativa',
+        unitName: 'Unidade Auth',
+      });
+    });
+
+    it('nome alterado no cadastro aparece na requisição seguinte, sem novo login (design.md D3)', async () => {
+      const app = createApp(ports);
+      const cookie = await sessionCookieFor(ports, activeUserId);
+
+      const antes = await request(app).get('/auth/me').set('Cookie', cookie);
+      expect(antes.body.fullName).toBe('Pessoa Ativa');
+
+      await withSystemBypass(pool, (client) =>
+        client.query('UPDATE users SET full_name = $1 WHERE id = $2', [
+          'Pessoa Renomeada',
+          activeUserId,
+        ]),
+      );
+
+      // Mesma sessão, nenhum novo login: a releitura por requisição é o que
+      // faz o nome novo chegar já aqui.
+      const depois = await request(app).get('/auth/me').set('Cookie', cookie);
+      expect(depois.status).toBe(200);
+      expect(depois.body.fullName).toBe('Pessoa Renomeada');
+
+      await withSystemBypass(pool, (client) =>
+        client.query('UPDATE users SET full_name = $1 WHERE id = $2', [
+          'Pessoa Ativa',
+          activeUserId,
+        ]),
+      );
+    });
+
+    it('conta sem nome cadastrado devolve o nome vazio, sem recorrer ao identificador', async () => {
+      const semNomeId = await withSystemBypass(pool, async (client) => {
+        const { rows } = await client.query<{ id: string }>(
+          `INSERT INTO users (unit_id, email, password_hash, role, full_name, status)
+           VALUES ($1, 'sem-nome@test.dev', 'x', 'collaborator', NULL, 'active')
+           RETURNING id`,
+          [unitId],
+        );
+        return rows[0]!.id;
+      });
+
+      const app = createApp(ports);
+      const res = await request(app)
+        .get('/auth/me')
+        .set('Cookie', await sessionCookieFor(ports, semNomeId));
+
+      expect(res.status).toBe(200);
+      expect(res.body.fullName).toBe('');
+      expect(res.body.unitName).toBe('Unidade Auth');
+      // O vazio nunca é substituído por fragmento do identificador interno.
+      expect(res.body.fullName).not.toContain(semNomeId.slice(0, 2));
+    });
   });
 
   it('GET /auth/me sem sessão é rejeitado', async () => {

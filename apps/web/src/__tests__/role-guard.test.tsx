@@ -1,12 +1,13 @@
 import { screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { UserRole } from '@gdoc/shared';
-import { mockFetch } from './mock-fetch';
+import { mockFetch, ROTAS_DA_TELA_INICIAL } from './mock-fetch';
 import { renderApp } from './render-app';
 
 describe('Guarda de rota por papel e shell condicionado ao papel', () => {
   it('collaborator não vê itens de administração e é impedido de acessar /admin/pessoas', async () => {
     mockFetch({
+      ...ROTAS_DA_TELA_INICIAL,
       'GET /auth/me': {
         status: 200,
         body: { id: 'user-1', unitId: 'unit-1', role: UserRole.COLLABORATOR },
@@ -15,7 +16,7 @@ describe('Guarda de rota por papel e shell condicionado ao papel', () => {
     renderApp(['/admin/pessoas']);
 
     // guarda por papel: navegado de volta para a home, a tela de admin nunca renderiza
-    await screen.findByText('Bem-vindo ao PapelHub');
+    await screen.findByText('O que você pode fazer');
     expect(screen.queryByText('Novo colaborador')).not.toBeInTheDocument();
     expect(screen.queryByText('Colaboradores')).not.toBeInTheDocument();
     expect(screen.queryByText('Painel')).not.toBeInTheDocument();
@@ -24,6 +25,7 @@ describe('Guarda de rota por papel e shell condicionado ao papel', () => {
 
   it('admin da unidade vê os itens de administração e acessa /admin/pessoas', async () => {
     mockFetch({
+      ...ROTAS_DA_TELA_INICIAL,
       'GET /auth/me': {
         status: 200,
         body: { id: 'user-1', unitId: 'unit-1', role: UserRole.UNIT_ADMIN },

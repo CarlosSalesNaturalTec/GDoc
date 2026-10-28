@@ -172,6 +172,20 @@ export const config = {
     maxItems: Number(optional('UPLOAD_BATCH_MAX_ITEMS', String(UPLOAD_BATCH_MAX_ITEMS_DEFAULT))),
   },
 
+  // Recorte da lista de documentos alterados recentemente (change
+  // `shell-e-inicio`, design.md D1/Risks). O recorte é **duplo** de
+  // propósito: `audit_events` cresce sem limite, e o teto de itens sozinho
+  // não evitaria varrer a tabela inteira para descobrir quais são os mais
+  // recentes. `candidateLimit` é o teto de candidatos lidos antes do filtro
+  // de permissão item a item (design.md D2) — precisa ser maior que
+  // `maxItems`, porque boa parte dos candidatos pode ser inacessível a quem
+  // consulta. Configuráveis por ambiente, mesmo molde dos demais tetos.
+  recentDocuments: {
+    maxItems: Number(optional('RECENT_DOCUMENTS_MAX_ITEMS', '10')),
+    windowDays: Number(optional('RECENT_DOCUMENTS_WINDOW_DAYS', '90')),
+    candidateLimit: Number(optional('RECENT_DOCUMENTS_CANDIDATE_LIMIT', '300')),
+  },
+
   // Teto de corpo aceito pelo parser de JSON (change
   // `corrige-defeitos-envio-lote`, design.md D1). O padrão do `express.json()`
   // sem `limit` é 100 KB, e um lote de 1.000 itens com nomes reais e

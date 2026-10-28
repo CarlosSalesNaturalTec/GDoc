@@ -15,6 +15,7 @@ import { trashRouter } from './routes/trash.js';
 import { auditRouter } from './routes/audit.js';
 import { dashboardRouter } from './routes/dashboard.js';
 import { searchRouter } from './routes/search.js';
+import { recentRouter } from './routes/recent.js';
 import { notificationsRouter } from './routes/notifications.js';
 import { attachTenantContext } from './middleware/tenant-context.js';
 import { config } from './config.js';
@@ -142,9 +143,10 @@ export function createApp(ports: Ports, options: CreateAppOptions = {}): Express
   // a um destes routers — sem o path aqui, `app.use(mw, router)` aplicaria
   // `mw` a QUALQUER requisição (o Express trata o mount como '/'), inclusive
   // a caminhos sem rota nenhuma, que deveriam cair no 404 padrão (ou, com a
-  // SPA configurada, no fallback de index.html acima). `auditRouter` e
-  // `searchRouter` vivem sob `/files` (`/files/:id/audit`, `/files/search`),
-  // por isso não têm prefixo próprio na lista.
+  // SPA configurada, no fallback de index.html acima). `auditRouter`,
+  // `searchRouter` e `recentRouter` vivem sob `/files` (`/files/:id/audit`,
+  // `/files/search`, `/files/recent`), por isso não têm prefixo próprio na
+  // lista.
   const tenantScopedPrefixes = [
     '/files',
     '/folders',
@@ -165,6 +167,7 @@ export function createApp(ports: Ports, options: CreateAppOptions = {}): Express
   app.use(auditRouter(ports));
   app.use(dashboardRouter(ports));
   app.use(searchRouter(ports));
+  app.use(recentRouter(ports));
   app.use(notificationsRouter(ports));
 
   const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {

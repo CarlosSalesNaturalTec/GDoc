@@ -13,7 +13,7 @@ interface MockedResponse {
  */
 type RouteEntry = MockedResponse | MockedResponse[];
 
-type RouteTable = Record<string, RouteEntry>;
+export type RouteTable = Record<string, RouteEntry>;
 
 /**
  * Substitui `global.fetch` por uma tabela `"METHOD /caminho" -> resposta`.
@@ -51,3 +51,22 @@ export function mockFetch(table: RouteTable): void {
     }),
   );
 }
+
+/**
+ * Rotas que a **tela inicial** consulta ao montar (change `shell-e-inicio`):
+ * as pastas de primeiro nível e as alterações recentes, emitidas em paralelo.
+ * Todo teste que pousa em `/` precisa das duas, ou as áreas correspondentes
+ * renderizam o estado de erro — ruído que esconderia o que o teste afirma.
+ *
+ * Exportado como constante, e não embutido no `mockFetch`, porque a tabela de
+ * rotas é explícita por desenho: um teste que queira exercitar a falha de uma
+ * dessas rotas sobrescreve a entrada, em vez de lutar contra um padrão
+ * implícito.
+ */
+export const ROTAS_DA_TELA_INICIAL: RouteTable = {
+  'GET /folders/root/contents': {
+    status: 200,
+    body: { folder: null, breadcrumb: [], folders: [], files: [], canUpload: true },
+  },
+  'GET /files/recent': { status: 200, body: { documents: [] } },
+};

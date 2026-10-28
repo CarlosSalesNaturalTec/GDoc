@@ -24,6 +24,8 @@ da organização enxerga somente o seu próprio conteúdo.
 
 Principais recursos:
 
+- **Tela inicial** com saudação, atalhos conforme o seu perfil, acesso rápido às
+  suas pastas e os documentos alterados recentemente.
 - Navegador de arquivos com **pastas e subpastas** e trilha de navegação.
 - **Envio** de vários arquivos de uma vez ou de uma pasta inteira, preservando a
   estrutura de subpastas.
@@ -32,6 +34,7 @@ Principais recursos:
   renomear, excluir).
 - **Lixeira** com retenção temporária para recuperar o que foi excluído.
 - **Auditoria** de quem acessou cada arquivo.
+- **Busca** no cabeçalho, ao alcance de qualquer tela.
 - **Painel** gerencial de uso (para administradores).
 - **Cota de armazenamento** por colaborador.
 

@@ -3,7 +3,6 @@ import { Avatar, Button, Drawer, Dropdown, Layout, Menu, Space, Typography } fro
 import type { MenuProps } from 'antd';
 import {
   IconeArquivos,
-  IconeBuscar,
   IconeColaboradores,
   IconeConta,
   IconeInicio,
@@ -11,6 +10,7 @@ import {
   IconeManual,
   IconeMenu,
   IconePainel,
+  IconeRecentes,
   IconeSair,
   IconeUnidades,
 } from '../app/icons';
@@ -22,6 +22,8 @@ import { DEGRADE_NAVEGACAO, TAMANHO_MINIMO_TEXTO, paleta } from '../app/theme';
 import { BrandMark } from './BrandMark';
 import { NotificationCenter } from './NotificationCenter';
 import { ROLE_LABEL } from './role-label';
+import { BuscaNoCabecalho } from './BuscaNoCabecalho';
+import { iniciaisDoNome, nomeExibido } from './identidade';
 
 const { Header, Sider, Content } = Layout;
 
@@ -42,7 +44,7 @@ export function AppShell() {
   const isGlobalAdmin = identity?.role === UserRole.GLOBAL_ADMIN;
 
   // Prefixo (design.md D1, `web-navegacao`): qualquer rota sob `/pastas`
-  // mantém "Arquivos" selecionado no menu, não só a raiz do explorador.
+  // mantém "Documentos" selecionado no menu, não só a raiz do explorador.
   const selectedKey = location.pathname.startsWith('/pastas') ? '/pastas' : location.pathname;
 
   // Origem única de itens (design.md D2/D3 desta change — reverte D6/D8 de
@@ -52,10 +54,16 @@ export function AppShell() {
   // silêncio quando um item de administração fosse acrescentado só num dos
   // lados — por isso este é o único lugar que monta a lista.
   const items: MenuProps['items'] = useMemo(() => {
+    // Conjunto de destinos internos (capability `web-shell-e-auth`, change
+    // `shell-e-inicio`): tela inicial, documentos, recentes e lixeira, mais os
+    // destinos de administração permitidos ao papel. A **busca não ocupa
+    // destino** — está permanentemente acessível no cabeçalho (capability
+    // `web-busca`), e mantê-la aqui seria oferecer dois caminhos para a mesma
+    // tela.
     const destinations: MenuProps['items'] = [
       { key: '/', icon: <IconeInicio />, label: <Link to="/">Início</Link> },
-      { key: '/pastas', icon: <IconeArquivos />, label: <Link to="/pastas">Arquivos</Link> },
-      { key: '/busca', icon: <IconeBuscar />, label: <Link to="/busca">Buscar</Link> },
+      { key: '/pastas', icon: <IconeArquivos />, label: <Link to="/pastas">Documentos</Link> },
+      { key: '/recentes', icon: <IconeRecentes />, label: <Link to="/recentes">Recentes</Link> },
       { key: '/lixeira', icon: <IconeLixeira />, label: <Link to="/lixeira">Lixeira</Link> },
       ...(isAdmin
         ? [
@@ -139,6 +147,10 @@ export function AppShell() {
 
   if (!identity) return null;
 
+  // `null` = conta sem nome cadastrado; o tratamento genérico é o mesmo da
+  // tela inicial, por `shell/identidade.ts`.
+  const nome = nomeExibido(identity);
+
   return (
     <Layout style={{ minHeight: '100vh' }}>
       {!isNarrow && (
@@ -208,12 +220,33 @@ export function AppShell() {
               onClick={() => setNavOpen(true)}
             />
           )}
+          {/* Busca ao alcance de toda tela autenticada (capability
+              `web-busca`), no lugar do destino que ela ocupava na navegação. */}
+          <BuscaNoCabecalho />
           <Space>
             <NotificationCenter />
             <Dropdown menu={{ items: identityMenuItems }} trigger={['click']}>
-              <Space style={{ cursor: 'pointer' }}>
-                <Avatar>{identity.id.slice(0, 2).toUpperCase()}</Avatar>
-                <Typography.Text>{ROLE_LABEL[identity.role]}</Typography.Text>
+              <Space style={{ cursor: 'pointer' }} title={nome ?? ROLE_LABEL[identity.role]}>
+                {/* Identidade é o **nome** da pessoa, nunca o identificador
+                    interno nem um fragmento dele (capability
+                    `web-shell-e-auth`): até esta change o avatar exibia
+                    `identity.id.slice(0, 2)`, produzindo rótulos como "66".
+                    Conta sem nome recorre ao ícone genérico e ao papel, que é
+                    informação que a pessoa reconhece como sua. */}
+                {nome === null ? (
+                  <Avatar icon={<IconeConta />} />
+                ) : (
+                  <Avatar>{iniciaisDoNome(nome)}</Avatar>
+                )}
+                {/* Abaixo do limiar o rótulo sai e ficam as iniciais no
+                    avatar: a medição em 375px mostrou que o texto de
+                    identidade consumia a largura de que o campo de busca
+                    precisava. As iniciais derivam do **nome**, nunca do
+                    identificador, e o nome completo acompanha o avatar em
+                    `title` para quem aponta ou usa leitor de tela. */}
+                {!isNarrow && (
+                  <Typography.Text>{nome ?? ROLE_LABEL[identity.role]}</Typography.Text>
+                )}
               </Space>
             </Dropdown>
           </Space>

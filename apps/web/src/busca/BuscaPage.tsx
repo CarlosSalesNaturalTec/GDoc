@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button, DatePicker, Empty, Input, Result, Select, Space, Spin, Table } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { IconeBaixarVarios, IconeBuscar, IconeLimparFiltros, IconeVisualizar } from '../app/icons';
 import type { Dayjs } from 'dayjs';
 import type { FileCategory, FileSummaryResponse, SearchFilesQuery } from '@gdoc/shared';
 import { UserRole, fileCategory } from '@gdoc/shared';
+import { useSearchParams } from 'react-router-dom';
 import { useSession } from '../auth/session-context';
 import { useNarrowMode } from '../app/responsive';
 import { PreviewModal } from '../visualizacao/PreviewModal';
@@ -73,9 +74,29 @@ export function BuscaPage() {
   const isAdmin =
     identity?.role === UserRole.UNIT_ADMIN || identity?.role === UserRole.GLOBAL_ADMIN;
 
-  const [filters, setFilters] = useState<FilterState>(EMPTY_FILTERS);
-  const [submitted, setSubmitted] = useState<SearchFilesQuery | undefined>(undefined);
+  // Termo vindo do campo do cabeçalho (change `shell-e-inicio`, design.md D5):
+  // quem aciona a busca de outra tela chega aqui com `?q=…`, e o termo já vem
+  // **aplicado** — sem redigitar. O acionamento continua explícito: o que
+  // dispara a consulta é a navegação, não cada tecla digitada no cabeçalho.
+  const [searchParams] = useSearchParams();
+  const termoDaUrl = searchParams.get('q') ?? '';
+
+  const [filters, setFilters] = useState<FilterState>(
+    termoDaUrl === '' ? EMPTY_FILTERS : { ...EMPTY_FILTERS, q: termoDaUrl },
+  );
+  const [submitted, setSubmitted] = useState<SearchFilesQuery | undefined>(
+    termoDaUrl === '' ? undefined : toSearchQuery({ ...EMPTY_FILTERS, q: termoDaUrl }),
+  );
   const canSearch = hasActiveCriteria(filters);
+
+  // Acionar o cabeçalho **já estando** na tela de busca só troca a query
+  // string: o componente não remonta, então o estado inicial acima não
+  // reavaliaria. Os filtros já escolhidos são preservados — só o termo muda.
+  useEffect(() => {
+    if (termoDaUrl === '') return;
+    setFilters((prev) => ({ ...prev, q: termoDaUrl }));
+    setSubmitted((prev) => ({ ...prev, q: termoDaUrl }));
+  }, [termoDaUrl]);
 
   const handleSearch = () => {
     if (!canSearch) return;

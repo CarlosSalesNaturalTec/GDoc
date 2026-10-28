@@ -5,6 +5,7 @@ import {
   BookOpen,
   Building2,
   ClipboardList,
+  Clock,
   CloudDownload,
   Copy,
   Download,
@@ -81,6 +82,7 @@ function criarIcone(Glifo: typeof House, nome: string) {
 export const IconeInicio = criarIcone(House, 'IconeInicio');
 export const IconeArquivos = criarIcone(Folder, 'IconeArquivos');
 export const IconeBuscar = criarIcone(Search, 'IconeBuscar');
+export const IconeRecentes = criarIcone(Clock, 'IconeRecentes');
 export const IconeLixeira = criarIcone(Trash2, 'IconeLixeira');
 export const IconeColaboradores = criarIcone(Users, 'IconeColaboradores');
 export const IconePainel = criarIcone(LayoutDashboard, 'IconePainel');
