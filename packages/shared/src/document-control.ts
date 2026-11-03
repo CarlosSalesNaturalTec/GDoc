@@ -8,8 +8,8 @@
  */
 
 /**
- * Conjunto fechado dos oito tipos previstos (US 10.1). Valor fora deste
- * conjunto é recusado pela API — a validação vive em
+ * Conjunto fechado dos nove tipos previstos (US 10.1, US 10.8). Valor fora
+ * deste conjunto é recusado pela API — a validação vive em
  * `apps/api/src/lib/document-control.ts`, não no schema do banco (ver o
  * comentário da migration 0016 sobre por que não há CHECK).
  */
@@ -22,6 +22,18 @@ export const DocumentType = {
   MANUAL: 'manual',
   CONSENT_TERM: 'consent_term',
   INTERNAL_NOTICE: 'internal_notice',
+  /**
+   * Arquivo que **não é documento da Matriz** — ata, planilha de trabalho,
+   * apresentação (US 10.8, demanda 2.4). Pede só o título: não tem código,
+   * revisão nem data de próxima revisão, e nenhuma situação de revisão lhe é
+   * atribuída.
+   *
+   * É o nono tipo e o único que **declara ausência** de controle, o que o
+   * torna distinto de "dados ainda não preenchidos" — um é afirmação de que
+   * nunca haverá código, o outro é pendência a resolver. A fatia da leitura
+   * obrigatória depende dessa distinção para recusar marcar o Arquivo geral.
+   */
+  GENERAL_FILE: 'general_file',
 } as const;
 
 export type DocumentType = (typeof DocumentType)[keyof typeof DocumentType];
@@ -76,6 +88,29 @@ export const DocumentStatus = {
    * vencidos.
    */
   UNCONTROLLED: 'uncontrolled',
+  /**
+   * Estado do **cadastro**, não da revisão (US 10.9, demanda 2.3): o arquivo
+   * entrou sem os dados exigidos e ainda não foi publicado. Fica na pasta, mas
+   * só é alcançado por quem o enviou e pela administração da unidade.
+   *
+   * Distinto de `UNCONTROLLED` de propósito. Os dois têm as mesmas colunas
+   * vazias, mas significam coisas opostas: `UNCONTROLLED` é acervo legítimo em
+   * circulação (o anterior ao controle documental, que o PRD promete não
+   * invalidar); este é entrada incompleta sob a regra nova, fora de
+   * circulação até ser completada. É por isso que a condição vem de um
+   * marcador gravado no envio, e não da ausência de dados — derivá-la das
+   * colunas vazias tiraria o acervo anterior de circulação de uma vez
+   * (design.md D1).
+   */
+  AWAITING_REGISTRATION: 'awaiting_registration',
+  /**
+   * Não há situação de revisão a apurar: o arquivo é `GENERAL_FILE`, que
+   * declara não ter prazo (US 10.8). Existe como valor próprio, em vez de
+   * `documentStatus` nulável, para manter o campo total — a alternativa
+   * espalharia tratamento de `null` por toda leitura do DTO para dizer o
+   * mesmo. A interface apresenta **ausência de etiqueta** para este valor.
+   */
+  NOT_APPLICABLE: 'not_applicable',
 } as const;
 
 export type DocumentStatus = (typeof DocumentStatus)[keyof typeof DocumentStatus];

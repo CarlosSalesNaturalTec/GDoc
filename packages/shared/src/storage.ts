@@ -139,6 +139,18 @@ export interface BatchUploadItemRequest {
   declaredSizeBytes: number;
   /** Subpasta relativa ao destino (ex.: "Relatorios/2024"); ausente = direto no destino. */
   relativePath?: string;
+  /**
+   * Dados de controle **deste** item (US 10.5, design.md D6 do change
+   * `arquivo-geral-e-pendente-de-cadastro`). Cada arquivo do lote tem os seus
+   * próprios dados: os de um item nunca alcançam outro.
+   *
+   * Ausente ou incompleto **não recusa** o item — ele é aceito e nasce
+   * pendente de cadastro (`documentStatus: 'awaiting_registration'`), fora de
+   * circulação até alguém completá-lo. Dado **inválido**, ao contrário, recusa
+   * o item, e só ele. Essa assimetria é o que permite exigir os dados sem
+   * quebrar a repetição de um item cuja transferência falhou.
+   */
+  documentControl?: DocumentControlInput;
 }
 
 export interface BatchUploadUrlRequest {
@@ -154,6 +166,15 @@ export interface BatchUploadItemSuccess {
   objectPath: string;
   folderId: string | null;
   expiresAt: string;
+  /**
+   * `true` quando o item nasce **pendente de cadastro** por não trazer todos
+   * os dados de controle exigidos. Existe para que quem envia um lote misto
+   * saiba quais arquivos ficaram pendentes **sem consultá-los um a um** — a
+   * resposta do lote não carrega resumo de arquivo, logo não carrega
+   * `documentStatus`, e sem este campo a informação só viria de uma segunda
+   * volta ao servidor.
+   */
+  awaitingRegistration: boolean;
 }
 
 export interface BatchUploadItemFailure {

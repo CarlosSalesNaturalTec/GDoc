@@ -6,6 +6,7 @@ import { isAdminOfUnit, visibleResourceClause } from '../lib/access.js';
 import {
   fileSummaryColumns,
   nonObsoleteClause,
+  visibleRegistrationClause,
   toFileSummaryResponse,
   type FileSummaryRow,
 } from '../lib/document-control.js';
@@ -84,10 +85,13 @@ export function searchRouter(ports: Ports): Router {
         const params: unknown[] = admin ? [] : [ctx.userId];
         const ownerPlaceholder = admin ? '' : `$${params.length}`;
 
-        // Épico 10 (US 10.7, design.md D6): o mesmo corte restritivo da
-        // listagem — documento obsoleto não é alcançável pela busca de quem
-        // não é admin da unidade.
-        let where = `${visibleResourceClause(GrantResourceType.FILE, ownerPlaceholder, ctx)} AND ${nonObsoleteClause(ctx)}`;
+        // Épico 10 (US 10.7, design.md D6) e US 10.9: os mesmos dois cortes
+        // restritivos da listagem — documento obsoleto não é alcançável pela
+        // busca de quem não é admin da unidade, e arquivo pendente de cadastro
+        // não é alcançável por quem não o enviou nem administra a unidade. A
+        // demanda é explícita quanto a este segundo: o pendente "não aparece
+        // para os leitores **nem na busca**".
+        let where = `${visibleResourceClause(GrantResourceType.FILE, ownerPlaceholder, ctx)} AND ${nonObsoleteClause(ctx)} AND ${visibleRegistrationClause(ctx, ownerPlaceholder)}`;
 
         if (q !== undefined) {
           // US 10.2 cenário 1: o mesmo termo alcança nome **ou** código, sem

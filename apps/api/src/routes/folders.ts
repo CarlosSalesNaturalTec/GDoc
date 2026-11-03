@@ -36,6 +36,7 @@ import { canReorganize, hasAccess, isAdminOfUnit, visibleResourceClause } from '
 import {
   fileSummaryColumns,
   nonObsoleteClause,
+  visibleRegistrationClause,
   toFileSummaryResponse,
   type FileSummaryRow,
 } from '../lib/document-control.js';
@@ -114,15 +115,18 @@ async function listContents(
     params,
   );
 
-  // `nonObsoleteClause` (Épico 10, US 10.7, design.md D6): subtração, nunca
-  // concessão — o documento obsoleto desaparece da listagem de quem não é
-  // admin da unidade, e a situação de cada item vem derivada no próprio
+  // Dois cortes restritivos, ambos subtração e nunca concessão:
+  // `nonObsoleteClause` (Épico 10, US 10.7, design.md D6) tira o documento
+  // obsoleto de quem não é admin da unidade, e `visibleRegistrationClause`
+  // (US 10.9) tira o arquivo pendente de cadastro de quem não o enviou nem
+  // administra a unidade. A situação de cada item vem derivada no próprio
   // `SELECT`, pelo relógio do banco (`fileSummaryColumns`).
   const folderClause = folderId === null ? 'folder_id IS NULL' : `folder_id = ${anchorClause}`;
   const { rows: files } = await client.query<FileSummaryRow>(
     `SELECT ${fileSummaryColumns(ctx, ownerPlaceholder)}
      FROM files WHERE ${visibleResourceClause(GrantResourceType.FILE, ownerPlaceholder, ctx)}
-       AND ${nonObsoleteClause(ctx)} AND ${folderClause} ORDER BY file_name`,
+       AND ${nonObsoleteClause(ctx)} AND ${visibleRegistrationClause(ctx, ownerPlaceholder)}
+       AND ${folderClause} ORDER BY file_name`,
     params,
   );
 
