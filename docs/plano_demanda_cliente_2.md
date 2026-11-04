@@ -52,7 +52,7 @@ Legenda: `pendente` · `bloqueada` (ver coluna Bloqueio) · `em andamento` ·
 | # | Fatia | Seção da demanda | Situação | Bloqueio | Change arquivado |
 | :-- | :--- | :--- | :--- | :--- | :--- |
 | A1 | Função e setor na identidade | 1.3 (Atenção: Perfil), 3.1 | pendente | D2, D3 | — |
-| A2 | Menu lateral e barra superior | 1.1, 1.2 | pendente | E1 (parcial) | — |
+| A2 | Menu lateral e barra superior | 1.1, 1.2 | **entregue** | E1 (parcial) | `menu-lateral-e-barra-superior` |
 | A3 | Conteúdo da tela Início | 1.3 | pendente | D1, D4 | — |
 | A4 | Favoritos | 1.1 (menu) | pendente | — | — |
 | A5 | Compartilhados comigo | 1.1 (menu) | pendente | — | — |
@@ -233,7 +233,58 @@ Governança local; (ii) papel novo de auditor cross-unit, restrito a
 - **Por que primeiro**: A3 (saudação), C1 (público por setor) e C3 (aviso ao
   gestor) dependem desses dados. Fazer depois obriga a voltar às três.
 
-### A2 — Menu lateral e barra superior
+### A2 — Menu lateral e barra superior  ✅ entregue
+
+> Change `menu-lateral-e-barra-superior`. **Desvios do previsto aqui,
+> decididos durante a especificação e a implementação:**
+>
+> - **O contador do sino já existia.** `NotificationCenter` consome
+>   `useUnreadNotificationCount` e envolve o botão num `Badge` desde antes. O
+>   relato de "sino sem contador" descreve contagem **zero**, que o design
+>   system não desenha. Nenhuma rota nova, nenhum requisito novo em
+>   `notificacoes` — o risco anotado nesta seção se resolveu na conferência.
+> - **Os 600 px de busca viraram teto, não medida.** No limiar de 992 px a
+>   barra dispõe de 680 px e o campo divide com sino, ajuda e envio: 600 fixos
+>   estourariam a linha e produziriam a rolagem horizontal que
+>   `web-responsividade` proíbe. Medido na app: 400 px em 992, 432 em 1024 e o
+>   teto de 600 a partir de 1280.
+> - **O `Input.Search` foi descartado.** Ele renderiza o acionador num
+>   `ant-input-group-addon` — **fora** da caixa do campo — com ou sem
+>   `enterButton`, o oposto do que a demanda pede. O acionador é `suffix` de um
+>   `Input` comum.
+> - **O botão de envio não é filtrado por papel.** `canUpload` é por pasta e vem
+>   do servidor; permissão de envio nasce de concessão, não de papel. O botão
+>   reusa o pedido pelo endereço de `cartoes-de-atalho-acionaveis`, e o
+>   explorador o atende só depois do veredito — é assim que o atalho não conduz
+>   a recusa. `PARAM_PEDIDO_DE_ENVIO` saiu de `inicio/atalhos.ts` para
+>   `navegacao/pedido-de-envio.ts`, já que agora tem três consumidores.
+> - **Dois defeitos que só a medição em navegador pegou:** o campo de busca
+>   colapsava para **24 px** em 375 px (corrigido com piso de 120 px, botão de
+>   envio só com ícone e ajuda fora da barra no modo estreito — o manual segue
+>   a um toque no grupo AJUDA do painel), e o cartão do usuário ficava em
+>   **y=977 numa viewport de 900 px**, fora da tela, porque o `Sider` cresce com
+>   o conteúdo da página (coluna passou a `sticky`/`100vh`, com reserva da
+>   altura do gatilho de recolher).
+> - **O avatar exigiu requisito novo em `sistema-de-design`.** `#9ED8F6` mede
+>   11,12:1 com o texto escuro e **1,54:1 com branco**, e o `Avatar` escreve em
+>   branco por padrão. O rótulo de grupo também: o padrão do design system para
+>   título de grupo no menu escuro é um branco translúcido que reprova no piso.
+>
+> **Lacunas conhecidas, aceitas:**
+>
+> - Quatro itens de menu não entraram, por não terem destino: **Favoritos**,
+>   **Compartilhados comigo** (A4, A5), **Leitura obrigatória** (C2) e **Tour
+>   guiado** (A6). A homologação da A2 verá um menu diferente do Anexo A por
+>   isso.
+> - **E1 segue aberto, e a medida de 150 px não se aplica ao ativo atual**: ele
+>   é retrato (301×502), de modo que 150 px de largura dariam 250 px de altura
+>   num menu de 264 px. A logomarca foi de 40 para 96 px de altura e a queixa de
+>   "miniatura ilegível" é resolvida pelo **nome em texto**, que não depende de
+>   ativo. A marca d'água do símbolo (200 px, 14%) continua fora: o JPEG é
+>   opaco, e a 14% apresentaria um retângulo cinza.
+> - O cartão do usuário exibe o **papel**, não a função do cadastro. É a A1,
+>   travada por **D2** — e o cartão é a única superfície que apresenta o dado,
+>   então a troca fica contida nele.
 
 - **Capabilities**: `web-shell-e-auth` (modificada), `identidade-visual`
   (modificada), `web-busca` (modificada), `sistema-de-design` (modificada)
