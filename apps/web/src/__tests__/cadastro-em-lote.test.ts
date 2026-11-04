@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DocumentType } from '@gdoc/shared';
+import { DOCUMENT_TYPES, DocumentType, requiredFieldsForType } from '@gdoc/shared';
 import {
   aplicarATodas,
   codigosEmConflito,
@@ -228,5 +228,29 @@ describe('Aplicar a todos (design.md D5)', () => {
     expect(aplicadas.find((l) => l.uid === 'b')?.sugeridos.has('documentType')).toBe(false);
     // O código continua sendo sugestão: "Aplicar a todos" não o alcança.
     expect(aplicadas.find((l) => l.uid === 'b')?.sugeridos.has('documentCode')).toBe(true);
+  });
+});
+
+describe('O conjunto exigido é o do servidor, para todo tipo (design.md D9)', () => {
+  it.each(DOCUMENT_TYPES)('o que falta em %s é exatamente requiredFieldsForType', (tipo) => {
+    // Guarda estrutural: se alguém reintroduzir uma lista escrita à mão no
+    // cliente, ela divergirá do contrato em algum dos nove tipos e este caso
+    // falha. Foi assim que o formulário ficou exigindo quatro campos enquanto o
+    // servidor passou a exigir cinco.
+    const vazia = editarLinha(linha('arquivo.pdf'), 'documentType', tipo);
+    // O tipo já está preenchido (é o que a linha declara); falta o resto do
+    // conjunto que **aquele tipo** exige, na mesma ordem do contrato.
+    const esperado = requiredFieldsForType(tipo).filter((campo) => campo !== 'documentType');
+    expect(faltantesDaLinha(vazia)).toEqual([...esperado]);
+  });
+
+  it('o Arquivo geral não exige nenhum dado de controle, só o título', () => {
+    expect(requiredFieldsForType(DocumentType.GENERAL_FILE)).toEqual([]);
+    const semTitulo = editarLinha(
+      editarLinha(linha('ata.pdf'), 'documentType', DocumentType.GENERAL_FILE),
+      'titulo',
+      '',
+    );
+    expect(faltantesDaLinha(semTitulo)).toEqual(['titulo']);
   });
 });

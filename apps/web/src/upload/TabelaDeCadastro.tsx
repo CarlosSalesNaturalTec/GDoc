@@ -16,7 +16,6 @@ import {
 import dayjs from 'dayjs';
 import { DOCUMENT_TYPES, DocumentType, type DocumentType as DocumentTypeValue } from '@gdoc/shared';
 import { DOCUMENT_TYPE_ACRONYM, DOCUMENT_TYPE_LABEL } from '../shell/document-control-labels';
-import { useNarrowMode } from '../app/responsive';
 import {
   aplicarATodas,
   codigosEmConflito,
@@ -112,7 +111,6 @@ export function TabelaDeCadastro({
   onCancelar,
   enviando = false,
 }: TabelaDeCadastroProps) {
-  const estreito = useNarrowMode();
   const [aplicacao, setAplicacao] = useState<ValoresDeAplicacao>({});
 
   const conflitos = useMemo(() => codigosEmConflito(linhas), [linhas]);
@@ -346,7 +344,15 @@ export function TabelaDeCadastro({
         {/* A tabela rola **dentro do próprio contêiner** (`web-responsividade`:
             nenhuma tela produz rolagem horizontal do documento), e é
             virtualizada para que uma seleção de milhares de arquivos não
-            renderize uma linha por arquivo (design.md D2). */}
+            renderize uma linha por arquivo (design.md D2).
+
+            `scroll.x` é **sempre** a largura somada das colunas, e não só na
+            forma estreita: a tabela virtual precisa dos dois eixos declarados
+            para dimensionar o corpo, e deixar `x` indefinido acima do ponto de
+            ruptura era depender de um comportamento não contratado. Verificado
+            em 1600, 1280, 1100, 1000, 820 e 420 px: o documento não rola na
+            horizontal em nenhuma delas, e a última coluna continua alcançável e
+            editável — a rolagem acontece dentro do corpo da tabela. */}
         <Table<LinhaDeCadastro>
           virtual
           size="small"
@@ -354,7 +360,7 @@ export function TabelaDeCadastro({
           dataSource={linhas}
           columns={colunas}
           pagination={false}
-          scroll={{ x: estreito ? larguraTotal : undefined, y: ALTURA_DO_CORPO }}
+          scroll={{ x: larguraTotal, y: ALTURA_DO_CORPO }}
           data-testid="tabela-de-cadastro"
         />
 
