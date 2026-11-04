@@ -9,6 +9,7 @@ import { ApiError } from '../lib/api-client';
 import { useSession } from '../auth/session-context';
 import { useUnits } from '../unidades/queries';
 import { PessoaFormModal } from './PessoaFormModal';
+import { SetoresDrawer } from '../setores/SetoresDrawer';
 import { RotuloDeEstado } from '../app/RotuloDeEstado';
 import { ROLE_LABEL } from '../shell/role-label';
 import { SenhaGeradaModal } from './SenhaGeradaModal';
@@ -54,6 +55,9 @@ export function PessoasPage() {
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editingPerson, setEditingPerson] = useState<PersonResponse | null>(null);
+  // Manutenção da lista de setores (change `funcao-e-setor-na-identidade`,
+  // design.md D9): painel desta página, sem item de navegação próprio.
+  const [setoresOpen, setSetoresOpen] = useState(false);
 
   function openCreate() {
     setEditingPerson(null);
@@ -101,6 +105,7 @@ export function PessoasPage() {
     { title: 'Nome', key: 'name', render: (_, person) => person.fullName ?? person.email },
     { title: 'E-mail', key: 'email', dataIndex: 'email' },
     { title: 'Função', key: 'jobTitle', render: (_, person) => person.jobTitle ?? '—' },
+    { title: 'Setor', key: 'sector', render: (_, person) => person.sectorName ?? '—' },
     ...(isGlobalAdmin
       ? [
           {
@@ -188,7 +193,8 @@ export function PessoasPage() {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginBottom: 16 }}>
+        <Button onClick={() => setSetoresOpen(true)}>Setores</Button>
         <Button type="primary" icon={<IconeNovo />} onClick={openCreate}>
           Novo colaborador
         </Button>
@@ -208,6 +214,7 @@ export function PessoasPage() {
         generatedPassword={generatedPassword}
         onClose={() => setGeneratedPassword(null)}
       />
+      <SetoresDrawer open={setoresOpen} onClose={() => setSetoresOpen(false)} />
     </div>
   );
 }

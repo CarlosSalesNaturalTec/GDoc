@@ -18,6 +18,18 @@ export interface LoginRequest {
  * conta sem nome cadastrado devolve **vazio**, mantendo a forma da resposta
  * estável. Vazio nunca é substituído pelo identificador interno — a interface
  * recorre a um tratamento genérico (capability `web-shell-e-auth`).
+ *
+ * `jobTitle` e `sectorName` entram pela change `funcao-e-setor-na-identidade`
+ * (design.md D5), pela **mesma** releitura por requisição e pela mesma razão: é
+ * a **função** do cadastro que o cliente espera ler abaixo da saudação, não o
+ * papel de acesso (`docs/respostas_a1_funcao_e_setor.txt`, resposta 1a —
+ * *"'Colaborador' ou 'Gestor' é coisa interna do sistema"*). Seguem a convenção
+ * de `fullName`: **vazio**, nunca `null` e nunca campo ausente, para que a
+ * forma da resposta não dependa do preenchimento do cadastro.
+ *
+ * O **nome** do setor, não o seu identificador: aqui é dado de apresentação. O
+ * id não tem consumidor — quando o setor virar critério de público, quem
+ * decide é o servidor a partir do contexto, não um id devolvido à SPA.
  */
 export interface AuthenticatedIdentity {
   id: string;
@@ -27,6 +39,10 @@ export interface AuthenticatedIdentity {
   fullName: string;
   /** Nome da unidade da pessoa. */
   unitName: string;
+  /** Função/cargo do cadastro; vazio = não preenchido (a interface recorre ao papel). */
+  jobTitle: string;
+  /** Nome do setor da pessoa; vazio = sem setor (a interface omite). */
+  sectorName: string;
 }
 
 /**

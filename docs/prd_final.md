@@ -17,7 +17,7 @@ O **objetivo principal** do GDoc é entregar um repositório de arquivos corpora
 * **Dentro do Escopo:**
   * Login por usuário e senha, com contas criadas exclusivamente pela área administrativa.
   * Área "Minha conta", com consulta aos próprios dados cadastrais e alteração da própria senha; redefinição administrativa de senha para quem esquecer a sua.
-  * Cadastro de pessoas com os dados: nome, unidade, telefone, e-mail, função/cargo, área de trabalho e observação.
+  * Cadastro de pessoas com os dados: nome, unidade, telefone, e-mail, função/cargo, setor e observação.
   * Isolamento por unidade: cada unidade só enxerga os próprios arquivos; existe o papel de administrador de unidade.
   * Navegador de arquivos com pastas aninhadas, trilha de navegação (breadcrumb), envio, download e visualização.
   * Envio de múltiplos arquivos de uma vez com progresso individual; envio de uma pasta inteira preservando a estrutura; download de uma pasta completa (com suas subpastas) num único arquivo compactado.
@@ -54,12 +54,16 @@ O **objetivo principal** do GDoc é entregar um repositório de arquivos corpora
   * **Critérios de Aceitação:**
     * *Cenário 1 — Cadastro válido:*
       * **Dado** que sou um administrador autenticado
-      * **Quando** cadastro uma pessoa informando nome, unidade, telefone, e-mail, função/cargo, área de trabalho e observação, com um e-mail ainda não utilizado
-      * **Então** a conta é criada, vinculada à unidade informada, e a pessoa passa a poder fazer login com as credenciais definidas.
+      * **Quando** cadastro uma pessoa informando nome, unidade, telefone, e-mail, função/cargo, setor (escolhido entre os setores daquela unidade, ou nenhum) e observação, com um e-mail ainda não utilizado
+      * **Então** a conta é criada, vinculada à unidade informada e ao setor escolhido, e a pessoa passa a poder fazer login com as credenciais definidas.
     * *Cenário 2 — E-mail duplicado:*
       * **Dado** que já existe uma conta com o e-mail informado
       * **Quando** tento cadastrar outra pessoa com o mesmo e-mail
       * **Então** o cadastro é recusado e o sistema exibe uma mensagem indicando que o e-mail já está em uso.
+    * *Cenário 3 — Setor de outra unidade:*
+      * **Dado** que sou um administrador autenticado
+      * **Quando** tento cadastrar ou editar uma pessoa informando um setor que pertence a outra unidade
+      * **Então** a operação é recusada por completo, sem aplicar nenhum dos demais campos enviados, e a recusa não distingue esse caso de um setor inexistente.
 
 * **US 1.2:** Como Colaborador, eu quero entrar no sistema com usuário e senha para que apenas eu acesse minha área.
   * **Critérios de Aceitação:**
@@ -590,7 +594,11 @@ O **objetivo principal** do GDoc é entregar um repositório de arquivos corpora
     * *Cenário 1 — Identificação pessoal:*
       * **Dado** que acabei de entrar no sistema
       * **Quando** a tela inicial é apresentada
-      * **Então** vejo meu nome, minha função e minha unidade, e não um identificador interno.
+      * **Então** vejo meu nome, a minha **função/cargo do cadastro**, o meu setor e a minha unidade, e não um identificador interno.
+    * *Cenário 4 — Conta sem função cadastrada:*
+      * **Dado** que a minha conta não tem função/cargo preenchido
+      * **Quando** a tela inicial é apresentada
+      * **Então** vejo, no lugar da função, o rótulo do meu perfil de acesso — com o mesmo texto que as demais telas usam para ele —, e o setor é omitido quando não existe.
     * *Cenário 2 — Atalhos conforme o meu perfil:*
       * **Dado** que estou na tela inicial
       * **Quando** consulto os atalhos oferecidos
@@ -622,7 +630,7 @@ O **objetivo principal** do GDoc é entregar um repositório de arquivos corpora
 ## 5. Requisitos Funcionais
 
 1. Autenticação por usuário e senha; contas criadas exclusivamente pela área administrativa, sem autocadastro.
-2. Cadastro de pessoas com os campos: nome, unidade, telefone, e-mail, função/cargo, área de trabalho e observação; e-mail único por conta.
+2. Cadastro de pessoas com os campos: nome, unidade, telefone, e-mail, função/cargo, setor e observação; e-mail único por conta. O **setor** é escolhido de uma lista fechada cadastrada por unidade — não é texto livre —, porque passa a servir de critério de público e de recorte de relatório; é opcional, e a administração da unidade mantém a lista.
 3. Alteração da própria senha em "Minha conta", mediante confirmação da senha atual e respeitando o tamanho mínimo exigido; a alteração encerra os demais acessos abertos da pessoa. Os dados cadastrais aparecem em "Minha conta" apenas para consulta.
 4. Redefinição administrativa de senha, com senha gerada pelo sistema e exibida uma única vez, encerrando de imediato os acessos abertos da pessoa: o Administrador de Unidade redefine a senha de Colaboradores da própria unidade; o Administrador Global, a de Colaboradores e Administradores de Unidade. A senha de um Administrador Global só é alterada por ele mesmo.
 5. Três níveis de papel: Administrador Global, Administrador de Unidade e Colaborador, com alcance de visibilidade correspondente.

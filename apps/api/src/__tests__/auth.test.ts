@@ -77,6 +77,8 @@ describe('Autenticação: /auth/login, /auth/logout, /auth/me', () => {
       role: 'collaborator',
       fullName: 'Pessoa Ativa',
       unitName: 'Unidade Auth',
+      jobTitle: '',
+      sectorName: '',
     });
 
     const setCookie = res.headers['set-cookie'];
@@ -130,18 +132,22 @@ describe('Autenticação: /auth/login, /auth/logout, /auth/me', () => {
       role: 'collaborator',
       fullName: 'Pessoa Ativa',
       unitName: 'Unidade Auth',
+      jobTitle: '',
+      sectorName: '',
     });
     expect(res.body.password).toBeUndefined();
     expect(res.body.passwordHash).toBeUndefined();
   });
 
   /**
-   * Identidade com nome e unidade (change `shell-e-inicio`, capability
-   * `autenticacao`; US 11.1). Os três cenários normatizados — o requisito
-   * existe porque o shell apresentava os dois primeiros caracteres do
-   * identificador interno como identidade da pessoa.
+   * Identidade com nome, unidade, função e setor (changes `shell-e-inicio` e
+   * `funcao-e-setor-na-identidade`, capability `autenticacao`; US 11.1). O
+   * requisito existe porque o shell apresentava os dois primeiros caracteres
+   * do identificador interno como identidade da pessoa; função e setor entram
+   * pela mesma porta, e pelo mesmo motivo de origem — a releitura por
+   * requisição, nunca o token.
    */
-  describe('Identidade devolvida à interface carrega nome e unidade (US 11.1)', () => {
+  describe('Identidade devolvida à interface carrega nome, unidade, função e setor (US 11.1)', () => {
     it('o login devolve a identidade na mesma forma de /auth/me, com nome e unidade', async () => {
       const app = createApp(ports);
       const res = await request(app)
@@ -155,6 +161,8 @@ describe('Autenticação: /auth/login, /auth/logout, /auth/me', () => {
         role: 'collaborator',
         fullName: 'Pessoa Ativa',
         unitName: 'Unidade Auth',
+        jobTitle: '',
+        sectorName: '',
       });
     });
 
@@ -207,6 +215,92 @@ describe('Autenticação: /auth/login, /auth/logout, /auth/me', () => {
       expect(res.body.unitName).toBe('Unidade Auth');
       // O vazio nunca é substituído por fragmento do identificador interno.
       expect(res.body.fullName).not.toContain(semNomeId.slice(0, 2));
+    });
+
+    it('função e setor do cadastro chegam à identidade', async () => {
+      const setorId = await withSystemBypass(pool, async (client) => {
+        const { rows } = await client.query<{ id: string }>(
+          `INSERT INTO sectors (unit_id, name) VALUES ($1, 'Governança') RETURNING id`,
+          [unitId],
+        );
+        return rows[0]!.id;
+      });
+      await withSystemBypass(pool, (client) =>
+        client.query('UPDATE users SET job_title = $1, sector_id = $2 WHERE id = $3', [
+          'Gerente de Governança',
+          setorId,
+          activeUserId,
+        ]),
+      );
+
+      const app = createApp(ports);
+      const res = await request(app)
+        .get('/auth/me')
+        .set('Cookie', await sessionCookieFor(ports, activeUserId));
+
+      expect(res.status).toBe(200);
+      expect(res.body.jobTitle).toBe('Gerente de Governança');
+      expect(res.body.sectorName).toBe('Governança');
+      // O papel segue na identidade: a interface decide o que apresentar, o
+      // servidor não esconde o dado de autorização.
+      expect(res.body.role).toBe('collaborator');
+
+      // E o login devolve a mesma forma, pela mesma leitura que autenticou.
+      const login = await request(app)
+        .post('/auth/login')
+        .send({ email: 'ativo@test.dev', password: 'correct-password' });
+      expect(login.body.jobTitle).toBe('Gerente de Governança');
+      expect(login.body.sectorName).toBe('Governança');
+
+      await withSystemBypass(pool, (client) =>
+        client.query('UPDATE users SET job_title = NULL, sector_id = NULL WHERE id = $1', [
+          activeUserId,
+        ]),
+      );
+      await withSystemBypass(pool, (client) =>
+        client.query('DELETE FROM sectors WHERE id = $1', [setorId]),
+      );
+    });
+
+    it('função corrigida no cadastro aparece na requisição seguinte, sem novo login', async () => {
+      const app = createApp(ports);
+      const cookie = await sessionCookieFor(ports, activeUserId);
+
+      const antes = await request(app).get('/auth/me').set('Cookie', cookie);
+      expect(antes.body.jobTitle).toBe('');
+
+      await withSystemBypass(pool, (client) =>
+        client.query('UPDATE users SET job_title = $1 WHERE id = $2', [
+          'Gerente de Governança',
+          activeUserId,
+        ]),
+      );
+
+      // É esta a queixa do cliente que a fatia resolve: a tela mostrava
+      // "Colaborador" para a gerente de Governança. Com o cargo preenchido, a
+      // requisição seguinte já o carrega — sem novo login.
+      const depois = await request(app).get('/auth/me').set('Cookie', cookie);
+      expect(depois.status).toBe(200);
+      expect(depois.body.jobTitle).toBe('Gerente de Governança');
+
+      await withSystemBypass(pool, (client) =>
+        client.query('UPDATE users SET job_title = NULL WHERE id = $1', [activeUserId]),
+      );
+    });
+
+    it('conta sem função e sem setor devolve os dois campos vazios, sem omiti-los', async () => {
+      const app = createApp(ports);
+      const res = await request(app)
+        .get('/auth/me')
+        .set('Cookie', await sessionCookieFor(ports, activeUserId));
+
+      expect(res.status).toBe(200);
+      // Presentes e vazios — não ausentes. É o que mantém a forma da resposta
+      // estável, independentemente do preenchimento do cadastro.
+      expect(Object.keys(res.body)).toContain('jobTitle');
+      expect(Object.keys(res.body)).toContain('sectorName');
+      expect(res.body.jobTitle).toBe('');
+      expect(res.body.sectorName).toBe('');
     });
   });
 

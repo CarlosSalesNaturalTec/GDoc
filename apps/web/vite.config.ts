@@ -19,6 +19,7 @@ export const API_PROXY_PREFIXES = [
   '/folders',
   '/users',
   '/units',
+  '/sectors',
   '/grants',
   '/trash',
   '/audit',

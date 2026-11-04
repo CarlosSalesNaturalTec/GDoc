@@ -68,9 +68,82 @@ describe('Tela inicial (US 11.1 e 11.2)', () => {
     // Escopado ao conteúdo: a change `menu-lateral-e-barra-superior` passou a
     // apresentar papel e unidade também no cartão do usuário, no rodapé da
     // navegação. O que este caso exercita é a linha de contexto da **tela**.
+    // `COLABORADOR` não tem cargo cadastrado, então a linha recai no rótulo do
+    // papel — pela mesma origem única das outras telas (change
+    // `funcao-e-setor-na-identidade`, design.md D6).
     expect(within(conteudo()).getByText('Colaborador · Unidade Centro')).toBeInTheDocument();
     // O identificador interno não aparece em lugar nenhum da tela.
     expect(document.body.textContent).not.toContain('user-1');
+  });
+
+  /**
+   * Função e setor na linha de contexto (change
+   * `funcao-e-setor-na-identidade`; `docs/respostas_a1_funcao_e_setor.txt`,
+   * resposta 1a). A queixa do cliente era literal: *"para a gerente de
+   * Governança aparece Colaborador"*.
+   */
+  describe('função e setor do cadastro na linha abaixo da saudação', () => {
+    it('a função do cadastro prevalece sobre o rótulo do papel', async () => {
+      mockViewportWidth(WIDE_VIEWPORT);
+      mockFetch({
+        ...ROTAS_DA_TELA_INICIAL,
+        'GET /auth/me': {
+          status: 200,
+          body: {
+            ...COLABORADOR,
+            jobTitle: 'Gerente de Governança',
+            sectorName: 'Governança',
+          },
+        },
+      });
+
+      renderApp(['/']);
+
+      await screen.findByText('Olá, Maria Silva!');
+      expect(
+        within(conteudo()).getByText('Gerente de Governança · Governança · Unidade Centro'),
+      ).toBeInTheDocument();
+      // E o rótulo do papel **não** aparece no lugar da função: era este o
+      // defeito relatado.
+      expect(within(conteudo()).queryByText(/^Colaborador ·/)).not.toBeInTheDocument();
+    });
+
+    it('conta sem cargo recai no rótulo do papel, com o setor preservado', async () => {
+      mockViewportWidth(WIDE_VIEWPORT);
+      mockFetch({
+        ...ROTAS_DA_TELA_INICIAL,
+        'GET /auth/me': {
+          status: 200,
+          body: { ...COLABORADOR, jobTitle: '', sectorName: 'CME' },
+        },
+      });
+
+      renderApp(['/']);
+
+      await screen.findByText('Olá, Maria Silva!');
+      expect(
+        within(conteudo()).getByText('Colaborador · CME · Unidade Centro'),
+      ).toBeInTheDocument();
+    });
+
+    it('pessoa sem setor não deixa separador solto na linha', async () => {
+      mockViewportWidth(WIDE_VIEWPORT);
+      mockFetch({
+        ...ROTAS_DA_TELA_INICIAL,
+        'GET /auth/me': {
+          status: 200,
+          body: { ...COLABORADOR, jobTitle: 'Analista', sectorName: '' },
+        },
+      });
+
+      renderApp(['/']);
+
+      await screen.findByText('Olá, Maria Silva!');
+      // Sem rótulo vazio e sem espaço reservado: o termo simplesmente não
+      // entra (capability `setores`).
+      expect(within(conteudo()).getByText('Analista · Unidade Centro')).toBeInTheDocument();
+      expect(within(conteudo()).queryByText(/· ·/)).not.toBeInTheDocument();
+    });
   });
 
   it('conta sem nome cadastrado recorre a tratamento genérico, nunca ao identificador (US 11.1, cenário 1)', async () => {

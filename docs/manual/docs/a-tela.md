@@ -13,9 +13,14 @@ está na implantação correta quando existe mais de uma.
 Ao entrar, a primeira tela é o seu ponto de partida — ela responde, sem nenhum
 clique, a "quem sou, onde estou e o que mudou":
 
-- **Saudação** com o seu nome, a sua função e a sua unidade. Se a sua conta
-  ainda não tem nome cadastrado, a saudação é genérica ("Olá!") e a função e a
-  unidade continuam aparecendo.
+- **Saudação** com o seu nome e, abaixo dela, a sua **função/cargo**, o seu
+  **setor** e a sua **unidade** — como estão no seu cadastro. Se o seu cargo não
+  estiver preenchido, aparece no lugar o nome do seu **perfil de acesso**
+  ("Colaborador", "Gestor" ou "Administrador global"); se você não tem setor,
+  ele simplesmente não aparece. Se a sua conta ainda não tem nome cadastrado, a
+  saudação é genérica ("Olá!") e essa linha continua aparecendo.
+  Cargo e setor são dados do cadastro: quem os ajusta é quem administra a sua
+  unidade, e **nenhum dos dois altera as suas permissões**.
 - **O que você pode fazer**: atalhos para as ações do dia a dia. Você vê
   **apenas** os atalhos que o seu perfil pode executar — nenhum atalho exibido
   resulta em recusa ao ser acionado. O atalho **Enviar documentos** leva você
@@ -80,15 +85,19 @@ apontá-lo.
 ## Seu cartão no pé do menu
 
 No **pé do menu** fica o seu cartão: as **iniciais** do seu nome no avatar, o
-seu **nome**, o seu **perfil** e a sua **unidade**, sempre visíveis — você não
-precisa abrir nada para lê-los. Clicando no cartão você vai para
+seu **nome**, a sua **função/cargo** e a sua **unidade**, sempre visíveis — você
+não precisa abrir nada para lê-los. Clicando no cartão você vai para
 [Minha conta](colaborador/minha-conta.md); logo abaixo dele fica o botão
 **Sair**.
 
+Sem cargo preenchido no cadastro, aparece no lugar o nome do seu **perfil de
+acesso** (por exemplo, "Colaborador"). O seu **setor** não ocupa a linha do
+cartão, que é estreita — ele aparece ao apontar o cartão, junto com o texto
+completo.
+
 Se a sua conta ainda não tem nome cadastrado, aparece no lugar o nome do seu
-perfil (por exemplo, "Colaborador") — nunca um código interno. Se o seu nome
-for mais longo do que a largura do cartão, ele aparece abreviado na tela e
-completo ao apontá-lo.
+perfil — nunca um código interno. Se o seu nome for mais longo do que a largura
+do cartão, ele aparece abreviado na tela e completo ao apontá-lo.
 
 ## Barra superior
 

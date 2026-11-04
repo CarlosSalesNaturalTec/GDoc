@@ -59,6 +59,57 @@ describe('Identidade do shell vive no rodapé da navegação (web-shell-e-auth)'
     expect(within(rodape).queryByText('66')).not.toBeInTheDocument();
   });
 
+  /**
+   * Função no lugar do papel (change `funcao-e-setor-na-identidade`,
+   * design.md D6/D7; resposta 1a do cliente). O cartão é a única superfície do
+   * shell que apresenta o dado, então a troca fica contida nele.
+   */
+  it('o rodapé apresenta a função do cadastro, e o setor no texto íntegro', async () => {
+    mockViewportWidth(WIDE_VIEWPORT);
+    mockFetch({
+      ...ROTAS_DA_TELA_INICIAL,
+      'GET /auth/me': {
+        status: 200,
+        body: { ...COLABORADOR, jobTitle: 'Gerente de Governança', sectorName: 'Governança' },
+      },
+    });
+
+    renderApp(['/']);
+    await screen.findByText('O que você pode fazer');
+
+    const rodape = navegacao();
+    // Linha visível: função · unidade. O setor **não** entra nela — a segunda
+    // linha do cartão de 264px já trunca com dois termos ao lado do avatar
+    // (design.md D7).
+    expect(within(rodape).getByText('Gerente de Governança · Unidade Centro')).toBeInTheDocument();
+    expect(
+      within(rodape).queryByText(/Gerente de Governança · Governança/),
+    ).not.toBeInTheDocument();
+
+    // Mas segue alcançável por quem aponta o cartão ou usa leitor de tela.
+    const link = within(rodape).getByRole('link', { name: /Minha conta/ });
+    expect(link.getAttribute('aria-label')).toContain('Governança');
+    expect(link.getAttribute('title')).toContain('Governança');
+
+    // E o rótulo do papel não aparece no lugar da função.
+    expect(within(rodape).queryByText(/^Colaborador ·/)).not.toBeInTheDocument();
+  });
+
+  it('conta sem função no cadastro recai no rótulo do papel', async () => {
+    mockViewportWidth(WIDE_VIEWPORT);
+    mockFetch({
+      ...ROTAS_DA_TELA_INICIAL,
+      'GET /auth/me': { status: 200, body: { ...COLABORADOR, jobTitle: '', sectorName: '' } },
+    });
+
+    renderApp(['/']);
+    await screen.findByText('O que você pode fazer');
+
+    // Mesmo texto que a listagem de colaboradores e o perfil da própria conta
+    // exibem — a origem única é o que `nomenclatura-interface` exige.
+    expect(within(navegacao()).getByText('Colaborador · Unidade Centro')).toBeInTheDocument();
+  });
+
   it('a identidade não ocupa a barra superior', async () => {
     mockViewportWidth(WIDE_VIEWPORT);
     mockFetch({ ...ROTAS_DA_TELA_INICIAL, 'GET /auth/me': { status: 200, body: COLABORADOR } });

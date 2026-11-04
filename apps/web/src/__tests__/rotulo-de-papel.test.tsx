@@ -35,7 +35,8 @@ const PESSOA: PersonResponse = {
   fullName: 'Fulana Gestora',
   phone: null,
   jobTitle: 'Coordenação',
-  workArea: null,
+  sectorId: null,
+  sectorName: null,
   notes: null,
   role: UserRole.UNIT_ADMIN,
   status: PersonStatus.ACTIVE,
@@ -89,12 +90,50 @@ describe('Rótulo do papel de acesso (nomenclatura-interface)', () => {
     expect(within(linha).getByText(ROLE_LABEL[UserRole.UNIT_ADMIN])).toBeInTheDocument();
 
     await userEvent.click(within(linha).getByRole('button', { name: 'Editar' }));
-    const combobox = await screen.findByRole('combobox');
+    // O formulário passou a ter dois seletores — Setor e Papel (change
+    // `funcao-e-setor-na-identidade`) —, então o caso aponta o de papel pelo
+    // seu campo, em vez de pelo único `combobox` que havia antes.
+    const combobox = await waitFor(() => {
+      const campo = document.querySelector('#role') as HTMLElement | null;
+      if (campo === null) throw new Error('seletor de papel ainda não montado');
+      return campo;
+    });
     await userEvent.click(combobox);
     const dropdown = await waitFor(
       () => document.querySelector('.ant-select-dropdown') as HTMLElement,
     );
     expect(within(dropdown).getByText(ROLE_LABEL[UserRole.UNIT_ADMIN])).toBeInTheDocument();
+  });
+
+  /**
+   * Função exibida no lugar do papel (change `funcao-e-setor-na-identidade`):
+   * o requisito passou a reconhecer que o shell e a tela inicial apresentam a
+   * **função**, exibindo o rótulo do papel só na recaída — e, quando o exibem,
+   * pela mesma origem única.
+   */
+  it('a função no shell não é rótulo de papel: a listagem segue exibindo o papel da origem única', async () => {
+    mockFetch({
+      'GET /auth/me': {
+        status: 200,
+        body: { ...UNIT_ADMIN, fullName: 'Fulana Gestora', jobTitle: 'Coordenação' },
+      },
+      'GET /users': { status: 200, body: [PESSOA] },
+    });
+    renderApp(['/admin/pessoas']);
+
+    // O nome aparece em DOIS lugares agora: na linha da tabela e no cartão do
+    // rodapé. Esperar a tabela antes de localizar a linha evita casar com o
+    // cartão, que renderiza primeiro.
+    const tabela = await screen.findByRole('table');
+    const linha = within(tabela).getByText('Fulana Gestora').closest('tr')!;
+    // A listagem é a tela do cadastro: o papel continua lá, com o rótulo de
+    // origem única, para distinguir quem tem privilégio administrativo.
+    expect(within(linha).getByText(ROLE_LABEL[UserRole.UNIT_ADMIN])).toBeInTheDocument();
+
+    // O shell apresenta a função. Os dois textos divergem de propósito, e
+    // essa divergência não é rótulo de papel inconsistente.
+    const rodape = document.querySelector('.ant-layout-sider') as HTMLElement;
+    expect(within(rodape).getByText(/^Coordenação ·/)).toBeInTheDocument();
   });
 
   it('o rótulo anterior não aparece em texto visível em nenhuma das telas', async () => {

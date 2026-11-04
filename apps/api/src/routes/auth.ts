@@ -25,6 +25,8 @@ interface UserAuthRow {
   password_hash: string;
   full_name: string | null;
   unit_name: string;
+  job_title: string | null;
+  sector_name: string | null;
 }
 
 /**
@@ -70,9 +72,15 @@ export function authRouter(ports: Ports, appManualUrl: string): Router {
         { unitId: BOOTSTRAP_UNIT, userId: BOOTSTRAP_UNIT, role: 'global_admin' },
         async (client) => {
           const { rows } = await client.query<UserAuthRow>(
+            // `LEFT JOIN` no setor pela mesma razão de `tenant-context.ts`:
+            // pessoa sem setor é estado válido, e um `JOIN` a impediria de
+            // autenticar.
             `SELECT u.id, u.unit_id, u.role, u.status, u.password_hash,
-                    u.full_name, un.name AS unit_name
-             FROM users u JOIN units un ON un.id = u.unit_id
+                    u.full_name, un.name AS unit_name,
+                    u.job_title, s.name AS sector_name
+             FROM users u
+             JOIN units un ON un.id = u.unit_id
+             LEFT JOIN sectors s ON s.id = u.sector_id
              WHERE u.email = $1`,
             [email],
           );
@@ -97,15 +105,19 @@ export function authRouter(ports: Ports, appManualUrl: string): Router {
         ...sessionCookieOptions(),
         maxAge: config.authSessionTtlSeconds * 1000,
       });
-      // Nome e unidade vêm da **mesma** leitura que autenticou (change
-      // `shell-e-inicio`, design.md D3) — não há segunda consulta, e o login
-      // devolve a identidade na mesma forma de `GET /auth/me`.
+      // Nome, unidade, função e setor vêm da **mesma** leitura que autenticou
+      // (change `shell-e-inicio`, design.md D3; função e setor pela change
+      // `funcao-e-setor-na-identidade`, design.md D5) — não há segunda
+      // consulta, e o login devolve a identidade na mesma forma de
+      // `GET /auth/me`.
       const identity: AuthenticatedIdentity = {
         id: user.id,
         unitId: user.unit_id,
         role: user.role as AuthenticatedIdentity['role'],
         fullName: user.full_name ?? '',
         unitName: user.unit_name,
+        jobTitle: user.job_title ?? '',
+        sectorName: user.sector_name ?? '',
       };
       res.json(identity);
     } catch (err) {
@@ -131,6 +143,8 @@ export function authRouter(ports: Ports, appManualUrl: string): Router {
       role: ctx.role,
       fullName: display.fullName,
       unitName: display.unitName,
+      jobTitle: display.jobTitle,
+      sectorName: display.sectorName,
     };
     res.json(identity);
   });

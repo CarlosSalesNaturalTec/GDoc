@@ -1,4 +1,5 @@
 import type { AuthenticatedIdentity } from '@gdoc/shared';
+import { ROLE_LABEL } from './role-label';
 
 /**
  * Origem única da identidade **apresentada** (capability `web-shell-e-auth`,
@@ -39,4 +40,35 @@ export function iniciaisDoNome(nome: string): string {
  */
 export function saudacao(nome: string | null): string {
   return nome === null ? 'Olá!' : `Olá, ${nome}!`;
+}
+
+/**
+ * O que apresentar como "perfil" da pessoa: a **função** do cadastro
+ * (`job_title`) quando preenchida, e o rótulo do **papel de acesso** quando
+ * não (change `funcao-e-setor-na-identidade`, design.md D6;
+ * `docs/respostas_a1_funcao_e_setor.txt`, resposta 1a).
+ *
+ * Origem **única** da recaída, consumida pelo cartão do rodapé e pela tela
+ * inicial. Não é preferência de organização: `nomenclatura-interface` proíbe
+ * que o rótulo do papel divirja entre telas, e esse mapa já esteve triplicado
+ * uma vez. Duas recaídas implementadas em paralelo são o mesmo defeito com
+ * outro nome.
+ *
+ * A função **não** é rótulo de papel e não altera permissão: é texto livre do
+ * cadastro. Uma pessoa com função "Gestor" e papel `collaborator` continua
+ * sendo colaboradora para toda decisão de autorização — que é do servidor.
+ */
+export function funcaoExibida(identity: AuthenticatedIdentity): string {
+  const funcao = identity.jobTitle.trim();
+  return funcao === '' ? ROLE_LABEL[identity.role] : funcao;
+}
+
+/**
+ * Nome do setor, ou `null` quando a pessoa não tem setor — caso em que a
+ * interface **omite** o termo, sem rótulo vazio nem espaço reservado
+ * (capability `setores`).
+ */
+export function setorExibido(identity: AuthenticatedIdentity): string | null {
+  const setor = identity.sectorName.trim();
+  return setor === '' ? null : setor;
 }

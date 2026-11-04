@@ -51,7 +51,7 @@ Legenda: `pendente` · `bloqueada` (ver coluna Bloqueio) · `em andamento` ·
 
 | # | Fatia | Seção da demanda | Situação | Bloqueio | Change arquivado |
 | :-- | :--- | :--- | :--- | :--- | :--- |
-| A1 | Função e setor na identidade | 1.3 (Atenção: Perfil), 3.1 | em andamento | — | `funcao-e-setor-na-identidade` (em voo) |
+| A1 | Função e setor na identidade | 1.3 (Atenção: Perfil), 3.1 | **entregue** | — | `funcao-e-setor-na-identidade` |
 | A2 | Menu lateral e barra superior | 1.1, 1.2 | **entregue** | E1 (parcial) | `menu-lateral-e-barra-superior` |
 | A3 | Conteúdo da tela Início | 1.3 | pendente | D1, D4 | — |
 | A4 | Favoritos | 1.1 (menu) | pendente | — | — |

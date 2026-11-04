@@ -3,8 +3,7 @@ import { Link } from 'react-router-dom';
 import type { AuthenticatedIdentity } from '@gdoc/shared';
 import { IconeConta, IconeSair } from '../app/icons';
 import { paleta, TAMANHO_MINIMO_TEXTO } from '../app/theme';
-import { iniciaisDoNome, nomeExibido } from './identidade';
-import { ROLE_LABEL } from './role-label';
+import { funcaoExibida, iniciaisDoNome, nomeExibido, setorExibido } from './identidade';
 
 /**
  * Identidade no **rodapé da navegação** (demanda do cliente nº 2, seção 1.1;
@@ -28,11 +27,17 @@ import { ROLE_LABEL } from './role-label';
  * (requisito "A identidade apresentada é o nome, não o identificador"). Conta
  * sem nome recorre ao ícone genérico e ao papel.
  *
- * **O "perfil" aqui é o papel de acesso** (`ROLE_LABEL`). A demanda e a US
- * 11.1 falam de **função**, que é `job_title` do cadastro e ainda não chega à
- * identidade autenticada — é a fatia A1, travada pela decisão D2 do plano.
- * Este cartão é a única superfície do shell que apresenta o dado, então a
- * troca fica contida aqui.
+ * **O "perfil" aqui é a função do cadastro** (`funcaoExibida`), com o rótulo
+ * do papel de acesso só quando não há função — a decisão D2 do plano, fechada
+ * pela resposta 1a do cliente: *"para quem usa o sistema, o cargo é o que faz
+ * sentido; 'Colaborador' ou 'Gestor' é coisa interna do sistema"*.
+ *
+ * **O setor fica no texto íntegro, não na linha visível** (change
+ * `funcao-e-setor-na-identidade`, design.md D7). A segunda linha deste cartão
+ * já trunca com dois termos ao lado do avatar, nos 264 px medidos na change
+ * `menu-lateral-e-barra-superior`; um terceiro termo não acrescentaria
+ * informação, acrescentaria elipse. A demanda pede o setor na linha abaixo da
+ * saudação (seção 1.3), e é lá que ele aparece.
  */
 export function CartaoDoUsuario({
   identity,
@@ -44,10 +49,14 @@ export function CartaoDoUsuario({
   onLogout: () => void;
 }) {
   const nome = nomeExibido(identity);
-  const papel = ROLE_LABEL[identity.role];
+  const funcao = funcaoExibida(identity);
+  const setor = setorExibido(identity);
   // Texto íntegro para quem aponta ou usa leitor de tela — é ele que preserva
-  // o dado quando o nome é mais longo que a largura do cartão.
-  const resumo = `${nome ?? papel} — ${papel} — ${identity.unitName}`;
+  // o dado quando o nome é mais longo que a largura do cartão, e é por ele que
+  // o setor segue alcançável sem disputar a largura da linha visível.
+  const resumo = [nome ?? funcao, funcao, setor, identity.unitName]
+    .filter((parte): parte is string => parte !== null)
+    .join(' — ');
 
   const avatar =
     nome === null ? (
@@ -115,7 +124,7 @@ export function CartaoDoUsuario({
               whiteSpace: 'nowrap',
             }}
           >
-            {nome ?? papel}
+            {nome ?? funcao}
           </span>
           <span
             style={{
@@ -128,7 +137,7 @@ export function CartaoDoUsuario({
               whiteSpace: 'nowrap',
             }}
           >
-            {papel} · {identity.unitName}
+            {funcao} · {identity.unitName}
           </span>
         </span>
       </Link>

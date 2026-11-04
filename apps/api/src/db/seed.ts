@@ -30,17 +30,45 @@ export async function seedIfEmpty(pool?: Pool): Promise<boolean> {
 
   const ownedPool = pool ?? new Pool({ connectionString: config.databaseUrl });
   try {
-    const { rows: adminRows } = await ownedPool.query<{ count: string }>(
-      "SELECT count(*)::text FROM users WHERE role = 'global_admin'",
-    );
-    if (Number(adminRows[0]?.count ?? '0') > 0) {
+    // As duas contagens de guarda rodam sob o MESMO bypass das escritas
+    // abaixo, e não na conexão nua.
+    //
+    // Sem ele a guarda não guardava nada: `users` tem FORCE ROW LEVEL
+    // SECURITY, a policy nega sem `app.current_unit`/`app.user_role`, as
+    // contagens voltavam **zero** num banco já semeado, e o seed concluía
+    // "não há admin, o banco está vazio" — tentando recriar 'Unidade A' e
+    // morrendo em `units_name_uidx`. Ou seja, `npm run seed` só funcionava na
+    // primeira vez, contrariando a idempotência que o hook de SessionStart
+    // promete. Mesma armadilha de `0012_password_changed_at.sql`, documentada
+    // no topo de `0020_sectors.sql`: sob FORCE RLS, consulta sem contexto não
+    // erra — mente.
+    const guardas = await ownedPool.connect();
+    let adminCount: string;
+    let totalCount: string;
+    try {
+      await guardas.query('BEGIN');
+      await guardas.query("SELECT set_config('app.user_role', 'global_admin', true)");
+      const { rows: adminRows } = await guardas.query<{ count: string }>(
+        "SELECT count(*)::text FROM users WHERE role = 'global_admin'",
+      );
+      const { rows: totalRows } = await guardas.query<{ count: string }>(
+        'SELECT count(*)::text FROM users',
+      );
+      adminCount = adminRows[0]?.count ?? '0';
+      totalCount = totalRows[0]?.count ?? '0';
+      await guardas.query('COMMIT');
+    } catch (err) {
+      await guardas.query('ROLLBACK');
+      throw err;
+    } finally {
+      guardas.release();
+    }
+
+    if (Number(adminCount) > 0) {
       return false;
     }
 
-    const { rows: totalRows } = await ownedPool.query<{ count: string }>(
-      'SELECT count(*)::text FROM users',
-    );
-    const isEmpty = Number(totalRows[0]?.count ?? '0') === 0;
+    const isEmpty = Number(totalCount) === 0;
 
     // As tabelas têm FORCE ROW LEVEL SECURITY (ver 0002_enable_rls.sql):
     // mesmo o dono das tabelas é restringido pela policy, então o seed
@@ -64,18 +92,36 @@ export async function seedIfEmpty(pool?: Pool): Promise<boolean> {
         const [unitA, unitB] = unitRows;
         if (!unitA || !unitB) throw new Error('seed: expected two units to be created');
 
+        // Setores por unidade (change `funcao-e-setor-na-identidade`): a
+        // homologação precisa ver a lista fechada com conteúdo, e a tela
+        // inicial precisa de alguém COM cargo e setor e de alguém SEM — é a
+        // diferença entre apresentar a função e recair no rótulo do papel.
+        const { rows: setorRows } = await client.query<{ id: string; name: string }>(
+          `INSERT INTO sectors (unit_id, name) VALUES
+             ($1, 'Governança'), ($1, 'CME'), ($2, 'Centro Cirúrgico')
+           RETURNING id, name`,
+          [unitA.id, unitB.id],
+        );
+        const setorGovernanca = setorRows.find((s) => s.name === 'Governança');
+        const setorCentroCirurgico = setorRows.find((s) => s.name === 'Centro Cirúrgico');
+        if (!setorGovernanca || !setorCentroCirurgico) {
+          throw new Error('seed: expected demo sectors to be created');
+        }
+
         await client.query(
-          `INSERT INTO users (unit_id, email, password_hash, role, full_name) VALUES
-             ($1, 'colaborador.a@gdoc.dev', $3, 'collaborator', 'Colaborador A'),
-             ($1, 'admin.a@gdoc.dev', $3, 'unit_admin', 'Admin Unidade A'),
-             ($2, 'colaborador.b@gdoc.dev', $3, 'collaborator', 'Colaborador B'),
-             ($1, $4, $5, 'global_admin', 'Administrador Global')`,
+          `INSERT INTO users (unit_id, email, password_hash, role, full_name, job_title, sector_id) VALUES
+             ($1, 'colaborador.a@gdoc.dev', $3, 'collaborator', 'Colaborador A', NULL, NULL),
+             ($1, 'admin.a@gdoc.dev', $3, 'unit_admin', 'Admin Unidade A', 'Gerente de Governança', $6),
+             ($2, 'colaborador.b@gdoc.dev', $3, 'collaborator', 'Colaborador B', 'Técnica de Enfermagem', $7),
+             ($1, $4, $5, 'global_admin', 'Administrador Global', NULL, NULL)`,
           [
             unitA.id,
             unitB.id,
             demoPasswordHash,
             config.bootstrapAdmin.email,
             bootstrapPasswordHash,
+            setorGovernanca.id,
+            setorCentroCirurgico.id,
           ],
         );
       } else {
