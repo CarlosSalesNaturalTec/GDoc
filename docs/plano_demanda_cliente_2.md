@@ -58,7 +58,7 @@ Legenda: `pendente` · `bloqueada` (ver coluna Bloqueio) · `em andamento` ·
 | A5 | Compartilhados comigo | 1.1 (menu) | pendente | — | — |
 | A6 | Tour guiado | 1.1, 1.3 | pendente | — | — |
 | B1 | Arquivo geral e pendente de cadastro | 2.3, 2.4 | **entregue** | — | `arquivo-geral-e-pendente-de-cadastro` |
-| B2 | Tabela de cadastro no envio em lote | 2.1, 2.2 | **pendente — prioridade** | — | — |
+| B2 | Tabela de cadastro no envio em lote | 2.1, 2.2 | **entregue** | — | `tabela-de-cadastro-no-envio-em-lote` |
 | C1 | Núcleo da leitura obrigatória (marcar e dar ciência) | 3.1, 3.2 (etapas 1 e 3), 3.3, 3.4 | pendente | D3, D5 | — |
 | C2 | Superfícies de pendência (menu, contador, cartão, abas) | 3.2 (etapa 2), 3.5 | pendente | C1, A2, A3 | — |
 | C3 | Avisos e atrasos | 3.2 (etapas 2 e 4), 3.3 | pendente | C1, D3 | — |
@@ -67,12 +67,12 @@ Legenda: `pendente` · `bloqueada` (ver coluna Bloqueio) · `em andamento` ·
 Ordem sugerida: **A1 → A2 → A3 → (A4, A5, A6 em qualquer ordem) → B1 → B2 →
 C1 → C2 → C3 → C4**.
 
-> ⚠️ **B2 é prioridade, e não escolha de ordem.** Com a B1 entregue, o servidor
-> já exige os dados por item, mas a SPA ainda não os envia no lote — de modo que
-> **todo envio em lote nasce Pendente de cadastro**, visível só a quem enviou e à
-> gestão da unidade. Não é beco sem saída (a ação "Dados de controle" por item
-> publica o arquivo), mas é degradação real de fluxo, aceita deliberadamente no
-> aceite da B1. A janela se fecha com a B2.
+> ✅ **A janela aberta pela B1 está fechada.** Entre a B1 e a B2, o servidor
+> exigia os dados por item e a SPA não os enviava, de modo que todo envio em lote
+> nascia Pendente de cadastro. Com a B2 entregue, o envio em lote publica o que
+> está completo e deixa pendente só o que falta — verificado na app: três
+> arquivos, dois publicados (um deles Arquivo geral), um pendente com aviso no
+> sino.
 
 Os blocos **A** (Fase 1), **B** (envio em lote) e **C** (Fase 2) são
 independentes entre si, exceto por C2, que ocupa espaços de layout criados em
@@ -349,7 +349,49 @@ Governança local; (ii) papel novo de auditor cross-unit, restrito a
 - **Risco 2**: "não aparece na busca" é regra de alcance. Precisa de teste de
   isolamento próprio, no mesmo nível dos testes de obsoleto.
 
-### B2 — Tabela de cadastro no envio em lote
+### B2 — Tabela de cadastro no envio em lote  ✅ entregue
+
+> Change `tabela-de-cadastro-no-envio-em-lote`. **Desvios do previsto aqui,
+> decididos durante a especificação e a implementação:**
+>
+> - **Dois defeitos vivos entraram no escopo**, não previstos nesta seção. A B1
+>   levou o conjunto exigido de quatro para cinco campos no servidor, e o
+>   formulário do **envio unitário** ficou em quatro: quem não preenchia o
+>   responsável recebia a recusa do servidor em vez da validação local. E o tipo
+>   **Arquivo geral** era inalcançável pela interface — o formulário exigia os
+>   três campos que o servidor recusa para ele.
+> - **A causa desses dois foi atacada, não só o sintoma** (design.md D9): o
+>   conjunto exigido e a lista de campos recusados pelo Arquivo geral subiram
+>   para `packages/shared`, e a API passou a lê-los de lá. Era uma constante
+>   duplicada à mão nos dois lados; é isso que produz "servidor exige cinco,
+>   tela exige quatro".
+> - **O requisito do envio unitário entrou sob REMOVED + ADDED, não MODIFIED**,
+>   pelo precedente que a B1 fixou: o cenário "Envio de vários arquivos não
+>   apresenta o formulário" **nomeia** a dispensa que esta fatia extingue, e
+>   mantê-lo sob MODIFIED produziria nome de cenário em contradição com o corpo.
+> - **`envio-lote` foi modificada para declarar comportamento já implementado**:
+>   a recusa por conflito de código **por item** — com o acervo e dentro do
+>   próprio lote — e a retomada do código preso a envio pendente de quem pede
+>   existiam desde a B1 e não estavam na spec. Nenhum código de servidor mudou
+>   nesta fatia; entraram três casos de teste.
+> - **A marca de sugestão é textual, não colorida.** O fundo âmbar funciona no
+>   campo de código, mas o `Select` do tipo pinta o próprio fundo por cima — e
+>   `controle-documental` já fixou que informação não depende de cor. Cada
+>   célula sugerida carrega "sugerido pelo nome do arquivo" por escrito.
+> - **Siglas do cliente ≠ siglas da interface** (design.md D4): o reconhecedor
+>   aceita `POL/NOR`, `FOR/CHK`, `TC` e `CI` da tabela 2.2 **e** as da interface
+>   (`POL`, `FRM`, `TCO`, `COM`), porque um reconhecedor com as da interface
+>   falharia justamente nos nomes que o acervo do cliente traz.
+> - **Lacunas conhecidas, aceitas:** (a) o cadastro digitado na tabela **não é
+>   rascunho** — fechar a tela, cancelar, ou a pausa por falta de espaço no meio
+>   do envio o perdem; persistir rascunho exigiria armazenamento e ciclo de vida
+>   próprios; (b) **nenhuma pré-checagem do código contra o acervo** antes de
+>   enviar — a guarda segue sendo o servidor, que recusa o item antes de
+>   qualquer byte, e a linha recusada volta corrigível com o cadastro
+>   preservado; (c) o botão de publicar nomeia os dois grupos ("Publicar
+>   completos (N) e enviar M como pendente(s)"), mais longo que o "Publicar
+>   completos" da demanda, porque o rótulo curto mentiria sobre o destino das
+>   linhas incompletas.
 
 - **Capabilities**: `web-upload` (modificada), `envio-lote` (modificada)
 - **Demanda**: 2.1 (passo a passo) e 2.2 (campos)

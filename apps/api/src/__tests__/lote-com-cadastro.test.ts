@@ -313,6 +313,117 @@ describe('Envio em lote com cadastro por arquivo (US 10.5, US 10.9)', () => {
     expect(depois?.id).toBe(antes?.id);
   });
 
+  /**
+   * Cenários do requisito que o change `tabela-de-cadastro-no-envio-em-lote`
+   * escreveu em `envio-lote` — comportamento implementado na B1 e até então
+   * não especificado. A pré-checagem da tabela de cadastro espelha esta regra,
+   * e é por isso que ela precisa estar travada por teste.
+   */
+  describe('Unicidade do código no lote, nas três origens (envio-lote)', () => {
+    it('diferença só de caixa é a mesma colisão dentro do lote', async () => {
+      // A unicidade no banco é por `lower(...)`: aceitar o par aqui faria a
+      // gravação colidir e abortar a transação, derrubando o lote inteiro.
+      const res = await enviarLote([
+        {
+          fileName: 'caixa-1.pdf',
+          contentType: 'application/pdf',
+          declaredSizeBytes: 10,
+          documentControl: completo({ documentCode: 'PRT-CASE-001' }),
+        },
+        {
+          fileName: 'caixa-2.pdf',
+          contentType: 'application/pdf',
+          declaredSizeBytes: 10,
+          documentControl: completo({ documentCode: 'prt-case-001' }),
+        },
+        {
+          fileName: 'caixa-vizinho.pdf',
+          contentType: 'application/pdf',
+          declaredSizeBytes: 10,
+          documentControl: completo(),
+        },
+      ]);
+      expect(res.status).toBe(200);
+
+      const [primeiro, segundo, vizinho] = res.body.results as {
+        ok: boolean;
+        error?: string;
+      }[];
+      expect(primeiro!.ok).toBe(true);
+      expect(segundo!.ok).toBe(false);
+      expect(segundo!.error).toBe('document_code_conflict');
+      // A colisão interna não derruba o lote: o item válido recebe sua URL.
+      expect(vizinho!.ok).toBe(true);
+    });
+
+    it('código que existe apenas em outra unidade não conflita', async () => {
+      const codigo = 'PRT-CROSS-001';
+      // Unidade B publica o código e o promove a `active`.
+      const naUnidadeB = await enviarLote(
+        [
+          {
+            fileName: 'cross-b.pdf',
+            contentType: 'application/pdf',
+            declaredSizeBytes: 10,
+            documentControl: completo({ documentCode: codigo }),
+          },
+        ],
+        ids.userB,
+      );
+      expect(naUnidadeB.body.results[0].ok).toBe(true);
+      await withSystemBypass(pool, (client) =>
+        client.query(`UPDATE files SET status = 'active' WHERE file_name = 'cross-b.pdf'`),
+      );
+
+      // Unidade A usa o mesmo código: a RLS filtra o homônimo por baixo, nada
+      // dele é revelado, e o item é aceito.
+      const naUnidadeA = await enviarLote([
+        {
+          fileName: 'cross-a.pdf',
+          contentType: 'application/pdf',
+          declaredSizeBytes: 10,
+          documentControl: completo({ documentCode: codigo }),
+        },
+      ]);
+      expect(naUnidadeA.status).toBe(200);
+      expect(naUnidadeA.body.results[0].ok).toBe(true);
+    });
+
+    it('código preso a envio pendente de outra pessoa não é retomada', async () => {
+      // A retomada existe para a pessoa repetir o **próprio** item que falhou.
+      // Estendê-la a envio pendente de terceiro deixaria uma pessoa assumir a
+      // linha de outra — e o `globalAdmin` do seed está na mesma unidade, o que
+      // torna o caso alcançável.
+      const codigo = 'PRT-ALHEIO-001';
+      const deOutraPessoa = await enviarLote(
+        [
+          {
+            fileName: 'pendente-alheio.pdf',
+            contentType: 'application/pdf',
+            declaredSizeBytes: 10,
+            documentControl: completo({ documentCode: codigo }),
+          },
+        ],
+        ids.globalAdmin,
+      );
+      expect(deOutraPessoa.body.results[0].ok).toBe(true);
+
+      const tentativa = await enviarLote([
+        {
+          fileName: 'tenta-codigo-alheio.pdf',
+          contentType: 'application/pdf',
+          declaredSizeBytes: 10,
+          documentControl: completo({ documentCode: codigo }),
+        },
+      ]);
+      expect(tentativa.status).toBe(200);
+      expect(tentativa.body.results[0].ok).toBe(false);
+      expect(tentativa.body.results[0].error).toBe('document_code_conflict');
+      // A linha da outra pessoa segue intacta: nada foi reaproveitado.
+      expect((await linhaPorNome('pendente-alheio.pdf'))?.document_code).toBe(codigo);
+    });
+  });
+
   it('Arquivo geral é publicado só com o título e sem situação de revisão', async () => {
     const res = await enviarLote([
       {

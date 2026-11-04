@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { UserRole, UPLOAD_SLICE_MAX_ITEMS_DEFAULT } from '@gdoc/shared';
@@ -93,8 +93,18 @@ function corpoDaChamada(call: unknown[]): { items: { fileName: string; relativeP
  * unitária (design.md D7 de `controle-documental`). O caminho de um documento
  * tem arquivo próprio, `upload-documento.test.tsx`.
  */
+/**
+ * Confirma o envio de vários arquivos. A confirmação é o botão de publicação da
+ * **tabela de cadastro**, que substituiu o painel "Confirmar envio" (change
+ * `tabela-de-cadastro-no-envio-em-lote`, design.md D1): a tabela é a
+ * confirmação, agora com o cadastro por arquivo.
+ *
+ * Os casos deste arquivo exercitam transferência, fila, fatiamento e cota —
+ * não o cadastro —, então publicam as linhas como estão e os arquivos nascem
+ * Pendentes de cadastro, que é o desfecho correto para item sem dados.
+ */
 async function confirmarEnvio(): Promise<void> {
-  const confirmar = await screen.findByRole('button', { name: /^enviar$/i });
+  const confirmar = await screen.findByRole('button', { name: /^Publicar completos/ });
   await userEvent.click(confirmar);
 }
 
@@ -955,6 +965,17 @@ describe('Verificação de viabilidade antes de transferir (design.md D3/D4)', (
 
     await userEvent.click(await screen.findByRole('button', { name: /enviar só o que cabe/i }));
 
+    // A tabela de cadastro recebe **apenas** o subconjunto que cabe: cadastrar
+    // linha que não será enviada é trabalho perdido por construção (design.md
+    // D1 do change `tabela-de-cadastro-no-envio-em-lote`).
+    const tabela = await screen.findByText('Dados dos documentos');
+    const painel = tabela.closest('.ant-card') as HTMLElement;
+    expect(within(painel).getByText(/2 arquivo\(s\)/)).toBeTruthy();
+    expect(within(painel).queryByLabelText('Título de sobra.bin')).toBeNull();
+    expect(uploadUrlCalls()).toHaveLength(0);
+
+    await confirmarEnvio();
+
     await waitFor(() => expect(uploadUrlCalls()).toHaveLength(1));
     expect(corpoDaChamada(uploadUrlCalls()[0]!).items.map((i) => i.fileName)).toEqual([
       'cabe1.bin',
@@ -1031,7 +1052,7 @@ describe('Verificação de viabilidade antes de transferir (design.md D3/D4)', (
     const [filesInput] = fileInputs(container);
     await userEvent.upload(filesInput!, [a, b]);
 
-    await screen.findByText('Confirmar envio');
+    await screen.findByText('Dados dos documentos');
     expect(uploadUrlCalls()).toHaveLength(0);
     expect(xhr.started()).toBe(0);
 

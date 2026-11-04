@@ -7,9 +7,12 @@ import { ApiError } from '../lib/api-client';
  * corrigir"; web-navegacao: a recusa por código em uso não se confunde com a
  * recusa por dado faltante nem com a de permissão).
  *
- * Três recusas, três mensagens, e nenhuma delas é o "tente novamente"
- * genérico — repetir a mesma operação falharia de forma idêntica nos três
- * casos.
+ * Cinco recusas, cinco mensagens, e nenhuma delas é o "tente novamente"
+ * genérico — repetir a mesma operação falharia de forma idêntica em todos os
+ * casos. As duas últimas entraram com a tabela de cadastro: o conflito de
+ * código **por item do lote** e o campo incompatível com o Arquivo geral
+ * caíam, até aqui, no texto genérico (design.md D7/D8 do change
+ * `tabela-de-cadastro-no-envio-em-lote`).
  */
 
 const RotuloDoCampo: Record<keyof DocumentControlInput, string> = {
@@ -56,6 +59,27 @@ export function descreverRecusaDeControle(err: unknown): string {
 
   if (details?.error === 'invalid_document_type') {
     return 'Tipo de documento não reconhecido.';
+  }
+
+  // Recusa **por item** do lote: o código conflita com o acervo da unidade ou
+  // com outro arquivo do mesmo envio. Não carrega `occupiedBy` — o ocupante
+  // pode ser um item do próprio lote, que ainda não existe.
+  if (details?.error === 'document_code_conflict') {
+    return 'Código já usado por outro documento desta unidade ou por outro arquivo deste envio. Escolha outro código.';
+  }
+
+  // US 10.8: o Arquivo geral declara não ter código nem prazo, então informá-los
+  // é contradição. A mensagem nomeia o campo porque, escolhido o tipo, a pessoa
+  // não vê mais o campo que causou a recusa.
+  if (details?.error === 'general_file_rejects_control_fields') {
+    const rejeitados = Array.isArray(details.rejected)
+      ? (details.rejected as (keyof DocumentControlInput)[])
+          .map((campo) => RotuloDoCampo[campo] ?? campo)
+          .join(', ')
+      : '';
+    return rejeitados
+      ? `Arquivo geral não aceita ${rejeitados}: esse tipo pede só o título.`
+      : 'Arquivo geral não aceita código, revisão nem data de próxima revisão.';
   }
 
   if (err instanceof ApiError && err.status === 403) {

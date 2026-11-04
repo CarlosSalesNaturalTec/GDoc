@@ -250,6 +250,37 @@ O **objetivo principal** do GDoc é entregar um repositório de arquivos corpora
       * **Quando** a verificação termina
       * **Então** não sou recusado por quantidade de arquivos: a única recusa por tamanho é a que o espaço disponível justifica.
 
+* **US 3.5:** Como Colaborador, eu quero cadastrar os dados de cada arquivo no momento do envio em lote, numa tabela com uma linha por arquivo, para que enviar muitos documentos não signifique deixar todos sem identificação.
+  * **Critérios de Aceitação:**
+    * *Cenário 1 — Uma linha por arquivo, depois do veredito de espaço:*
+      * **Dado** que selecionei vários arquivos, ou uma pasta, e a seleção cabe no meu espaço
+      * **Quando** a verificação de espaço termina
+      * **Então** vejo uma tabela de cadastro com uma linha por arquivo, com tipo, código, título, revisão, responsável e próxima revisão, e nenhum arquivo é transferido antes de eu publicar.
+    * *Cenário 2 — Título vem do nome do arquivo e é editável:*
+      * **Dado** que a tabela de cadastro está aberta
+      * **Quando** altero o título de uma linha
+      * **Então** o arquivo é gravado com o título que informei, preservada a extensão original, e uma linha sem título não é enviada.
+    * *Cenário 3 — Sugestão pelo nome do arquivo:*
+      * **Dado** que o nome de um arquivo segue o padrão SIGLA-AREA-Nº
+      * **Quando** ele entra na tabela
+      * **Então** o tipo e o código vêm sugeridos, editáveis e identificados como sugestão — e um nome fora do padrão não recebe sugestão alguma.
+    * *Cenário 4 — Aplicar a todos:*
+      * **Dado** que quero o mesmo tipo, revisão, responsável e próxima revisão em todas as linhas
+      * **Quando** informo esses valores no topo da tabela e aciono a aplicação
+      * **Então** todas as linhas passam a tê-los, o código permanece individual de cada documento, e qualquer linha pode ser alterada depois.
+    * *Cenário 5 — Publicar leva os dois grupos:*
+      * **Dado** que a tabela tem linhas completas e incompletas
+      * **Quando** confirmo a publicação
+      * **Então** sou informado de quantos arquivos serão publicados e quantos ficarão Pendentes de cadastro, e todos são enviados — nenhum é descartado por estar incompleto.
+    * *Cenário 6 — Código repetido dentro do próprio envio:*
+      * **Dado** que duas linhas da tabela declaram o mesmo código
+      * **Quando** tento publicar
+      * **Então** a publicação é impedida e as duas linhas são apontadas, antes de qualquer transferência.
+    * *Cenário 7 — Recusa de código vinda do servidor é corrigível:*
+      * **Dado** que um arquivo foi recusado porque o código já pertence a outro documento da unidade
+      * **Quando** vejo a falha
+      * **Então** ela é apresentada como conflito daquele código, com os demais dados do arquivo preservados, bastando corrigir o código e repetir aquele item.
+
 ### Épico 4: Controle de Acesso e Permissões Granulares
 
 * **US 4.1:** Como Administrador, eu quero conceder permissões específicas (visualizar, baixar, enviar, renomear/substituir, excluir) sobre uma pasta ou sobre arquivos selecionados para uma pessoa ou grupo, para que o acesso seja liberado na medida exata.

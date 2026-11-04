@@ -29,11 +29,17 @@ export type ViewUrlResponse =
   | { previewAvailable: false; reason: 'unsupported_format'; download: { available: boolean } };
 
 /**
- * `POST /files/upload-url` — publicação de **um** documento (design.md D7 do
- * change `controle-documental`). É a rota em que a exigência dos dados de
- * controle liga: tipo, código, revisão e data de próxima revisão são
- * obrigatórios aqui, e dispensados no envio em lote
- * (`POST /files/upload-urls`), que é a rota do lote e da pasta.
+ * `POST /files/upload-url` — publicação de **um** documento. É a rota que
+ * **exige** o conjunto completo de dados de controle do tipo escolhido
+ * (`REQUIRED_CONTROL_FIELDS`, ou nenhum deles para `GENERAL_FILE`): dado
+ * ausente aqui **recusa** a requisição, nomeando o que falta.
+ *
+ * A rota do lote (`POST /files/upload-urls`) exige os mesmos dados, mas por
+ * item e com outro desfecho: ausência produz **pendência de cadastro** em vez
+ * de recusa (change `arquivo-geral-e-pendente-de-cadastro`, design.md D6). A
+ * dispensa que esta rota já teve — o lote não pedir dado algum — **não existe
+ * mais**; o que distingue as duas rotas é o desfecho do item incompleto, não a
+ * exigência.
  *
  * A divisão em duas rotas é o que mantém as duas regras compatíveis: o lote
  * precisa pedir URL para **um** item ao repetir um envio que falhou, e essa
