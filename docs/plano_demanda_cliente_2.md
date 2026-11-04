@@ -86,6 +86,12 @@ sem tocar em A.
 Cada uma trava as fatias indicadas. **Não resolver por conta própria** — são
 decisões de produto, e duas delas mexem no núcleo de segurança do sistema.
 
+> **D2, D3 e D4 estão perguntadas ao cliente** em
+> `docs/questionario_a1_funcao_e_setor.txt` (7 perguntas, formato do
+> `fase1_questionario_cliente.txt`). São exatamente as três que travam a **A1**;
+> com elas respondidas, a A1 sai de `bloqueada`. **D1** ficou de fora de
+> propósito — é estrutural e vai com as alternativas e o custo de cada uma.
+
 ### D1 — "Minhas unidades": acesso a mais de uma unidade  🔴 estrutural
 
 A demanda (1.3) pede uma grade de unidades e a frase *"você tem acesso a X
@@ -126,12 +132,32 @@ Opções: (i) exibir `job_title` quando preenchido, caindo para o papel quando n
 Provavelmente **as duas**: (i) resolve a tela, (ii) resolve a permissão. Precisa
 do cliente para saber qual é o caso de cada pessoa.
 
+> **Verificado no código (2026-11-04).** A linha é
+> `apps/web/src/inicio/InicioPage.tsx:69` — `ROLE_LABEL[identity.role] · unitName`.
+> `ROLE_LABEL` (`apps/web/src/shell/role-label.ts`) já mapeia `unit_admin` →
+> **"Gestor"**, de modo que a tela escrever "Colaborador" significa que a pessoa
+> **está cadastrada como `collaborator`** — não há defeito de leitura a corrigir.
+> `job_title` e `work_area` existem ponta a ponta no cadastro de pessoas
+> (`0003_people_fields.sql`, `routes/users.ts`, `PessoaFormModal.tsx`, rotulados
+> "Função/cargo" e "Área de trabalho"), mas **não entram em
+> `AuthenticatedIdentity`** (`packages/shared/src/auth.ts`: só `id`, `unitId`,
+> `role`, `fullName`, `unitName`). É esse o acréscimo da A1.
+
 ### D3 — "Gestor" e "equipe": hierarquia nova  🔴 estrutural
 
 A seção 3.1 define um perfil **Gestor** que *"acompanha as pendências da própria
 equipe"*, e 3.2 (etapa 4) manda avisar *"o gestor dele"*. Isso exige saber **quem
 é gestor de quem** — relação que não existe em nenhuma tabela. Os três papéis
 atuais não a expressam.
+
+> **Colisão de nome a resolver antes da spec.** "Gestor" **já é o rótulo de
+> `unit_admin` na interface** (decisão de nomenclatura do cliente, change
+> `identidade-visual-isetes`, design.md D7). O "Gestor" da seção 3.1 — *"diretor,
+> gerente ou coordenador da unidade ou setor"* que acompanha pendências — pode
+> ser a mesma pessoa ou um papel distinto, que acompanha leituras sem administrar
+> a unidade. Se for distinto, a interface passa a ter dois "Gestor" com alcances
+> diferentes, o que `nomenclatura-interface` proíbe ("rótulo do papel é idêntico
+> em toda a interface"). Um dos dois tem de ser renomeado — decisão do cliente.
 
 Opções: (i) gestor = `unit_admin` da unidade, e "equipe" = a unidade inteira
 (barato, perde o recorte por setor); (ii) gestor por setor (depende de **D4**):
