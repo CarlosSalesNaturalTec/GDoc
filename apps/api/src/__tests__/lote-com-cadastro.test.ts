@@ -356,6 +356,31 @@ describe('Envio em lote com cadastro por arquivo (US 10.5, US 10.9)', () => {
     }
   });
 
+  it('declarar Arquivo geral exige a mesma permissão dos demais dados de controle', async () => {
+    // Declarar o tipo é alterar dado de controle, e exige o verbo de
+    // substituir — não é um atalho para mexer em documento de terceiro.
+    await enviarLote([
+      {
+        fileName: 'alheio-para-declarar.pdf',
+        contentType: 'application/pdf',
+        declaredSizeBytes: 10,
+        documentControl: completo(),
+      },
+    ]);
+    const alheio = await linhaPorNome('alheio-para-declarar.pdf');
+
+    const res = await request(createApp(ports))
+      .patch(`/files/${alheio!.id}/document-control`)
+      .set('Cookie', await sessionCookieFor(ports, ids.userB))
+      .send({ documentType: DocumentType.GENERAL_FILE });
+
+    expect(res.status).toBe(403);
+    // O tipo permanece como estava.
+    expect((await linhaPorNome('alheio-para-declarar.pdf'))?.document_type).toBe(
+      DocumentType.PROTOCOL,
+    );
+  });
+
   it('Arquivo geral é distinguível de arquivo pendente de cadastro', async () => {
     await enviarLote([
       {
@@ -440,6 +465,38 @@ describe('Envio em lote com cadastro por arquivo (US 10.5, US 10.9)', () => {
         },
       ]);
       expect((await avisos(ids.userA)).length).toBe(antes);
+    });
+
+    it('falha ao avisar não impede o envio', async () => {
+      // A emissão é engolida de propósito: o arquivo foi transferido, e perder
+      // o aviso não pode desfazer isso. Com um port que sempre falha, o lote
+      // conclui e o arquivo fica pendente como deveria — só o aviso se perde.
+      const quebrado: Ports = {
+        ...ports,
+        notifications: {
+          notify: async () => {
+            throw new Error('falha simulada na emissão do aviso');
+          },
+        },
+      };
+
+      const res = await request(createApp(quebrado))
+        .post('/files/upload-urls')
+        .set('Cookie', await sessionCookieFor(ports, ids.userA))
+        .send({
+          items: [
+            {
+              fileName: 'aviso-que-falha.pdf',
+              contentType: 'application/pdf',
+              declaredSizeBytes: 10,
+            },
+          ],
+        });
+
+      expect(res.status).toBe(200);
+      expect(res.body.results[0].ok).toBe(true);
+      expect(res.body.results[0].awaitingRegistration).toBe(true);
+      expect((await linhaPorNome('aviso-que-falha.pdf'))?.awaiting_registration).toBe(true);
     });
 
     it('o aviso não alcança quem não enviou, nem outra unidade', async () => {
