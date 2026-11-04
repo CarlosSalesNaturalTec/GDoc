@@ -104,11 +104,36 @@ partir de ~1226 px de viewport.
 de alguma largura. Troca uma regressão por outra — a ação principal pedida pela
 demanda desapareceria justamente nas telas de trabalho de 1024 e 1280 px.
 
-**A lupa vai dentro do campo** usando o `Input.Search` sem botão de texto: o
-design system então desenha a lupa como acionador **interno**, clicável, e o
-Enter continua acionando. Isso também apaga a ramificação `enterButton={!isNarrow}`
-que existia só para o botão verde não comer a largura no modo estreito — o
-problema deixa de existir junto com o botão.
+**A lupa vai dentro do campo, e isso descarta o `Input.Search`.** A suposição
+inicial — "`Input.Search` sem `enterButton` desenha a lupa dentro" — foi
+**verificada e é falsa**: com ou sem `enterButton`, o design system renderiza o
+botão num `ant-input-group-addon`, isto é, **fora** da caixa do campo, que é
+exatamente o que o requisito proíbe. O acionador entra então como `suffix` de um
+`Input` comum, dentro do `ant-input-affix-wrapper`; `type="search"` preserva o
+papel de `searchbox`. Isso também apaga a ramificação `enterButton={!isNarrow}`
+que existia só para o botão verde não comer a largura no modo estreito — não há
+botão adjacente em largura nenhuma.
+
+**Medido na app** (quatro larguras, navegador real): 400 px em 992, 432 em 1024
+e o teto de 600 a partir de 1280, sem rolagem horizontal em nenhuma.
+
+### D3b — Abaixo do limiar, o teto não basta: o campo precisa de piso, e a barra precisa ceder
+
+No modo estreito o campo recebe piso de 120 px, a ação de envio fica **só com o
+ícone** (nome acessível preservado) e o acesso à ajuda **sai da barra**.
+
+**Por quê — a medição reprovou a primeira tentativa.** Com `flex: 1` sem piso e
+os três controles rotulados, o campo colapsou para **24 px** em 375 px: caixa
+visível em que não se digita. É o mesmo defeito que `responsividade-mobile-tablet`
+já havia corrigido uma vez, e que voltou ao se retirar o piso junto com o botão
+adjacente. `flex: 1` cede toda a largura aos vizinhos quando eles a pedem.
+
+O piso sozinho só trocaria o colapso do campo por rolagem horizontal, então a
+largura tem de vir de algum lugar: o rótulo "Enviar documento" (~140 px) e o
+acionador de ajuda (~44 px). **Nenhum acesso é perdido** — a ação de envio
+mantém o nome acessível e a dica, e o mesmo manual continua a um toque no grupo
+AJUDA do painel sobreposto. Medido depois da correção: **163 px** de campo em
+375 px, sem rolagem horizontal.
 
 ### D4 — A ação de envio reusa o pedido pelo endereço, e não é filtrada por papel
 
@@ -179,6 +204,14 @@ navegação**, cujo conjunto é fechado e mensurável; nome de pessoa não é.
 **Colapsado:** fica só o avatar, com nome, perfil e unidade em `title`. O
 identificador interno não aparece em nenhum estado.
 
+**A coluna precisa ser fixa à viewport para que o rodapé seja rodapé.** A
+medição na app encontrou o cartão em **y=977 numa viewport de 900 px** — fora
+da tela: o `Sider` cresce com o conteúdo da página, de modo que o "pé da
+navegação" era o pé do **documento**, não o da tela. A coluna passa a
+`position: sticky; top: 0; height: 100vh`, e o rodapé reserva a altura do
+gatilho de recolher, que o design system posiciona fixo ao pé da viewport e que
+sem a reserva cobriria o cartão.
+
 ### D7 — O avatar recebe token próprio, com as iniciais em texto escuro
 
 `paleta.azulAvatar = '#9ED8F6'` entra nos tokens; as iniciais usam `paleta.texto`.
@@ -206,10 +239,14 @@ conferência é por medição na app.
 
 ## Risks / Trade-offs
 
-- **[A barra superior estoura no limiar de 992 px]** → o teto de D3 é a mitigação,
-  e a verificação é explícita: a tarefa mede a barra em 992, 1024, 1280 e 1440 px
-  e confirma ausência de rolagem horizontal. A aritmética de D3 é o que se está
-  conferindo, não uma impressão visual.
+- **[A barra superior estoura no limiar de 992 px]** → o teto de D3 é a
+  mitigação, e a verificação foi feita em navegador real: 992, 1024, 1280 e
+  1440 px, sem rolagem horizontal, com o campo em 400/432/600/600 px e todo
+  item de menu em exatamente 44 px de altura, nenhum truncado. **A mesma
+  medição reprovou duas coisas que a inspeção não teria pego** — o campo
+  colapsado a 24 px em 375 px (D3b) e o cartão do usuário fora da viewport
+  (D6). As duas estão corrigidas e cobertas por teste; registrá-las aqui é o
+  que impede que voltem por "simplificação" do estilo.
 - **[O rótulo de grupo nasce abaixo do piso de contraste]** → token
   `darkGroupTitleColor` em D2, com o par apurado em `__tests__/contraste.test.ts`
   junto dos demais. Sem o teste, a regressão é invisível.

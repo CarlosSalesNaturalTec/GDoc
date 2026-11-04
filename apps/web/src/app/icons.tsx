@@ -4,6 +4,7 @@ import {
   Bell,
   BookOpen,
   Building2,
+  CircleHelp,
   ClipboardList,
   Clock,
   CloudDownload,
@@ -112,6 +113,7 @@ export const IconeMaisAcoes = criarIcone(EllipsisVertical, 'IconeMaisAcoes');
 export const IconeControleDocumental = criarIcone(ClipboardList, 'IconeControleDocumental');
 
 // Envio
+export const IconeAjuda = criarIcone(CircleHelp, 'IconeAjuda');
 export const IconeEnviar = criarIcone(Upload, 'IconeEnviar');
 export const IconeEnviarPasta = criarIcone(FolderOpen, 'IconeEnviarPasta');
 export const IconeArrastarSoltar = criarIcone(Inbox, 'IconeArrastarSoltar');

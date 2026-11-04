@@ -56,6 +56,19 @@ async function findDialogByTitle(title: string): Promise<HTMLElement> {
   });
 }
 
+/**
+ * Área de conteúdo, sem o shell em volta.
+ *
+ * A change `menu-lateral-e-barra-superior` acrescentou a ação "Enviar
+ * documento" à barra superior, com o mesmo rótulo do botão da orientação de
+ * pasta vazia. A consulta global passou a ser ambígua: o que estes casos
+ * exercitam é o botão da **tela**, que só aparece quando o servidor já
+ * resolveu `canUpload`.
+ */
+function conteudo(): HTMLElement {
+  return document.querySelector('.ant-layout-content') as HTMLElement;
+}
+
 describe('Explorador de pastas/arquivos (web-navegacao)', () => {
   it('navegação em subpasta atualiza conteúdo e trilha; clique em nível anterior volta (US 2.1 cenário 1)', async () => {
     const folderA = folder({ id: 'folder-a', name: 'Pasta A' });
@@ -495,7 +508,9 @@ describe('Pasta sem conteúdo orienta em vez de apresentar tabela vazia (web-nav
     renderApp(['/pastas']);
 
     await screen.findByText(/Esta pasta ainda não tem documentos/);
-    expect(screen.getByRole('button', { name: 'Enviar documento' })).toBeInTheDocument();
+    expect(
+      within(conteudo()).getByRole('button', { name: 'Enviar documento' }),
+    ).toBeInTheDocument();
   });
 
   it('sem permissão de envio, a orientação informa a ausência sem oferecer a ação', async () => {
@@ -506,7 +521,9 @@ describe('Pasta sem conteúdo orienta em vez de apresentar tabela vazia (web-nav
     renderApp(['/pastas']);
 
     await screen.findByText(/Esta pasta ainda não tem documentos/);
-    expect(screen.queryByRole('button', { name: 'Enviar documento' })).not.toBeInTheDocument();
+    expect(
+      within(conteudo()).queryByRole('button', { name: 'Enviar documento' }),
+    ).not.toBeInTheDocument();
   });
 
   it('pasta com ao menos um item visível lista normalmente, sem a orientação de vazio', async () => {
@@ -532,7 +549,11 @@ describe('Pasta sem conteúdo orienta em vez de apresentar tabela vazia (web-nav
     });
     renderApp(['/pastas']);
 
-    await userEvent.click(await screen.findByRole('button', { name: 'Enviar documento' }));
+    // Esperar a orientação de vazio (o shell ainda não montou) e só então
+    // escolher o botão da **tela**: há dois com este rótulo desde que a barra
+    // superior ganhou a ação de envio.
+    await screen.findByText(/Esta pasta ainda não tem documentos/);
+    await userEvent.click(within(conteudo()).getByRole('button', { name: 'Enviar documento' }));
 
     await waitFor(() => expect(document.activeElement?.textContent).toMatch(/Enviar arquivos/i));
   });

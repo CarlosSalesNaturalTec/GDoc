@@ -56,6 +56,16 @@ export const paleta = {
    * branco e 3,31:1 sobre a superfície (design.md D3).
    */
   bordaControle: '#788A97',
+  /**
+   * Superfície do avatar de identidade (guia do cliente; change
+   * `menu-lateral-e-barra-superior`, design.md D7). Carrega `texto`, a
+   * 11,12:1 — e **nunca** branco, que mede 1,54:1 e reprova no piso de
+   * 4,5:1. É a mesma armadilha de `verdeMarca`: a cor vem do guia, e quem
+   * decide o que vai escrito sobre ela é o piso de acessibilidade. Como
+   * superfície, mede 5,29:1 contra a base do degradê da navegação, acima do
+   * piso de 3:1 de elemento de interface.
+   */
+  azulAvatar: '#9ED8F6',
 } as const;
 
 /**
@@ -129,6 +139,21 @@ export const TAMANHO_MINIMO_TEXTO = 13;
  */
 export const ALTURA_MINIMA_ACIONAMENTO = 44;
 
+/**
+ * Largura da navegação expandida (demanda do cliente nº 2, seção 1.1; change
+ * `menu-lateral-e-barra-superior`, design.md D1).
+ *
+ * Vive aqui porque o requisito "Largura da navegação acomoda o rótulo integral
+ * de cada item" exige **um** lugar que a declare: antes desta change a coluna
+ * lateral usava a largura padrão do design system (não declarada em lugar
+ * nenhum) e o painel sobreposto usava 280 — dois números para o mesmo menu, de
+ * modo que um rótulo podia caber num modo e cortar no outro.
+ *
+ * 264 px acomoda o maior rótulo que o menu chegará a ter ("Compartilhados
+ * comigo", fatia A5) com folga, descontados ícone, recuo e espaçamento.
+ */
+export const LARGURA_NAVEGACAO = 264;
+
 /** Raio de botões e campos (guia do cliente, bloco 06). */
 export const RAIO_CONTROLE = 10;
 
@@ -182,6 +207,18 @@ export const theme: ThemeConfig = {
     Menu: {
       darkItemBg: 'transparent',
       darkSubMenuItemBg: 'transparent',
+      // Rótulo de grupo (NAVEGAÇÃO / AJUDA) sobre o degradê escuro — change
+      // `menu-lateral-e-barra-superior`, design.md D2. O padrão do design
+      // system é um branco translúcido, da mesma natureza do branco a 65%
+      // que `identidade-visual-isetes` já teve de substituir por reprovar no
+      // piso: o tom opaco mede 5,48:1 na base do degradê e 10,58:1 no topo.
+      darkGroupTitleColor: paleta.textoSobreEscuro,
+      // Altura do item **declarada**, não derivada (design.md D8). O design
+      // system a deriva de `controlHeightLG` (= `controlHeight` × 1,25 = 55px
+      // aqui), que é a origem dos "itens muito espaçados" relatados.
+      // Compactar é reduzir folga até o piso de acionamento, nunca abaixo
+      // dele — 44px é requisito de `sistema-de-design`.
+      itemHeight: ALTURA_MINIMA_ACIONAMENTO,
       darkItemSelectedBg: paleta.verdeMarca,
       darkItemSelectedColor: paleta.texto,
       darkItemColor: paleta.branco,

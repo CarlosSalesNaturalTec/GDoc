@@ -195,6 +195,20 @@ Referência: PRD US 11.1 cenário 1; demanda do cliente nº 2, seção 1.1.
 - **THEN** o controle de recolher continua disponível e a identidade permanece
   alcançável, sem que o identificador interno apareça em seu lugar
 
+### Requirement: A navegação ocupa a altura visível da tela
+
+A navegação em faixa lateral SHALL ocupar a altura **visível** da tela e
+acompanhar a rolagem do conteúdo, de modo que o seu rodapé permaneça ao alcance
+qualquer que seja o comprimento da página. O rodapé NÃO SHALL ser deslocado para
+fora da área visível pelo crescimento do conteúdo, nem SHALL ser encoberto pelo
+controle de recolher.
+
+#### Scenario: O rodapé da navegação permanece visível em página longa
+- **WHEN** uma pessoa autenticada abre uma tela cujo conteúdo é mais alto que a
+  área visível
+- **THEN** a identidade no rodapé da navegação continua visível sem rolar a
+  página, e o controle de recolher não a encobre
+
 ### Requirement: Barra superior oferece a ação de envio de documento
 
 A barra superior SHALL oferecer uma ação de **envio de documento**, apresentada
@@ -217,13 +231,19 @@ perfil pode fazer"; design.md D4/D5 do change `cartoes-de-atalho-acionaveis`.
 - **THEN** nenhuma recusa por permissão é apresentada, e a tela permanece
   utilizável para consulta
 
+#### Scenario: Abaixo do limiar a ação cede o rótulo, não o nome acessível
+- **WHEN** uma pessoa autenticada usa a aplicação numa tela mais estreita que o
+  ponto de ruptura
+- **THEN** a ação de envio é apresentada sem rótulo visível, para devolver
+  largura ao campo de busca, e permanece identificável pelo seu nome acessível
+
 ### Requirement: Barra superior oferece acesso à ajuda
 
 A barra superior SHALL oferecer um acesso à **ajuda**, que conduz ao mesmo
-recurso externo do acesso auxiliar da navegação. O endereço do recurso SHALL ter
-origem única, de modo que os dois acessos nunca divirjam. O acesso SHALL
-anunciar, por seu nome acessível, que leva para fora da aplicação, e SHALL ser
-omitido quando a implantação não tiver o recurso configurado.
+recurso externo do acesso auxiliar da navegação, a partir de uma origem única de
+endereço. O acesso SHALL anunciar, por seu nome acessível, que leva para fora da
+aplicação. Onde a barra não o apresentar, o recurso SHALL permanecer alcançável
+pela navegação: nenhum acesso SHALL ser perdido.
 
 #### Scenario: Ajuda na barra superior leva ao mesmo recurso do menu
 - **WHEN** uma pessoa autenticada aciona o acesso à ajuda na barra superior
@@ -234,3 +254,9 @@ omitido quando a implantação não tiver o recurso configurado.
 - **WHEN** a implantação corrente não tem o recurso de ajuda configurado
 - **THEN** nem a barra superior nem a navegação apresentam o acesso, em vez de
   oferecerem um acionador sem destino
+
+#### Scenario: Abaixo do limiar a ajuda sai da barra sem sair do alcance
+- **WHEN** uma pessoa autenticada abre a aplicação numa tela mais estreita que o
+  ponto de ruptura, numa implantação com o recurso configurado
+- **THEN** a barra superior não apresenta o acesso à ajuda, e o mesmo recurso
+  continua alcançável no grupo de acessos auxiliares da navegação

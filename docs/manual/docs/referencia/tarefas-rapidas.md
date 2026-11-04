@@ -3,7 +3,7 @@
 | Quero...                      | Onde          | Como                                                       |
 | ------------------------------ | -------------- | ------------------------------------------------------------ |
 | Entrar no sistema              | Tela de login | E-mail + senha fornecidos pela administração               |
-| Trocar minha senha             | Minha conta   | Menu do perfil (canto superior direito) → **Minha conta** |
+| Trocar minha senha             | Minha conta   | Cartão do usuário (pé do menu) → **Minha conta**          |
 | Criar uma pasta                | Documentos    | Botão **Nova pasta**                                       |
 | Enviar arquivos                | Documentos    | Botão **Enviar arquivos**                                  |
 | Enviar uma pasta inteira       | Documentos    | Botão **Enviar pasta**                                     |

@@ -40,4 +40,4 @@ Depois de entrar, você pode trocar sua senha quando quiser em
 
 ## Sair
 
-Clique no seu perfil no canto superior direito e escolha **Sair**.
+No pé do menu lateral, clique em **Sair**.

@@ -47,7 +47,7 @@ import { PermissoesModal } from '../permissoes/PermissoesModal';
 import { PreviewModal } from '../visualizacao/PreviewModal';
 import { useDownloadFile } from '../visualizacao/useDownloadFile';
 import { UploadArea } from '../upload/UploadArea';
-import { PARAM_PEDIDO_DE_ENVIO } from '../inicio/atalhos';
+import { PARAM_PEDIDO_DE_ENVIO } from './pedido-de-envio';
 import { DownloadFolderModal } from './DownloadFolderModal';
 import {
   useCreateFolder,
