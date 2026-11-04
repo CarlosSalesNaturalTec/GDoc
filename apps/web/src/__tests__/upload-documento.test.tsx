@@ -164,6 +164,7 @@ describe('Envio de um documento pede os dados de controle (web-upload)', () => {
             {
               fileName: 'a.pdf',
               ok: true,
+              awaitingRegistration: false,
               uploadUrl: 'https://storage.example/a',
               objectPath: 'a',
               folderId: null,
@@ -172,6 +173,7 @@ describe('Envio de um documento pede os dados de controle (web-upload)', () => {
             {
               fileName: 'b.pdf',
               ok: true,
+              awaitingRegistration: false,
               uploadUrl: 'https://storage.example/b',
               objectPath: 'b',
               folderId: null,
@@ -212,6 +214,7 @@ describe('Envio de um documento pede os dados de controle (web-upload)', () => {
             {
               fileName: 'dentro.pdf',
               ok: true,
+              awaitingRegistration: false,
               uploadUrl: 'https://storage.example/dentro',
               objectPath: 'dentro',
               folderId: null,

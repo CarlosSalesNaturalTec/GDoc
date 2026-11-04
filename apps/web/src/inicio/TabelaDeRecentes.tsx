@@ -3,9 +3,9 @@ import { Button, Empty, Result, Space, Spin, Table, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import type { FileSummaryResponse, RecentDocumentResponse } from '@gdoc/shared';
 import { Link } from 'react-router-dom';
-import { RotuloDeEstado } from '../app/RotuloDeEstado';
+import { EtiquetaDeSituacao } from '../app/EtiquetaDeSituacao';
 import { RotuloDeTipoDocumental } from '../app/RotuloDeTipoDocumental';
-import { AUSENTE, DOCUMENT_STATUS_TOM, rotuloDeSituacao } from '../shell/document-control-labels';
+import { AUSENTE } from '../shell/document-control-labels';
 import { formatDate } from '../navegacao/format';
 import { PreviewModal } from '../visualizacao/PreviewModal';
 import { useRecentDocuments } from './queries';
@@ -67,11 +67,7 @@ export function TabelaDeRecentes() {
     {
       title: 'Situação',
       key: 'documentStatus',
-      render: (_, doc) => (
-        <RotuloDeEstado tom={DOCUMENT_STATUS_TOM[doc.documentStatus]}>
-          {rotuloDeSituacao(doc)}
-        </RotuloDeEstado>
-      ),
+      render: (_, doc) => <EtiquetaDeSituacao file={doc} />,
     },
     { title: 'Alterado em', key: 'changedAt', render: (_, doc) => formatDate(doc.changedAt) },
   ];

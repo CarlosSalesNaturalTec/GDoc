@@ -16,12 +16,23 @@ Na página **Documentos**, há três formas de escolher o que enviar para a past
   essa operação (ver [Limites](../referencia/limites.md)). Use um computador para
   enviar uma pasta inteira.
 
-## Enviar **um** documento pede os dados de controle
+## Todo envio pede os dados de controle
+
+Nenhum documento é publicado sem os dados obrigatórios — **tipo, código, revisão,
+setor responsável e data de próxima revisão** —, enviado sozinho ou em lote. Cada
+arquivo tem os seus próprios dados.
 
 Quando a seleção tem **exatamente um arquivo** (e ele não vem de uma pasta), o
-PapelHub pede **tipo, código, revisão e data de próxima revisão** antes de publicar —
-é a publicação de um documento controlado, e não de um arquivo qualquer. Enviar
-**vários** arquivos, ou uma pasta, não pede dado algum. Ver
+PapelHub pede os dados antes de publicar, e recusa o envio se algum faltar.
+
+Enviando **vários** arquivos, ou uma pasta, os dados valem por arquivo: o que vier
+completo é publicado, e o que vier sem algum dado obrigatório é aceito e fica
+**Pendente de cadastro** — fora de circulação, visível só para você e para a gestão da
+unidade, com um aviso no sino, até que você complete o cadastro pela ação **Dados de
+controle** na listagem.
+
+Para o que não é documento da Matriz — atas, planilhas de trabalho, apresentações —
+escolha o tipo **Arquivo geral**, que pede só o título. Ver
 [Controle documental](controle-documental.md).
 
 ## Verificação antes de começar

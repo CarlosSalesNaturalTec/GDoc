@@ -37,6 +37,7 @@ import type {
 import {
   DocumentLifecycleState,
   DocumentStatus,
+  DOCUMENT_TYPES,
   DocumentType,
   FileAccessAction,
   FileCategory,
@@ -98,17 +99,18 @@ export const fileSummaryResponseSchema: z.ZodType<FileSummaryResponse> = z.objec
   sizeBytes: z.number().nullable(),
   status: z.string(),
   createdAt: z.string(),
+  /**
+   * Aqui o conjunto fechado **é** da SPA: ela precisa de rótulo, sigla e cor
+   * por tipo, e não tem o que apresentar para um tipo que não conhece.
+   * `.catch(null)` resolve para "sem tipo", que é neutro — ausência explícita,
+   * não afirmação errada.
+   *
+   * A lista vem de `DOCUMENT_TYPES` em vez de ser reescrita: enumerá-la à mão
+   * foi o que fez o tipo Arquivo geral chegar a esta fronteira e ser
+   * convertido em `null`, aparecendo como arquivo sem tipo.
+   */
   documentType: z
-    .enum([
-      DocumentType.PROTOCOL,
-      DocumentType.PROCEDURE,
-      DocumentType.POLICY,
-      DocumentType.FORM,
-      DocumentType.FLOWCHART,
-      DocumentType.MANUAL,
-      DocumentType.CONSENT_TERM,
-      DocumentType.INTERNAL_NOTICE,
-    ])
+    .enum(DOCUMENT_TYPES as readonly [DocumentType, ...DocumentType[]])
     .nullable()
     .catch(null),
   documentCode: z.string().nullable().catch(null),
@@ -123,16 +125,28 @@ export const fileSummaryResponseSchema: z.ZodType<FileSummaryResponse> = z.objec
     ])
     .nullable()
     .catch(null),
+  /**
+   * A situação é **apurada pelo servidor** e a SPA só a traduz — nunca a
+   * recalcula (`web-navegacao`). Por isso a fronteira aceita qualquer texto em
+   * lugar de um `enum` fechado: a autoridade sobre o conjunto de valores é do
+   * servidor, não desta SPA.
+   *
+   * Era um `.enum([...]).catch(UNCONTROLLED)`, e o `.catch` **convertia** todo
+   * valor não previsto em "Sem controle de revisão" — que não é um fallback
+   * neutro, é uma afirmação: a de que o documento é acervo legítimo em
+   * circulação. Com os estados que a US 10.9 e a US 10.8 acrescentaram, uma
+   * SPA mais antiga que a API passaria a apresentar arquivo **pendente de
+   * cadastro** exatamente assim. Quem decide o que é apresentável passa a ser
+   * `rotuloDeSituacao`, num lugar só, e valor desconhecido resolve para
+   * ausência explícita em vez de rótulo errado.
+   *
+   * O `.catch` permanece para o campo **ausente** (API anterior ao controle
+   * documental), onde "Sem controle de revisão" é de fato a verdade.
+   */
   documentStatus: z
-    .enum([
-      DocumentStatus.CURRENT,
-      DocumentStatus.DUE_SOON,
-      DocumentStatus.IN_REVIEW,
-      DocumentStatus.OVERDUE,
-      DocumentStatus.OBSOLETE,
-      DocumentStatus.UNCONTROLLED,
-    ])
-    .catch(DocumentStatus.UNCONTROLLED),
+    .string()
+    .catch(DocumentStatus.UNCONTROLLED)
+    .transform((valor) => valor as DocumentStatus),
   daysUntilReview: z.number().nullable().catch(null),
   canEditControl: z.boolean().optional().catch(undefined),
 });
@@ -186,6 +200,8 @@ export const batchUploadItemResultSchema: z.ZodType<BatchUploadItemResult> = z.d
       objectPath: z.string(),
       folderId: z.string().nullable(),
       expiresAt: z.string(),
+      /** US 10.9: o item nasceu pendente de cadastro por faltar dado exigido. */
+      awaitingRegistration: z.boolean(),
     }),
     z.object({
       fileName: z.string(),
@@ -476,15 +492,30 @@ export const grantNotificationPayloadSchema: z.ZodType<GrantNotificationPayload>
   subjectUserId: z.string().optional(),
 });
 
-/** Espelha `NotificationResponse` (design.md D4, capability `notificacoes`). */
+/** Espelha `RegistrationPendingNotificationPayload` (US 10.9). */
+export const registrationPendingNotificationPayloadSchema = z.object({
+  fileId: z.string(),
+  fileName: z.string(),
+});
+
+/**
+ * Espelha `NotificationResponse` (design.md D4, capability `notificacoes`).
+ *
+ * O `kind` e o `payload` precisam ser ampliados **juntos** a cada assunto
+ * novo do canal: esta validação é a fronteira da SPA, e um `kind` fora do
+ * `enum` reprova o `parse` da lista inteira — o sino pararia de abrir por
+ * causa de uma notificação que ele apenas não sabe exibir. Por isso a união,
+ * e não um `grantNotificationPayloadSchema` fixo.
+ */
 export const notificationResponseSchema: z.ZodType<NotificationResponse> = z.object({
   id: z.string(),
   kind: z.enum([
     NotificationKind.GRANT_CREATED,
     NotificationKind.GRANT_EXPIRING,
     NotificationKind.GRANT_EXPIRED,
+    NotificationKind.REGISTRATION_PENDING,
   ]),
-  payload: grantNotificationPayloadSchema,
+  payload: z.union([grantNotificationPayloadSchema, registrationPendingNotificationPayloadSchema]),
   createdAt: z.string(),
   readAt: z.string().nullable(),
 });

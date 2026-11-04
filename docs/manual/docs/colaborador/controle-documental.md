@@ -8,15 +8,33 @@ listagem diz, de relance, se o documento ainda vale.
 
 | Dado | Para que serve |
 | --- | --- |
-| **Tipo** | Classifica o documento entre os oito tipos previstos. Aparece na listagem como uma **sigla** colorida ao lado do nome (por exemplo `PRT` para Protocolo). A cor acompanha a sigla; a informação é a sigla. |
+| **Tipo** | Classifica o documento entre os nove tipos previstos. Aparece na listagem como uma **sigla** colorida ao lado do nome (por exemplo `PRT` para Protocolo). A cor acompanha a sigla; a informação é a sigla. |
 | **Código** | Identificador do documento dentro da sua unidade (por exemplo `PRT-NSP-001`). Serve para citar e para **encontrar**: a busca por nome também procura pelo código. |
 | **Revisão** | Número da versão vigente, apresentado como `Rev. 02`. |
 | **Setor responsável** | Quem responde pelo documento — a quem procurar para falar dele. |
 | **Próxima revisão** | A data em que o documento precisa ser revisto. É dela que nasce a situação. |
 
-Os oito tipos e suas siglas: **PRT** Protocolo, **POP** Procedimento, **POL**
+Os nove tipos e suas siglas: **PRT** Protocolo, **POP** Procedimento, **POL**
 Política/Norma, **FRM** Formulário/Checklist, **FLX** Fluxograma, **MAN** Manual,
-**TCO** Termo de Consentimento e **COM** Comunicado Interno.
+**TCO** Termo de Consentimento, **COM** Comunicado Interno e **ARQ** Arquivo geral.
+
+### Arquivo geral: o que não é documento da Matriz
+
+Nem tudo que você guarda é documento controlado. Uma ata de reunião, uma planilha de
+trabalho, uma apresentação — nada disso tem código nem revisão, e forçá-los a ter
+seria inventar um dado.
+
+Para esses casos existe o tipo **Arquivo geral**. Ele pede **só o título**:
+
+- não tem código, revisão nem data de próxima revisão — e informar qualquer um dos
+  três é recusado, porque o tipo declara justamente não os ter;
+- não tem situação de revisão: a coluna **Situação** fica vazia, e não "Sem controle
+  de revisão";
+- não entra nas contagens de documentos a vencer ou vencidos.
+
+É diferente de um arquivo cujos dados você ainda não preencheu. **Arquivo geral** é a
+afirmação de que aquele arquivo nunca terá código; um arquivo sem dados é uma
+pendência a resolver.
 
 ## A situação de um documento
 
@@ -34,20 +52,46 @@ seguinte.
 | **Obsoleto** | O documento foi declarado fora de uso. Prevalece sobre a data. |
 | **Sem controle de revisão** | O documento não tem data de próxima revisão informada. Não é contado entre os documentos a vencer nem entre os vencidos. |
 
+| **Pendente de cadastro** | O arquivo foi enviado sem os dados obrigatórios e ainda não foi publicado. Fica fora de circulação até ser cadastrado. |
+
 !!! note "Sem controle de revisão não é erro"
-    Todo arquivo enviado **em lote** ou **em pasta**, e todo o acervo que já existia
-    antes do controle documental, fica nesta situação. Esses arquivos continuam
-    plenamente acessíveis, com as mesmas permissões de sempre — eles apenas não têm
-    prazo de revisão a cobrar. Quando quiser, preencha os dados depois (abaixo).
+    Todo o acervo que já existia antes do controle documental fica nesta situação.
+    Esses arquivos continuam plenamente acessíveis, com as mesmas permissões de
+    sempre — eles apenas não têm prazo de revisão a cobrar. Quando quiser, preencha os
+    dados depois (abaixo).
+
+### Pendente de cadastro
+
+Quando você envia vários arquivos e algum deles vai sem os dados obrigatórios, ele
+**não** é recusado: é aceito e fica **Pendente de cadastro**. Nesse estado:
+
+- o arquivo fica na pasta, mas **não aparece para os outros leitores nem na busca** —
+  mesmo para quem tem permissão sobre ele;
+- quem o enviou e os gestores da unidade continuam enxergando-o, com a etiqueta
+  **Pendente de cadastro**;
+- quem o enviou recebe um **aviso no sino**, um por arquivo, dizendo qual completar;
+- ao completar os dados, o arquivo passa a circular normalmente, com as permissões
+  que já estavam concedidas.
+
+A ideia é simples: nada é publicado sem identificação, mas nada é perdido por falta
+dela. Você termina o envio e cadastra depois, no seu tempo.
 
 ## Quando os dados são exigidos
 
+Nenhum documento é publicado sem os dados obrigatórios — **enviado sozinho ou em
+lote**. Cada arquivo tem os seus próprios dados.
+
 - **Enviando um único arquivo** (não vindo de pasta): o PapelHub pede **tipo, código,
-  revisão e data de próxima revisão** antes de publicar. Sem eles o envio é recusado, e
-  a tela diz exatamente quais dados faltam. O **setor responsável** é opcional.
-- **Enviando vários arquivos, ou uma pasta**: nada é pedido. O envio corre como
-  descrito em [Enviar arquivos](enviar.md), e os arquivos ficam **Sem controle de
-  revisão**.
+  revisão, setor responsável e data de próxima revisão** antes de publicar. Sem eles o
+  envio é recusado, e a tela diz exatamente quais dados faltam.
+- **Enviando vários arquivos, ou uma pasta**: os dados valem **por arquivo**. O que
+  vier completo é publicado; o que vier sem algum dado obrigatório é aceito e fica
+  **Pendente de cadastro** (acima), à espera de ser completado.
+- **Arquivo geral**: pede só o título, em qualquer um dos dois casos.
+
+Um dado **inválido** é diferente de um dado **ausente**: tipo fora da lista ou data
+impossível fazem o arquivo ser recusado, com o aviso do problema. Dado ausente nunca
+recusa — só deixa o arquivo pendente.
 
 O código precisa ser **único na sua unidade**. Se já existir outro documento ativo com
 aquele código, a publicação é recusada com um aviso específico de **código em uso** —

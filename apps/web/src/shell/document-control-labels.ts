@@ -21,6 +21,7 @@ export const DOCUMENT_TYPE_LABEL: Record<DocumentType, string> = {
   [DocumentType.MANUAL]: 'Manual',
   [DocumentType.CONSENT_TERM]: 'Termo de Consentimento',
   [DocumentType.INTERNAL_NOTICE]: 'Comunicado Interno',
+  [DocumentType.GENERAL_FILE]: 'Arquivo geral',
 };
 
 /**
@@ -37,6 +38,14 @@ export const DOCUMENT_TYPE_ACRONYM: Record<DocumentType, string> = {
   [DocumentType.MANUAL]: 'MAN',
   [DocumentType.CONSENT_TERM]: 'TCO',
   [DocumentType.INTERNAL_NOTICE]: 'COM',
+  /**
+   * O material do cliente não dá sigla ao Arquivo geral — ele é a opção que
+   * declara ausência de controle, e não um tipo da Matriz. `ARQ` existe porque
+   * a listagem apresenta o tipo como sigla textual em toda linha, e deixá-la
+   * vazia faria o Arquivo geral parecer arquivo **sem** tipo, que é
+   * precisamente a condição da qual ele precisa se distinguir.
+   */
+  [DocumentType.GENERAL_FILE]: 'ARQ',
 };
 
 /** Estado declarado, como aparece no formulário de edição (design.md D3). */
@@ -54,16 +63,32 @@ export const DOCUMENT_STATUS_TOM = {
   [DocumentStatus.OVERDUE]: 'negativo',
   [DocumentStatus.OBSOLETE]: 'neutro',
   [DocumentStatus.UNCONTROLLED]: 'neutro',
+  /** Pede ação de quem enviou — alerta, não falha. */
+  [DocumentStatus.AWAITING_REGISTRATION]: 'alerta',
+  /** Nunca renderizado: o Arquivo geral não apresenta etiqueta de situação. */
+  [DocumentStatus.NOT_APPLICABLE]: 'neutro',
 } as const;
 
 /**
- * Texto da situação **apurada pelo servidor**. A SPA nunca recalcula a
- * situação a partir da data e do relógio do dispositivo (web-navegacao: "A
- * SPA SHALL apresentar a que o servidor devolveu") — aqui só se traduz o
- * veredito recebido. A única aritmética é a de "vence em N dias", e N também
- * vem do servidor (`daysUntilReview`).
+ * Texto da situação **apurada pelo servidor**, ou `null` quando não há
+ * situação a apresentar. A SPA nunca recalcula a situação a partir da data e
+ * do relógio do dispositivo (web-navegacao: "A SPA SHALL apresentar a que o
+ * servidor devolveu") — aqui só se traduz o veredito recebido. A única
+ * aritmética é a de "vence em N dias", e N também vem do servidor
+ * (`daysUntilReview`).
+ *
+ * `null` devolve-se em dois casos, e quem chama decide o que renderizar
+ * (ausência explícita, nunca etiqueta vazia):
+ *
+ * - **Arquivo geral**, que declara não ter prazo (US 10.8) — a demanda é
+ *   explícita em que ele "não tem situação (Vigente, A vencer etc.)";
+ * - **valor desconhecido**, de um servidor mais novo que esta SPA. Antes, o
+ *   `default` deste `switch` respondia "Sem controle de revisão" a qualquer
+ *   valor não previsto, o que é uma **afirmação** sobre o documento, não um
+ *   fallback neutro — e foi o que teria apresentado o pendente de cadastro
+ *   como acervo em circulação.
  */
-export function rotuloDeSituacao(file: FileSummaryResponse): string {
+export function rotuloDeSituacao(file: FileSummaryResponse): string | null {
   switch (file.documentStatus) {
     case DocumentStatus.CURRENT:
       return 'Vigente';
@@ -79,8 +104,12 @@ export function rotuloDeSituacao(file: FileSummaryResponse): string {
       return 'Revisão vencida';
     case DocumentStatus.OBSOLETE:
       return 'Obsoleto';
-    default:
+    case DocumentStatus.AWAITING_REGISTRATION:
+      return 'Pendente de cadastro';
+    case DocumentStatus.UNCONTROLLED:
       return 'Sem controle de revisão';
+    default:
+      return null;
   }
 }
 

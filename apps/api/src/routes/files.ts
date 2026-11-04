@@ -582,6 +582,7 @@ export function filesRouter(ports: Ports): Router {
           // fontes de colisão: o acervo (via `findCodeOwner`, com RLS
           // filtrando por baixo — homônimo de outra unidade não aparece nem é
           // revelado) e o próprio lote (via `codesInBatch`).
+          let retomada: string | null = null;
           if (control.documentCode) {
             const codeKey = control.documentCode.toLowerCase();
             if (codesInBatch.has(codeKey)) {
@@ -589,61 +590,86 @@ export function filesRouter(ports: Ports): Router {
               continue;
             }
             const occupant = await findCodeOwner(client, control.documentCode);
-            // **Retomada**, pelo mesmo motivo da rota unitária: código preso a
-            // um envio `pending` do próprio solicitante é a retomada daquela
-            // publicação, não duplicata. Sem isto, repetir um item de lote que
-            // falhou na transferência seria recusado por conflito com a sua
-            // própria linha — quebrando "nova tentativa apenas do item que
-            // falhou" (`envio-lote`) justamente no caso que ela existe para
-            // cobrir.
-            const isRetomada =
+            // **Retomada**, pelo mesmo motivo e da mesma forma que na rota
+            // unitária: código preso a um envio `pending` do próprio
+            // solicitante é a retomada daquela publicação, não duplicata. Sem
+            // isto, repetir um item de lote que falhou na transferência seria
+            // recusado por conflito com a sua própria linha — quebrando "nova
+            // tentativa apenas do item que falhou" (`envio-lote`) justamente
+            // no caso que ela existe para cobrir.
+            //
+            // A linha é **reaproveitada**, não substituída: apagá-la e inserir
+            // outra trocaria o identificador do arquivo, e com ele as
+            // concessões que apontam para o id antigo, o histórico de
+            // auditoria e a identidade do evento de origem do aviso de
+            // pendência — que passaria a avisar duas vezes do mesmo arquivo.
+            if (
               occupant !== null &&
               occupant.owner_id === ctx.userId &&
-              occupant.status === 'pending';
-            if (occupant && !isRetomada) {
+              occupant.status === 'pending'
+            ) {
+              retomada = occupant.id;
+            } else if (occupant) {
               prepared.push({ fileName, ok: false, error: 'document_code_conflict' });
               continue;
-            }
-            if (isRetomada) {
-              // A linha anterior sai de cena antes do INSERT desta, para que o
-              // índice único não veja as duas ocupando o código ao mesmo
-              // tempo. O objeto órfão no bucket é tratado pelo mesmo caminho
-              // que já trata envio `pending` abandonado.
-              await client.query(`DELETE FROM files WHERE id = $1`, [occupant!.id]);
             }
             codesInBatch.add(codeKey);
           }
 
-          const objectId = randomUUID();
+          const objectId = retomada ?? randomUUID();
           const objectPath = ports.storage.buildObjectPath(
             ctx.unitId,
             ctx.userId,
-            `${objectId}-${fileName}`,
+            `${randomUUID()}-${fileName}`,
           );
 
-          await client.query(
-            `INSERT INTO files (id, unit_id, owner_id, folder_id, object_path, file_name, content_type, size_bytes, status,
-               document_type, document_code, document_revision, responsible_sector, next_review_at, lifecycle_state,
-               awaiting_registration)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'pending', $9, $10, $11, $12, $13, $14, $15)`,
-            [
-              objectId,
-              ctx.unitId,
-              ctx.userId,
-              pathResult.folderId,
-              objectPath,
-              fileName,
-              contentType,
-              declaredSizeBytes,
-              control.documentType ?? null,
-              control.documentCode ?? null,
-              control.documentRevision ?? null,
-              control.responsibleSector ?? null,
-              control.nextReviewAt ?? null,
-              control.lifecycleState ?? null,
-              awaitingRegistration,
-            ],
-          );
+          const controlValues = [
+            control.documentType ?? null,
+            control.documentCode ?? null,
+            control.documentRevision ?? null,
+            control.responsibleSector ?? null,
+            control.nextReviewAt ?? null,
+            control.lifecycleState ?? null,
+            awaitingRegistration,
+          ];
+
+          if (retomada) {
+            await client.query(
+              `UPDATE files SET object_path = $1, file_name = $2, content_type = $3, size_bytes = $4,
+                 folder_id = $5, status = 'pending', pending_object_path = NULL,
+                 document_type = $6, document_code = $7, document_revision = $8,
+                 responsible_sector = $9, next_review_at = $10, lifecycle_state = $11,
+                 awaiting_registration = $12
+               WHERE id = $13`,
+              [
+                objectPath,
+                fileName,
+                contentType,
+                declaredSizeBytes,
+                pathResult.folderId,
+                ...controlValues,
+                retomada,
+              ],
+            );
+          } else {
+            await client.query(
+              `INSERT INTO files (id, unit_id, owner_id, folder_id, object_path, file_name, content_type, size_bytes, status,
+                 document_type, document_code, document_revision, responsible_sector, next_review_at, lifecycle_state,
+                 awaiting_registration)
+               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'pending', $9, $10, $11, $12, $13, $14, $15)`,
+              [
+                objectId,
+                ctx.unitId,
+                ctx.userId,
+                pathResult.folderId,
+                objectPath,
+                fileName,
+                contentType,
+                declaredSizeBytes,
+                ...controlValues,
+              ],
+            );
+          }
           reserved += declaredSizeBytes!;
 
           prepared.push({

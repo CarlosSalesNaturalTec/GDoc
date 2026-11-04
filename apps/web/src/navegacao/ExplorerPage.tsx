@@ -38,15 +38,9 @@ import { GrantResourceType, MOVE_BATCH_MAX_ITEMS_DEFAULT, UserRole } from '@gdoc
 import { ApiError } from '../lib/api-client';
 import { useSession } from '../auth/session-context';
 import { useNarrowMode } from '../app/responsive';
-import { RotuloDeEstado } from '../app/RotuloDeEstado';
+import { EtiquetaDeSituacao } from '../app/EtiquetaDeSituacao';
 import { RotuloDeTipoDocumental } from '../app/RotuloDeTipoDocumental';
-import {
-  AUSENTE,
-  DOCUMENT_STATUS_TOM,
-  formatarDataDeRevisao,
-  formatarRevisao,
-  rotuloDeSituacao,
-} from '../shell/document-control-labels';
+import { AUSENTE, formatarDataDeRevisao, formatarRevisao } from '../shell/document-control-labels';
 import { DocumentControlModal } from './DocumentControlModal';
 import { AuditoriaModal } from '../auditoria/AuditoriaModal';
 import { PermissoesModal } from '../permissoes/PermissoesModal';
@@ -570,9 +564,7 @@ export function ExplorerPage() {
           // não a recalcula a partir da data e do relógio do dispositivo —
           // dois navegadores com relógios diferentes mostrariam vereditos
           // diferentes sobre o mesmo documento.
-          <RotuloDeEstado tom={DOCUMENT_STATUS_TOM[row.file.documentStatus]}>
-            {rotuloDeSituacao(row.file)}
-          </RotuloDeEstado>
+          <EtiquetaDeSituacao file={row.file} />
         ) : (
           AUSENTE
         ),

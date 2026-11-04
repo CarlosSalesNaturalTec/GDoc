@@ -99,6 +99,13 @@ export const tonsDeTipoDocumental = {
   manual: { texto: '#012442', fundo: '#E8EEF3', borda: '#A9BECE' },
   consent_term: { texto: '#A8071A', fundo: '#FDECEA', borda: '#EBA9A2' },
   internal_notice: { texto: '#3D4F5C', fundo: '#EDF1F4', borda: '#B4C1CA' },
+  /**
+   * Arquivo geral (US 10.8): cinza neutro, de propósito fora da paleta
+   * cromática dos tipos da Matriz. Ele não é documento controlado, e a cor
+   * carrega essa diferença — sem ser a única a carregá-la, já que a sigla
+   * `ARQ` é texto.
+   */
+  general_file: { texto: '#54595E', fundo: '#F1F2F3', borda: '#C5C9CD' },
 } as const;
 
 /** Família dos títulos (guia do cliente); auto-hospedada via `@fontsource` — design.md D5. */

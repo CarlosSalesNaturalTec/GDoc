@@ -26,6 +26,18 @@ const RESOURCE_LABEL: Record<GrantResourceType, string> = {
  */
 function messageFor(notification: NotificationResponse): string {
   const { payload } = notification;
+
+  // O payload é união discriminada pelo `kind` (US 10.9): ramificar antes de
+  // ler campos é o que mantém o canal aberto a assuntos que não são
+  // concessão. Este caso sai primeiro porque não tem recurso, verbos nem
+  // prazo a formatar.
+  if (notification.kind === NotificationKind.REGISTRATION_PENDING) {
+    const nome = 'fileName' in payload ? payload.fileName : 'um arquivo';
+    return `${nome} está pendente de cadastro: informe tipo, código, revisão, responsável e próxima revisão para publicá-lo.`;
+  }
+
+  if (!('resourceType' in payload)) return 'Notificação';
+
   const resource = RESOURCE_LABEL[payload.resourceType];
   const verbs = payload.permissions.map((permission) => VERB_LABEL[permission]).join(', ');
   const date = formatDate(payload.expiresAt);
