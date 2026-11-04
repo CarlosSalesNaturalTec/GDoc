@@ -62,8 +62,9 @@ seguinte.
 
 ### Pendente de cadastro
 
-Quando você envia vários arquivos e algum deles vai sem os dados obrigatórios, ele
-**não** é recusado: é aceito e fica **Pendente de cadastro**. Nesse estado:
+Quando você envia vários arquivos e deixa alguma linha da tabela de cadastro sem os
+dados obrigatórios, aquele arquivo **não** é recusado: é aceito e fica **Pendente de
+cadastro**. Nesse estado:
 
 - o arquivo fica na pasta, mas **não aparece para os outros leitores nem na busca** —
   mesmo para quem tem permissão sobre ele;
@@ -84,7 +85,9 @@ lote**. Cada arquivo tem os seus próprios dados.
 - **Enviando um único arquivo** (não vindo de pasta): o PapelHub pede **tipo, código,
   revisão, setor responsável e data de próxima revisão** antes de publicar. Sem eles o
   envio é recusado, e a tela diz exatamente quais dados faltam.
-- **Enviando vários arquivos, ou uma pasta**: os dados valem **por arquivo**. O que
+- **Enviando vários arquivos, ou uma pasta**: o PapelHub abre uma **tabela de cadastro
+  com uma linha por arquivo**, e os dados valem **por arquivo** (ver
+  [Enviar arquivos](enviar.md#a-tabela-de-cadastro-no-envio-de-varios-arquivos)). O que
   vier completo é publicado; o que vier sem algum dado obrigatório é aceito e fica
   **Pendente de cadastro** (acima), à espera de ser completado.
 - **Arquivo geral**: pede só o título, em qualquer um dos dois casos.

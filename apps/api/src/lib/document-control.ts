@@ -7,7 +7,9 @@ import {
   DocumentType,
   GrantResourceType,
   Permission,
+  FIELDS_REJECTED_FOR_GENERAL_FILE,
   REVIEW_DUE_SOON_DAYS,
+  requiredFieldsForType,
   type DocumentControlInput,
   type FileSummaryResponse,
 } from '@gdoc/shared';
@@ -215,55 +217,6 @@ export function nonObsoleteClause(ctx: TenantContext): string {
 export function visibleRegistrationClause(ctx: TenantContext, ownerIdParam: string): string {
   if (isAdminOfUnit(ctx, ctx.unitId)) return 'TRUE';
   return `(awaiting_registration IS NOT TRUE OR owner_id = ${ownerIdParam})`;
-}
-
-/**
- * Campos que a publicação de um documento **controlado** exige (US 10.5).
- *
- * São cinco, não quatro: o **responsável** entra por força da tabela 2.2 da
- * demanda do cliente, que o marca obrigatório ao lado dos demais. A mudança
- * vale também para o envio unitário, porque a Regra da seção 2 é explícita em
- * que os dados sejam os mesmos "seja enviado sozinho ou em lote".
- *
- * Título não está aqui porque já é obrigatório por outro caminho: mapeia para
- * `file_name`, que nenhum envio consegue omitir (design.md D8).
- */
-export const REQUIRED_CONTROL_FIELDS = [
-  'documentType',
-  'documentCode',
-  'documentRevision',
-  'responsibleSector',
-  'nextReviewAt',
-] as const satisfies readonly (keyof DocumentControlInput)[];
-
-/**
- * Campos que o tipo **Arquivo geral** não admite (US 10.8): ele declara não ter
- * código nem prazo, então informá-los é contradição, não complemento — e é
- * recusado em vez de silenciosamente ignorado, para que a contradição apareça
- * a quem a escreveu.
- *
- * `responsibleSector` **não** está na lista: "pede só o Título" diz o que é
- * obrigatório, não o que é proibido, e saber a quem pertence uma ata é útil
- * sem implicar controle de revisão.
- */
-export const FIELDS_REJECTED_FOR_GENERAL_FILE = [
-  'documentCode',
-  'documentRevision',
-  'nextReviewAt',
-] as const satisfies readonly (keyof DocumentControlInput)[];
-
-/**
- * Conjunto exigido para publicar, **em função do tipo** (design.md D5).
- *
- * O Arquivo geral não exige nenhum dos cinco: declarar o tipo já é cadastrá-lo.
- * É isso que o torna distinto de um arquivo sem dados — um está cadastrado como
- * não-controlado, o outro aguarda cadastro.
- */
-export function requiredFieldsForType(
-  documentType: DocumentType | null | undefined,
-): readonly (keyof DocumentControlInput)[] {
-  if (documentType === DocumentType.GENERAL_FILE) return [];
-  return REQUIRED_CONTROL_FIELDS;
 }
 
 /**

@@ -71,17 +71,29 @@ async function escolherNoCampo(
   await userEvent.click(await within(dropdown).findByText(optionLabel));
 }
 
+/**
+ * Preenche o conjunto exigido de um documento **controlado** — cinco campos,
+ * com o responsável, desde que a tabela 2.2 da demanda o tornou obrigatório
+ * (change `arquivo-geral-e-pendente-de-cadastro`, design.md D5). Sem ele o
+ * formulário bloqueia antes da requisição, que é o comportamento esperado.
+ */
 async function preencherControle(painel: HTMLElement, codigo: string): Promise<void> {
   await escolherNoCampo(painel, 'Tipo', /Protocolo/);
   await userEvent.type(within(painel).getByLabelText('Código'), codigo);
   await userEvent.type(within(painel).getByLabelText('Revisão'), '1');
+  await userEvent.type(within(painel).getByLabelText('Setor responsável'), 'Governança');
   await userEvent.type(within(painel).getByLabelText('Próxima revisão'), '31/12/2030{enter}');
 }
 
 /**
- * Envio de **um** documento (Épico 10, capability `web-upload`): a exigência
- * dos dados de controle liga pela contagem da operação (design.md D7) — um
- * arquivo pede os quatro campos, vários ou uma pasta não pedem nada.
+ * Envio de **um** documento (Épico 10, capability `web-upload`).
+ *
+ * A exigência não liga mais pela contagem da operação: **todo** envio pede os
+ * dados, e o que a contagem decide é só a **forma** — um arquivo recebe o
+ * formulário, vários ou uma pasta recebem a tabela de cadastro, uma linha por
+ * arquivo (change `tabela-de-cadastro-no-envio-em-lote`; demanda 2.1). O
+ * conjunto exigido é o do **tipo** escolhido: cinco campos para documento
+ * controlado, só o título para Arquivo geral.
  */
 describe('Envio de um documento pede os dados de controle (web-upload)', () => {
   it('seleção de um único arquivo apresenta o formulário e publica pela rota unitária (US 10.5 cenário 1)', async () => {
@@ -129,7 +141,7 @@ describe('Envio de um documento pede os dados de controle (web-upload)', () => {
     await screen.findByText('Envio concluído.');
   });
 
-  it('o formulário exige os quatro campos antes de publicar', async () => {
+  it('o formulário exige os cinco campos antes de publicar, inclusive o responsável', async () => {
     mockFetch({
       'GET /auth/me': { status: 200, body: IDENTITY },
       'GET /folders/root/contents': { status: 200, body: contents() },
@@ -148,11 +160,58 @@ describe('Envio de um documento pede os dados de controle (web-upload)', () => {
     await userEvent.click(within(area).getByRole('button', { name: /publicar documento/i }));
 
     await screen.findByText('Informe o código do documento');
+    // O responsável entrou no conjunto exigido pela tabela 2.2 da demanda, e o
+    // servidor já o exigia: a tela precisa sinalizá-lo antes da requisição.
+    await screen.findByText('Informe o setor ou a pessoa responsável');
     expect(chamadas('/files/upload-url')).toHaveLength(0);
     expect(xhr.started()).toBe(0);
   });
 
-  it('vários arquivos não pedem dados de controle e seguem pelo lote (US 10.5 cenário 2)', async () => {
+  it('o envio de um Arquivo geral conclui pedindo só o título (US 10.8)', async () => {
+    mockFetch({
+      'GET /auth/me': { status: 200, body: IDENTITY },
+      'GET /folders/root/contents': { status: 200, body: contents() },
+      'GET /files/quota': { status: 200, body: quota() },
+      'POST /files/upload-url': {
+        status: 200,
+        body: {
+          uploadUrl: 'https://storage.example/ata',
+          objectPath: 'ata',
+          expiresAt: new Date(Date.now() + 3_600_000).toISOString(),
+        },
+      },
+    });
+    mockXhr({ 'https://storage.example/ata': { status: 200 } });
+
+    const { container } = renderApp(['/pastas']);
+    await screen.findByRole('button', { name: /enviar arquivos/i });
+
+    const [filesInput] = fileInputs(container);
+    await userEvent.upload(filesInput!, [makeFile('Ata de março.pdf')]);
+
+    const painel = await screen.findByText('Dados do documento');
+    const area = painel.closest('.ant-alert') as HTMLElement;
+
+    await escolherNoCampo(area, 'Tipo', /Arquivo geral/);
+    // Os três campos que o tipo recusa ficam indisponíveis, em vez de exigidos
+    // — antes desta fatia o formulário os exigia e tornava o tipo inalcançável.
+    await waitFor(() => expect(within(area).getByLabelText('Código')).toBeDisabled());
+    expect(within(area).getByLabelText('Revisão')).toBeDisabled();
+
+    await userEvent.click(within(area).getByRole('button', { name: /publicar documento/i }));
+
+    await waitFor(() => expect(chamadas('/files/upload-url')).toHaveLength(1));
+    const enviado = corpo(chamadas('/files/upload-url')[0]!);
+    expect(enviado.documentControl).toEqual({
+      documentType: 'general_file',
+      documentCode: null,
+      documentRevision: null,
+      responsibleSector: null,
+      nextReviewAt: null,
+    });
+  });
+
+  it('vários arquivos pedem os dados por arquivo, na tabela de cadastro (US 10.5 cenário 2)', async () => {
     mockFetch({
       'GET /auth/me': { status: 200, body: IDENTITY },
       'GET /folders/root/contents': { status: 200, body: contents() },
@@ -194,15 +253,21 @@ describe('Envio de um documento pede os dados de controle (web-upload)', () => {
     const [filesInput] = fileInputs(container);
     await userEvent.upload(filesInput!, [makeFile('a.pdf'), makeFile('b.pdf')]);
 
-    await screen.findByText('Confirmar envio');
+    // A tabela entra no lugar do painel "Confirmar envio": ela **é** a
+    // confirmação, agora com o cadastro por arquivo (design.md D1).
+    const tabela = await screen.findByText('Dados dos documentos');
+    const painel = tabela.closest('.ant-card') as HTMLElement;
     expect(screen.queryByText('Dados do documento')).not.toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', { name: /^enviar$/i }));
+    expect(within(painel).getByLabelText('Título de a.pdf')).toBeTruthy();
+    expect(within(painel).getByLabelText('Título de b.pdf')).toBeTruthy();
+
+    await userEvent.click(within(painel).getByRole('button', { name: /^Publicar completos/ }));
 
     await waitFor(() => expect(chamadas('/files/upload-urls')).toHaveLength(1));
     expect(chamadas('/files/upload-url')).toHaveLength(0);
   });
 
-  it('uma pasta com um único arquivo também não pede dados de controle (design.md D7)', async () => {
+  it('uma pasta com um único arquivo recebe a tabela, não o formulário de um documento', async () => {
     mockFetch({
       'GET /auth/me': { status: 200, body: IDENTITY },
       'GET /folders/root/contents': { status: 200, body: contents() },
@@ -236,7 +301,9 @@ describe('Envio de um documento pede os dados de controle (web-upload)', () => {
       withRelativePath(makeFile('dentro.pdf'), 'Procedimentos/dentro.pdf'),
     ]);
 
-    await screen.findByText('Confirmar envio');
+    // A operação é "uma pasta", não "um arquivo": a hierarquia que o item
+    // carrega é a prova. Recebe a tabela de cadastro, com uma linha.
+    await screen.findByText('Dados dos documentos');
     expect(screen.queryByText('Dados do documento')).not.toBeInTheDocument();
   });
 

@@ -1,8 +1,11 @@
+import { useEffect } from 'react';
 import { DatePicker, Form, Input, InputNumber, Select } from 'antd';
 import type { Dayjs } from 'dayjs';
 import {
   DOCUMENT_LIFECYCLE_STATES,
   DOCUMENT_TYPES,
+  DocumentType as DocumentTypeEnum,
+  requiredFieldsForType,
   type DocumentControlInput,
   type DocumentLifecycleState,
   type DocumentType,
@@ -20,10 +23,16 @@ import {
  *
  * Um componente só porque os dois lugares pedem os mesmos campos, com as
  * mesmas regras de preenchimento — duas cópias divergiriam na primeira
- * correção de rótulo. O que varia é a **obrigatoriedade**: no envio os quatro
- * campos do requisito são exigidos antes de publicar; na edição nada é
- * exigido, porque editar serve justamente para preencher aos poucos o que o
- * lote dispensou.
+ * correção de rótulo. O que varia é a **obrigatoriedade**: no envio são
+ * exigidos os campos que o **tipo** pede, antes de publicar; na edição nada é
+ * exigido, porque editar serve justamente para completar aos poucos o cadastro
+ * de um arquivo que entrou pendente.
+ *
+ * A exigência é derivada de `requiredFieldsForType` — a **mesma** constante
+ * que o servidor consulta (design.md D9 do change
+ * `tabela-de-cadastro-no-envio-em-lote`). Era uma lista escrita à mão aqui, e
+ * foi assim que o formulário ficou exigindo quatro campos depois que o
+ * servidor passou a exigir cinco.
  */
 export interface DocumentControlFormValues {
   documentType?: DocumentType | null;
@@ -62,11 +71,32 @@ export function DocumentControlFormItems({
   obrigatorios,
   incluirEstado = false,
 }: {
-  /** Exige tipo, código, revisão e data — o envio de um documento (US 10.5). */
+  /** Exige os campos que o tipo escolhido pede — o envio de um documento (US 10.5). */
   obrigatorios: boolean;
   /** Oferece o estado declarado (vigente/em revisão/obsoleto) — só na edição. */
   incluirEstado?: boolean;
 }) {
+  // O tipo escolhido decide o que mais é exigido, e o Arquivo geral **recusa**
+  // código, revisão e próxima revisão (US 10.8): mantê-los habilitados
+  // produziria uma recusa do servidor sobre campo que a pessoa preencheu de
+  // boa-fé. Vazios e indisponíveis, como na tabela de cadastro (design.md D8).
+  const form = Form.useFormInstance<DocumentControlFormValues>();
+  const tipo = Form.useWatch<DocumentType | null | undefined>('documentType', form);
+  const exigidos = new Set(requiredFieldsForType(tipo ?? null));
+  const arquivoGeral = tipo === DocumentTypeEnum.GENERAL_FILE;
+
+  // Esvaziar, e não apenas desabilitar: campo desabilitado continua submetendo
+  // o seu valor, e o servidor responderia `general_file_rejects_control_fields`
+  // sobre um campo que a pessoa não vê mais (design.md D8).
+  useEffect(() => {
+    if (!arquivoGeral) return;
+    form.setFieldsValue({ documentCode: null, documentRevision: null, nextReviewAt: null });
+  }, [arquivoGeral, form]);
+
+  function regras(campo: keyof DocumentControlInput, mensagem: string) {
+    return obrigatorios && exigidos.has(campo) ? [{ required: true, message: mensagem }] : [];
+  }
+
   return (
     <>
       <Form.Item
@@ -79,31 +109,43 @@ export function DocumentControlFormItems({
       <Form.Item
         name="documentCode"
         label="Código"
-        extra="Único na sua unidade. Ex.: PRT-NSP-001."
-        rules={obrigatorios ? [{ required: true, message: 'Informe o código do documento' }] : []}
+        extra={
+          arquivoGeral
+            ? 'Arquivo geral não tem código: pede só o título.'
+            : 'Único na sua unidade. Ex.: PRT-NSP-001.'
+        }
+        rules={regras('documentCode', 'Informe o código do documento')}
       >
-        <Input maxLength={60} />
+        <Input maxLength={60} disabled={arquivoGeral} />
       </Form.Item>
       <Form.Item
         name="documentRevision"
         label="Revisão"
         extra="Número da revisão vigente; apresentado como Rev. 02."
-        rules={obrigatorios ? [{ required: true, message: 'Informe a revisão' }] : []}
+        rules={regras('documentRevision', 'Informe a revisão')}
       >
-        <InputNumber min={0} max={9999} precision={0} style={{ width: '100%' }} />
+        <InputNumber
+          min={0}
+          max={9999}
+          precision={0}
+          style={{ width: '100%' }}
+          disabled={arquivoGeral}
+        />
       </Form.Item>
-      <Form.Item name="responsibleSector" label="Setor responsável">
+      <Form.Item
+        name="responsibleSector"
+        label="Setor responsável"
+        rules={regras('responsibleSector', 'Informe o setor ou a pessoa responsável')}
+      >
         <Input maxLength={120} />
       </Form.Item>
       <Form.Item
         name="nextReviewAt"
         label="Próxima revisão"
         extra="A situação do documento é apurada pelo servidor a partir desta data."
-        rules={
-          obrigatorios ? [{ required: true, message: 'Informe a data da próxima revisão' }] : []
-        }
+        rules={regras('nextReviewAt', 'Informe a data da próxima revisão')}
       >
-        <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" />
+        <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" disabled={arquivoGeral} />
       </Form.Item>
       {incluirEstado && (
         <Form.Item

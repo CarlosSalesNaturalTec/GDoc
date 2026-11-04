@@ -153,6 +153,72 @@ export interface DocumentControlFields {
 }
 
 /**
+ * As três constantes a seguir vivem aqui, e não em `apps/api`, porque **os dois
+ * lados precisam da mesma resposta** para a pergunta "este cadastro está
+ * completo?" (design.md D9 do change `tabela-de-cadastro-no-envio-em-lote`).
+ *
+ * A interface precisa marcar a linha da tabela de cadastro como completa ou
+ * incompleta sem uma ida ao servidor, e manter uma segunda lista escrita à mão
+ * no cliente foi exatamente o que produziu o defeito que esta change corrige:
+ * a change `arquivo-geral-e-pendente-de-cadastro` levou o conjunto de quatro
+ * para cinco campos no servidor e o formulário da SPA ficou em quatro.
+ *
+ * São constantes de **produto**, como `DocumentType` e `DocumentStatus` já são
+ * — não taxonomia administrável. O veredito de aceitação continua sendo só do
+ * servidor: `parseDocumentControl` é quem recusa, e estas constantes são o que
+ * ele consulta.
+ */
+
+/**
+ * Campos que a publicação de um documento **controlado** exige (US 10.5).
+ *
+ * São cinco, não quatro: o **responsável** entra por força da tabela 2.2 da
+ * demanda do cliente, que o marca obrigatório ao lado dos demais. A mudança
+ * vale também para o envio unitário, porque a Regra da seção 2 é explícita em
+ * que os dados sejam os mesmos "seja enviado sozinho ou em lote".
+ *
+ * Título não está aqui porque já é obrigatório por outro caminho: mapeia para
+ * `file_name`, que nenhum envio consegue omitir (design.md D8).
+ */
+export const REQUIRED_CONTROL_FIELDS = [
+  'documentType',
+  'documentCode',
+  'documentRevision',
+  'responsibleSector',
+  'nextReviewAt',
+] as const satisfies readonly (keyof DocumentControlInput)[];
+
+/**
+ * Campos que o tipo **Arquivo geral** não admite (US 10.8): ele declara não ter
+ * código nem prazo, então informá-los é contradição, não complemento — e é
+ * recusado em vez de silenciosamente ignorado, para que a contradição apareça
+ * a quem a escreveu.
+ *
+ * `responsibleSector` **não** está na lista: "pede só o Título" diz o que é
+ * obrigatório, não o que é proibido, e saber a quem pertence uma ata é útil
+ * sem implicar controle de revisão.
+ */
+export const FIELDS_REJECTED_FOR_GENERAL_FILE = [
+  'documentCode',
+  'documentRevision',
+  'nextReviewAt',
+] as const satisfies readonly (keyof DocumentControlInput)[];
+
+/**
+ * Conjunto exigido para publicar, **em função do tipo** (design.md D5).
+ *
+ * O Arquivo geral não exige nenhum dos cinco: declarar o tipo já é cadastrá-lo.
+ * É isso que o torna distinto de um arquivo sem dados — um está cadastrado como
+ * não-controlado, o outro aguarda cadastro.
+ */
+export function requiredFieldsForType(
+  documentType: DocumentType | null | undefined,
+): readonly (keyof DocumentControlInput)[] {
+  if (documentType === DocumentType.GENERAL_FILE) return [];
+  return REQUIRED_CONTROL_FIELDS;
+}
+
+/**
  * Dados de controle informados pelo cliente, no envio de um documento
  * (`POST /files/upload-url`) e na edição (`PATCH /files/:id/document-control`).
  *
@@ -193,6 +259,35 @@ export interface DocumentCodeInUseResponse {
   error: 'document_code_in_use';
   code: string;
   occupiedBy?: { id: string; fileName: string };
+}
+
+/**
+ * Recusa de **um item** do envio em lote cujo código conflita: com documento
+ * não excluído da mesma unidade, ou com outro item **do mesmo lote**
+ * (`envio-lote`: "Conflito de código recusa só o seu item no envio em lote" e
+ * "Dois itens do mesmo lote não podem declarar o mesmo código").
+ *
+ * Distinta de `DocumentCodeInUseResponse`, que recusa a **requisição** do envio
+ * unitário e da restauração: esta chega dentro de `BatchUploadItemFailure.error`
+ * e recusa só o seu item, enquanto os demais do lote recebem suas URLs. Nunca
+ * carrega `occupiedBy` — o ocupante pode ser outro item do mesmo lote, que
+ * ainda não existe, e nomear um arquivo do acervo revelaria a quem não
+ * necessariamente o alcança.
+ */
+export interface DocumentCodeConflictResponse {
+  error: 'document_code_conflict';
+}
+
+/**
+ * Recusa por campo de controle informado junto com o tipo **Arquivo geral**
+ * (US 10.8). `rejected` nomeia quais dos três campos incompatíveis vieram
+ * preenchidos, para a interface apontar o conflito em vez de apresentar recusa
+ * genérica — a pessoa não vê mais o campo que a causou, porque escolher o tipo
+ * o torna indisponível.
+ */
+export interface GeneralFileRejectsControlFieldsResponse {
+  error: 'general_file_rejects_control_fields';
+  rejected: (keyof DocumentControlInput)[];
 }
 
 /** Recusa por tipo documental fora do conjunto previsto (US 10.1). */
