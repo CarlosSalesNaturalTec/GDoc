@@ -131,6 +131,16 @@ um caminho especial.
 Uma tarefa de teste cobre o backfill com dado pré-existente: é o único jeito de
 a tabela provar que o bypass funcionou, já que a falha é silenciosa.
 
+> **Terceira ocorrência da mesma armadilha, encontrada durante a implementação.**
+> As duas contagens de guarda de `db/seed.ts` rodavam na conexão nua: num banco
+> já semeado devolviam **zero**, o seed concluía "não há admin, o banco está
+> vazio" e morria em `units_name_uidx` ao recriar 'Unidade A'. Ou seja,
+> `npm run seed` só funcionava na primeira vez — contrariando a idempotência
+> que o hook de SessionStart promete. Corrigido nesta change (as guardas passam
+> a rodar sob o mesmo bypass das escritas), porque esta fatia acrescenta linhas
+> ao seed e dependia dessa promessa para a homologação. Fica o padrão: sob
+> FORCE RLS, consulta sem contexto não erra — **mente**.
+
 ### D5 — A identidade carrega o **nome** do setor, não o seu identificador
 
 `AuthenticatedIdentity` ganha `jobTitle: string` e `sectorName: string` (vazio
