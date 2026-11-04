@@ -13,7 +13,7 @@ SHALL derivar do nome, nunca do identificador interno. O controle de recolher a
 navegação SHALL permanecer disponível.
 
 Referência: PRD US 11.1 cenário 1; demanda do cliente nº 2, seção 1.1;
-`docs/questionario_a1_funcao_e_setor.txt`, resposta 1 (a).
+`docs/respostas_a1_funcao_e_setor.txt`, resposta 1 (a).
 
 #### Scenario: Rodapé apresenta a identidade sem exigir acionamento
 - **WHEN** uma pessoa autenticada visualiza a navegação expandida
@@ -47,5 +47,5 @@ Referência: PRD US 11.1 cenário 1; demanda do cliente nº 2, seção 1.1;
 
 O rodapé passou a apresentar a **função** do cadastro, e o papel de acesso só
 quando ela falta — o título com "papel" descreveria o estado anterior
-(`docs/questionario_a1_funcao_e_setor.txt`, resposta 1 (a): *"'Colaborador' ou
+(`docs/respostas_a1_funcao_e_setor.txt`, resposta 1 (a): *"'Colaborador' ou
 'Gestor' é coisa interna do sistema"*).

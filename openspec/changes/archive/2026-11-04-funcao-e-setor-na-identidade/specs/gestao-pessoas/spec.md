@@ -16,7 +16,7 @@ recusar (fail-closed) o cadastro em uma unidade com status desativado, sem criar
 conta. A senha inicial SHALL atender ao tamanho mínimo da política de senha (ver
 capability `troca-de-senha`): senha mais curta SHALL recusar o cadastro sem criar a
 conta. Referência: PRD US 1.1; design.md (gestao-de-unidades) D5/D7; design.md
-(troca-de-senha) D8; `docs/questionario_a1_funcao_e_setor.txt`, respostas 5 (a) e 6 (a).
+(troca-de-senha) D8; `docs/respostas_a1_funcao_e_setor.txt`, respostas 5 (a) e 6 (a).
 
 #### Scenario: Cadastro válido cria conta apta a login
 

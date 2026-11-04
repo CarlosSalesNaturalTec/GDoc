@@ -272,20 +272,29 @@ que a coluna lateral e o painel sobreposto não divirjam.
   itens permitidos ao seu papel
 - **THEN** cada rótulo é apresentado por inteiro, sem reticências de corte
 
-### Requirement: Identidade no rodapé da navegação apresenta nome, papel e unidade
+### Requirement: Identidade no rodapé da navegação apresenta nome, função e unidade
 
 O rodapé da navegação SHALL apresentar, de forma permanentemente visível e sem
-exigir acionamento, as iniciais do nome, o nome, o papel e a unidade da pessoa
-autenticada, e SHALL oferecer a ação **Sair**. As iniciais SHALL derivar do
-nome, nunca do identificador interno. O controle de recolher a navegação SHALL
-permanecer disponível.
+exigir acionamento, as iniciais do nome, o nome, a **função** — o cargo do
+cadastro — e a unidade da pessoa autenticada, e SHALL oferecer a ação **Sair**.
+Quando a função não estiver preenchida, o rodapé SHALL apresentar o rótulo do
+**papel de acesso** em seu lugar, pela origem única desse rótulo. As iniciais
+SHALL derivar do nome, nunca do identificador interno. O controle de recolher a
+navegação SHALL permanecer disponível.
 
-Referência: PRD US 11.1 cenário 1; demanda do cliente nº 2, seção 1.1.
+Referência: PRD US 11.1 cenário 1; demanda do cliente nº 2, seção 1.1;
+`docs/respostas_a1_funcao_e_setor.txt`, resposta 1 (a).
 
 #### Scenario: Rodapé apresenta a identidade sem exigir acionamento
 - **WHEN** uma pessoa autenticada visualiza a navegação expandida
-- **THEN** lê no rodapé suas iniciais, seu nome, seu papel e sua unidade, sem
+- **THEN** lê no rodapé suas iniciais, seu nome, sua função e sua unidade, sem
   precisar abrir nenhum menu
+
+#### Scenario: Conta sem função recorre ao rótulo do papel
+- **WHEN** uma pessoa cuja conta não tem cargo preenchido visualiza o rodapé da
+  navegação
+- **THEN** lê o rótulo do seu papel de acesso no lugar da função, com o mesmo
+  texto exibido nas demais telas que apresentam papel
 
 #### Scenario: Sair está ao alcance no rodapé
 - **WHEN** uma pessoa autenticada quer encerrar a sessão

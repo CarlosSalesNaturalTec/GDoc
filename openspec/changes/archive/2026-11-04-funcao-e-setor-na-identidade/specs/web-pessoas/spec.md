@@ -35,7 +35,7 @@ cadastro é forçado à sua própria unidade — e o mesmo vale para o setor, re
 fail-closed quando não pertence à unidade de destino.
 
 Referência: PRD US 1.1 (cenário 1); design.md (gestao-de-unidades) D7; design.md
-(troca-de-senha) D8; `docs/questionario_a1_funcao_e_setor.txt`, respostas 5 (a) e 6 (a).
+(troca-de-senha) D8; `docs/respostas_a1_funcao_e_setor.txt`, respostas 5 (a) e 6 (a).
 
 #### Scenario: Cadastro válido por global_admin com seletor de unidade
 - **WHEN** um `global_admin` preenche nome, e-mail ainda não utilizado, senha, os

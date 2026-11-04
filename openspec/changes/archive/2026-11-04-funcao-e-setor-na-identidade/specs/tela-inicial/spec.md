@@ -11,7 +11,7 @@ de acesso**, pela origem única desse rótulo; quando o setor não existir, SHAL
 omiti-lo sem espaço reservado. NÃO SHALL apresentar identificador interno,
 fragmento de identificador ou qualquer valor que a pessoa não reconheça como
 seu. Referência: PRD US 11.1; demanda do cliente nº 2, seção 1.3;
-`docs/questionario_a1_funcao_e_setor.txt`, resposta 1 (a).
+`docs/respostas_a1_funcao_e_setor.txt`, resposta 1 (a).
 
 #### Scenario: Pessoa vê o próprio nome ao entrar
 - **WHEN** uma pessoa autenticada abre a tela inicial

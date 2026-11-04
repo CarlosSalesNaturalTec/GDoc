@@ -11,7 +11,7 @@ Todos SHALL ser resolvidos na mesma releitura por requisição que já alimenta 
 contexto de tenant, nunca a partir do token. Conta sem nome cadastrado SHALL
 devolver o nome vazio; conta sem função e conta sem setor SHALL devolvê-los
 igualmente vazios — mantendo a forma da resposta estável em todos os casos.
-Referência: PRD US 11.1; `docs/questionario_a1_funcao_e_setor.txt`, resposta 1 (a).
+Referência: PRD US 11.1; `docs/respostas_a1_funcao_e_setor.txt`, resposta 1 (a).
 
 #### Scenario: Sessão corrente devolve nome e unidade
 - **WHEN** uma pessoa autenticada consulta a identidade da sua sessão
@@ -49,5 +49,5 @@ O título deixou de cobrir o que o requisito guarda. O que ele protege é a
 **origem** dos dados de apresentação da identidade — a releitura por requisição,
 nunca o token —, e essa regra passa a valer para quatro valores, não dois. A
 função é o dado que o cliente espera ler no lugar do papel de acesso
-(`docs/questionario_a1_funcao_e_setor.txt`, resposta 1 (a)) e o setor é o que a
+(`docs/respostas_a1_funcao_e_setor.txt`, resposta 1 (a)) e o setor é o que a
 tela inicial apresenta ao lado da unidade.

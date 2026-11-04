@@ -1,4 +1,4 @@
-# Spec Delta
+# setores Specification
 
 ## Purpose
 
@@ -6,9 +6,9 @@ Define o **setor** como entidade cadastrada por unidade — lista fechada à qua
 cada pessoa é vinculada por referência — para que setor sirva de critério
 confiável de público e de recorte de relatório, e não apenas de texto exibido.
 Substitui a área de trabalho em texto livre, que o cliente confirmou ser o mesmo
-conceito (`docs/questionario_a1_funcao_e_setor.txt`, respostas 5 (a) e 6 (a)).
+conceito (`docs/respostas_a1_funcao_e_setor.txt`, respostas 5 (a) e 6 (a)).
 
-## ADDED Requirements
+## Requirements
 
 ### Requirement: Setor é entidade da unidade, com nome único nela
 
