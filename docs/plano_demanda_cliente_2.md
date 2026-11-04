@@ -51,7 +51,7 @@ Legenda: `pendente` · `bloqueada` (ver coluna Bloqueio) · `em andamento` ·
 
 | # | Fatia | Seção da demanda | Situação | Bloqueio | Change arquivado |
 | :-- | :--- | :--- | :--- | :--- | :--- |
-| A1 | Função e setor na identidade | 1.3 (Atenção: Perfil), 3.1 | pendente | D2, D3 | — |
+| A1 | Função e setor na identidade | 1.3 (Atenção: Perfil), 3.1 | em andamento | — | `funcao-e-setor-na-identidade` (em voo) |
 | A2 | Menu lateral e barra superior | 1.1, 1.2 | **entregue** | E1 (parcial) | `menu-lateral-e-barra-superior` |
 | A3 | Conteúdo da tela Início | 1.3 | pendente | D1, D4 | — |
 | A4 | Favoritos | 1.1 (menu) | pendente | — | — |
@@ -86,11 +86,14 @@ sem tocar em A.
 Cada uma trava as fatias indicadas. **Não resolver por conta própria** — são
 decisões de produto, e duas delas mexem no núcleo de segurança do sistema.
 
-> **D2, D3 e D4 estão perguntadas ao cliente** em
-> `docs/questionario_a1_funcao_e_setor.txt` (7 perguntas, formato do
-> `fase1_questionario_cliente.txt`). São exatamente as três que travam a **A1**;
-> com elas respondidas, a A1 sai de `bloqueada`. **D1** ficou de fora de
-> propósito — é estrutural e vai com as alternativas e o custo de cada uma.
+> ✅ **D2, D3 e D4 foram perguntadas e respondidas.** O questionário está em
+> `docs/questionario_a1_funcao_e_setor.txt` e as respostas, transcritas, em
+> **`docs/respostas_a1_funcao_e_setor.txt`** (2026-11-04). **D2 e D4 estão
+> resolvidas** e liberaram a A1 (change `funcao-e-setor-na-identidade`); **D3
+> está parcialmente resolvida** — o alcance ficou definido, mas a **colisão do
+> nome "Gestor" continua aberta** e segue travando C1 e C3. **D1** ficou de fora
+> de propósito — é estrutural e vai com as alternativas e o custo de cada uma;
+> o cliente confirmou que quer tratá-la separado.
 
 ### D1 — "Minhas unidades": acesso a mais de uma unidade  🔴 estrutural
 
@@ -117,7 +120,12 @@ A frase da saudação, se (a) for aceita, vira contagem de pastas, não de unida
 > é alcance cross-unit, exatamente o que a trava do bypass de `global_admin`
 > proíbe hoje. Ver **D5**.
 
-### D2 — "Perfil" exibido: papel ou função?
+### D2 — "Perfil" exibido: papel ou função?  ✅ respondida
+
+> **Resposta 1 (a):** aparece o **cargo** do cadastro; sem cargo preenchido,
+> o nível de acesso. A resposta 2 (b) confirma a correção de cadastro, mas os
+> nomes vieram ocultados — é operação do cliente. Ver
+> `docs/respostas_a1_funcao_e_setor.txt`.
 
 A demanda (1.3) reporta: *"para a gerente de Governança aparece Colaborador"*.
 Não é leitura errada do cadastro — é descasamento de conceito. O sistema tem
@@ -143,7 +151,14 @@ do cliente para saber qual é o caso de cada pessoa.
 > `AuthenticatedIdentity`** (`packages/shared/src/auth.ts`: só `id`, `unitId`,
 > `role`, `fullName`, `unitName`). É esse o acréscimo da A1.
 
-### D3 — "Gestor" e "equipe": hierarquia nova  🔴 estrutural
+### D3 — "Gestor" e "equipe": hierarquia nova  🔴 estrutural · ⚠️ parcial
+
+> **Respostas 3 (b) e 4 (b):** opção (ii) — coordenador e gerente acompanham
+> o **próprio setor**, diretor acompanha a **unidade inteira**; é papel
+> **distinto** de quem administra (não cadastra pessoas nem libera permissão).
+> A chefia nominal foi descartada pelo custo de manutenção. **Continua aberta
+> a colisão de nome abaixo** — um dos dois "Gestor" tem de ser renomeado, e é
+> decisão do cliente. Trava C1 e C3.
 
 A seção 3.1 define um perfil **Gestor** que *"acompanha as pendências da própria
 equipe"*, e 3.2 (etapa 4) manda avisar *"o gestor dele"*. Isso exige saber **quem
@@ -164,7 +179,14 @@ Opções: (i) gestor = `unit_admin` da unidade, e "equipe" = a unidade inteira
 "equipe" = pessoas do mesmo setor; (iii) chefia nominal (`users.manager_id`),
 explícita e precisa, com custo de manutenção do cadastro.
 
-### D4 — "Setor": texto livre ou entidade?
+### D4 — "Setor": texto livre ou entidade?  ✅ respondida
+
+> **Respostas 5 (a) e 6 (a):** setor **é** critério de público e recorte de
+> relatório, e **é o mesmo conceito** de "Área de trabalho" — aproveitar o que
+> está cadastrado, padronizando a escrita. Logo: **entidade por unidade**,
+> entregue pela A1. A pergunta 7 (lista oficial, com Ana) segue pendente e
+> **não trava**: a lista inicial nasce do acervo e é padronizada por
+> renomeação.
 
 Hoje existe `users.work_area` (texto livre, sem validação) e, em documentos,
 `responsible_sector` (também livre). A demanda usa setor como **critério de
