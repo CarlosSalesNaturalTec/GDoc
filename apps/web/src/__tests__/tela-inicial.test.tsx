@@ -52,6 +52,11 @@ function documento(overrides: Record<string, unknown> = {}) {
  * pastas e de recentes orientam quando não têm o que mostrar, em vez de ficar
  * vazias sem explicação.
  */
+/** Área de conteúdo da tela, sem o shell em volta. */
+function conteudo(): HTMLElement {
+  return document.querySelector('.ant-layout-content') as HTMLElement;
+}
+
 describe('Tela inicial (US 11.1 e 11.2)', () => {
   it('apresenta nome, função e unidade de quem entrou (US 11.1, cenário 1)', async () => {
     mockViewportWidth(WIDE_VIEWPORT);
@@ -60,7 +65,10 @@ describe('Tela inicial (US 11.1 e 11.2)', () => {
     renderApp(['/']);
 
     expect(await screen.findByText('Olá, Maria Silva!')).toBeInTheDocument();
-    expect(screen.getByText('Colaborador · Unidade Centro')).toBeInTheDocument();
+    // Escopado ao conteúdo: a change `menu-lateral-e-barra-superior` passou a
+    // apresentar papel e unidade também no cartão do usuário, no rodapé da
+    // navegação. O que este caso exercita é a linha de contexto da **tela**.
+    expect(within(conteudo()).getByText('Colaborador · Unidade Centro')).toBeInTheDocument();
     // O identificador interno não aparece em lugar nenhum da tela.
     expect(document.body.textContent).not.toContain('user-1');
   });
@@ -76,7 +84,7 @@ describe('Tela inicial (US 11.1 e 11.2)', () => {
 
     expect(await screen.findByText('Olá!')).toBeInTheDocument();
     // Função e unidade continuam presentes — o que falta é só o nome.
-    expect(screen.getByText('Colaborador · Unidade Centro')).toBeInTheDocument();
+    expect(within(conteudo()).getByText('Colaborador · Unidade Centro')).toBeInTheDocument();
     expect(document.body.textContent).not.toContain('user-1');
     expect(document.body.textContent).not.toContain('US');
   });

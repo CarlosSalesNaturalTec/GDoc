@@ -64,6 +64,10 @@ describe('Razão de contraste (sistema-de-design, apuração por cálculo)', () 
     ['borda de controle sobre branco', paleta.bordaControle, paleta.branco, 3.57],
     ['borda de controle sobre a superfície', paleta.bordaControle, paleta.superficie, 3.31],
     ['borda decorativa sobre branco', paleta.bordaDecorativa, paleta.branco, 1.27],
+    // Avatar de identidade (change `menu-lateral-e-barra-superior`, design.md D7)
+    ['iniciais escuras sobre o avatar', paleta.texto, paleta.azulAvatar, 11.12],
+    ['branco sobre o avatar — par RECUSADO', paleta.branco, paleta.azulAvatar, 1.54],
+    ['avatar sobre a base do degradê', paleta.azulAvatar, paleta.marinhoClaro, 5.29],
   ])('%s mede %s:1, como apurado no design', (_nome, a, b, esperado) => {
     expect(razaoDeContraste(a as string, b as string)).toBeCloseTo(esperado as number, 2);
   });
@@ -86,8 +90,31 @@ describe('Piso de acessibilidade dos tokens (sistema-de-design)', () => {
     ['link sobre a superfície', paleta.azulLink, paleta.superficie],
     ['identificação do cliente no topo do degradê', paleta.textoSobreEscuro, paleta.marinhoEscuro],
     ['identificação do cliente na base do degradê', paleta.textoSobreEscuro, paleta.marinhoClaro],
+    ['iniciais do avatar de identidade', paleta.texto, paleta.azulAvatar],
   ])('%s atende ao mínimo de 4,5:1', (_nome, texto, fundo) => {
     expect(atendeAoPiso(texto as string, fundo as string, PISO_CONTRASTE_TEXTO)).toBe(true);
+  });
+
+  /**
+   * O requisito "Superfície de avatar carrega texto escuro" não se contenta
+   * com "o par adotado passa": ele **nomeia** o par recusado. O `Avatar` do
+   * design system escreve em branco por padrão, de modo que adotar a cor sem
+   * fixar a das iniciais entregaria 1,54:1 — é a mesma armadilha que o guia do
+   * cliente já trouxe no verde da marca, e travá-la aqui é o que impede alguém
+   * de "simplificar" o estilo do avatar mais tarde.
+   */
+  it('o branco é recusado por cálculo como texto do avatar (design.md D7)', () => {
+    expect(atendeAoPiso(paleta.branco, paleta.azulAvatar, PISO_CONTRASTE_TEXTO)).toBe(false);
+    expect(atendeAoPiso(paleta.texto, paleta.azulAvatar, PISO_CONTRASTE_TEXTO)).toBe(true);
+  });
+
+  it('a superfície do avatar se distingue do fundo da navegação (piso de 3:1)', () => {
+    expect(atendeAoPiso(paleta.azulAvatar, paleta.marinhoClaro, PISO_CONTRASTE_CONTROLE)).toBe(
+      true,
+    );
+    expect(atendeAoPiso(paleta.azulAvatar, paleta.marinhoEscuro, PISO_CONTRASTE_CONTROLE)).toBe(
+      true,
+    );
   });
 
   it('a borda de controle atende ao mínimo de 3:1 nas duas superfícies (design.md D3)', () => {
@@ -109,6 +136,35 @@ describe('Piso de acessibilidade dos tokens (sistema-de-design)', () => {
     expect(atendeAoPiso(paleta.branco, paleta.verdeMarca, PISO_CONTRASTE_TEXTO)).toBe(false);
     expect(theme.components?.Menu?.darkItemSelectedColor).toBe(paleta.texto);
     expect(theme.components?.Menu?.darkItemSelectedBg).toBe(paleta.verdeMarca);
+  });
+
+  /**
+   * Rótulo de grupo da navegação (change `menu-lateral-e-barra-superior`,
+   * design.md D2). O padrão do design system para o título de grupo no menu
+   * escuro é um branco translúcido — da mesma natureza do branco a 65% que
+   * esta base de código já teve de substituir por reprovar no piso. O token
+   * explícito é o que mantém o rótulo acima de 4,5:1 nos dois extremos do
+   * degradê; sem este caso, voltar ao padrão passaria sem ruído.
+   */
+  it('o rótulo de grupo da navegação usa o tom opaco, acima do piso nos dois extremos', () => {
+    expect(theme.components?.Menu?.darkGroupTitleColor).toBe(paleta.textoSobreEscuro);
+    expect(atendeAoPiso(paleta.textoSobreEscuro, paleta.marinhoEscuro, PISO_CONTRASTE_TEXTO)).toBe(
+      true,
+    );
+    expect(atendeAoPiso(paleta.textoSobreEscuro, paleta.marinhoClaro, PISO_CONTRASTE_TEXTO)).toBe(
+      true,
+    );
+  });
+
+  /**
+   * "Itens compactos" da demanda nº 2 (seção 1.1) **não** autoriza descer do
+   * piso de acionamento: compactar é reduzir folga, nunca o alvo de toque
+   * (design.md D8). A altura do item é declarada no piso em vez de derivada de
+   * `controlHeightLG`, que o design system calcula como `controlHeight` × 1,25.
+   */
+  it('a altura do item de navegação é declarada no piso de acionamento, não derivada', () => {
+    expect(theme.components?.Menu?.itemHeight).toBe(ALTURA_MINIMA_ACIONAMENTO);
+    expect(theme.token?.controlHeight).toBe(ALTURA_MINIMA_ACIONAMENTO);
   });
 
   // A borda decorativa é clara de propósito (1,27:1) — não carrega

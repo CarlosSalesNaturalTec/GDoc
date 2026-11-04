@@ -33,6 +33,19 @@ function fetchedUrls(): string[] {
   return (global.fetch as ReturnType<typeof vi.fn>).mock.calls.map((call) => String(call[0]));
 }
 
+/**
+ * Botão "Buscar" **da tela**, escopado ao conteúdo.
+ *
+ * A change `menu-lateral-e-barra-superior` acrescentou um acionador de busca
+ * dentro do campo da barra superior, cujo nome acessível também casa com
+ * `/buscar/i`. A consulta global passou a ser ambígua: o que estes casos
+ * exercitam é o botão do formulário desta tela, não o da barra.
+ */
+function botaoBuscar(): HTMLElement {
+  const conteudo = document.querySelector('.ant-layout-content') as HTMLElement;
+  return within(conteudo).getByRole('button', { name: /buscar/i });
+}
+
 describe('Busca de arquivos (web-busca)', () => {
   it('abrir a página não consulta o servidor e exibe o estado inicial (spec: abrir a página não consulta o servidor)', async () => {
     mockFetch({
@@ -55,7 +68,7 @@ describe('Busca de arquivos (web-busca)', () => {
     renderApp(['/busca']);
     await screen.findByText('Informe ao menos um critério para buscar');
 
-    expect(screen.getByRole('button', { name: /buscar/i })).toBeDisabled();
+    expect(botaoBuscar()).toBeDisabled();
 
     await userEvent.type(screen.getByPlaceholderText('Buscar por nome'), '   ');
     await userEvent.keyboard('{Enter}');
@@ -75,9 +88,9 @@ describe('Busca de arquivos (web-busca)', () => {
     await screen.findByText('Informe ao menos um critério para buscar');
 
     await userEvent.type(screen.getByPlaceholderText('Buscar por nome'), 'r');
-    expect(screen.getByRole('button', { name: /buscar/i })).toBeEnabled();
+    expect(botaoBuscar()).toBeEnabled();
 
-    await userEvent.click(screen.getByRole('button', { name: /buscar/i }));
+    await userEvent.click(botaoBuscar());
     await screen.findByText('relatorio.pdf');
 
     const searchCall = fetchedUrls().find((url) => url.includes('/files/search?q=r'));
@@ -96,7 +109,7 @@ describe('Busca de arquivos (web-busca)', () => {
     await screen.findByText('Informe ao menos um critério para buscar');
 
     await userEvent.type(screen.getByPlaceholderText('Buscar por nome'), 'relatorio');
-    await userEvent.click(screen.getByRole('button', { name: /buscar/i }));
+    await userEvent.click(botaoBuscar());
     await screen.findByText('relatorio.pdf');
 
     await userEvent.click(screen.getByText('relatorio.pdf'));
@@ -117,7 +130,7 @@ describe('Busca de arquivos (web-busca)', () => {
     await screen.findByText('Informe ao menos um critério para buscar');
 
     await userEvent.type(screen.getByPlaceholderText('Buscar por nome'), 'relatorio');
-    await userEvent.click(screen.getByRole('button', { name: /buscar/i }));
+    await userEvent.click(botaoBuscar());
     await screen.findByText('relatorio.pdf');
 
     const callsBeforeEdit = fetchedUrls().filter((url) => url.includes('/files/search')).length;
@@ -143,7 +156,7 @@ describe('Busca de arquivos (web-busca)', () => {
 
     const searchInput = screen.getByPlaceholderText('Buscar por nome') as HTMLInputElement;
     await userEvent.type(searchInput, 'relatorio');
-    await userEvent.click(screen.getByRole('button', { name: /buscar/i }));
+    await userEvent.click(botaoBuscar());
     await screen.findByText('relatorio.pdf');
 
     const callsBeforeClear = fetchedUrls().filter((url) => url.includes('/files/search')).length;
@@ -153,7 +166,7 @@ describe('Busca de arquivos (web-busca)', () => {
     await waitFor(() => expect(searchInput.value).toBe(''));
     await screen.findByText('Informe ao menos um critério para buscar');
     expect(screen.queryByText('relatorio.pdf')).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /buscar/i })).toBeDisabled();
+    expect(botaoBuscar()).toBeDisabled();
     expect(fetchedUrls().filter((url) => url.includes('/files/search')).length).toBe(
       callsBeforeClear,
     );
@@ -193,7 +206,7 @@ describe('Busca de arquivos (web-busca)', () => {
     await screen.findByText('Fulano');
     await userEvent.click(screen.getByText('Fulano'));
 
-    await userEvent.click(screen.getByRole('button', { name: /buscar/i }));
+    await userEvent.click(botaoBuscar());
     await screen.findByText('relatorio.pdf');
 
     const authorCall = fetchedUrls().find((url) => url.includes('author=author-1'));
@@ -234,7 +247,7 @@ describe('Busca de arquivos (web-busca)', () => {
     await screen.findByText('Informe ao menos um critério para buscar');
 
     await userEvent.type(screen.getByPlaceholderText('Buscar por nome'), 'foto');
-    await userEvent.click(screen.getByRole('button', { name: /buscar/i }));
+    await userEvent.click(botaoBuscar());
     await screen.findByText('foto.png');
 
     const row = screen.getByText('foto.png').closest('tr')!;
@@ -255,7 +268,7 @@ describe('Busca de arquivos (web-busca)', () => {
     await screen.findByText('Informe ao menos um critério para buscar');
 
     await userEvent.type(screen.getByPlaceholderText('Buscar por nome'), 'inexistente');
-    await userEvent.click(screen.getByRole('button', { name: /buscar/i }));
+    await userEvent.click(botaoBuscar());
     await screen.findByText('Nenhum resultado');
   });
 });

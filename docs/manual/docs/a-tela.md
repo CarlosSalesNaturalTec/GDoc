@@ -43,51 +43,82 @@ clique, a "quem sou, onde estou e o que mudou":
 ## Menu de navegação
 
 Depois de entrar, você vê a navegação com os itens disponíveis para o seu
-perfil, terminando sempre pelo **Manual do usuário**:
+perfil, reunidos em dois grupos — **NAVEGAÇÃO** e **AJUDA**:
 
-| Item do menu           | Para quem             | Serve para                                                           |
-| ----------------------- | ---------------------- | --------------------------------------------------------------------- |
-| **Início**              | Todos                 | Tela inicial: saudação, atalhos, suas pastas e alterações recentes.  |
-| **Documentos**          | Todos                 | Navegar por pastas, enviar, baixar, visualizar e gerenciar documentos. |
-| **Recentes**            | Todos                 | A lista completa dos documentos alterados recentemente.              |
-| **Lixeira**             | Todos                 | Recuperar ou acompanhar itens excluídos.                             |
-| **Colaboradores**       | Administradores       | Cadastrar, editar, ativar/desativar contas e redefinir senhas.       |
-| **Painel**              | Administradores       | Ver estatísticas e gráficos de uso.                                  |
-| **Unidades**            | Administrador global  | Criar, renomear e ativar/desativar unidades.                         |
-| **Manual do usuário**   | Todos                 | Abre este material numa nova aba, sem fechar o que você estava fazendo. |
+| Grupo         | Item do menu          | Para quem            | Serve para                                                              |
+| ------------- | --------------------- | -------------------- | ----------------------------------------------------------------------- |
+| **NAVEGAÇÃO** | **Início**            | Todos                | Tela inicial: saudação, atalhos, suas pastas e alterações recentes.     |
+| **NAVEGAÇÃO** | **Documentos**        | Todos                | Navegar por pastas, enviar, baixar, visualizar e gerenciar documentos.  |
+| **NAVEGAÇÃO** | **Recentes**          | Todos                | A lista completa dos documentos alterados recentemente.                 |
+| **NAVEGAÇÃO** | **Lixeira**           | Todos                | Recuperar ou acompanhar itens excluídos.                                |
+| **NAVEGAÇÃO** | **Colaboradores**     | Administradores      | Cadastrar, editar, ativar/desativar contas e redefinir senhas.          |
+| **NAVEGAÇÃO** | **Painel**            | Administradores      | Ver estatísticas e gráficos de uso.                                     |
+| **NAVEGAÇÃO** | **Unidades**          | Administrador global | Criar, renomear e ativar/desativar unidades.                            |
+| **AJUDA**     | **Manual do usuário** | Todos                | Abre este material numa nova aba, sem fechar o que você estava fazendo. |
 
-A **busca não é item de menu**: ela mora no cabeçalho, ao alcance de qualquer
-tela — ver abaixo.
+O título do grupo é só um rótulo: ele não é clicável e não leva a nenhuma tela.
+
+No alto do menu fica a marca — a logomarca com **PapelHub** e **Gestão de
+Documentos** abaixo; se a sua organização estiver identificada na implantação,
+o nome dela aparece em seguida (por exemplo, "SETES").
+
+A **busca não é item de menu**: ela mora na barra superior, ao alcance de
+qualquer tela — ver abaixo.
 
 Numa tela larga (computador), esses itens ficam num **menu lateral** sempre
 visível à esquerda. Num celular ou tablet, a navegação some da tela para dar
 mais espaço ao conteúdo — toque no ícone de menu (☰), no canto superior
-esquerdo do cabeçalho, para abrir um painel com os mesmos itens, na mesma
-ordem. Tocar num item leva até a tela correspondente e fecha o painel; tocar
-no Manual do usuário abre a nova aba e mantém o painel como estava — é o
-único item que leva para fora da aplicação.
+esquerdo da barra, para abrir um painel com os mesmos itens, nos mesmos grupos
+e na mesma ordem. Tocar num item leva até a tela correspondente e fecha o
+painel; tocar no Manual do usuário abre a nova aba e mantém o painel como
+estava — é o único item que leva para fora da aplicação.
 
-## Busca no cabeçalho
+Você pode **recolher** o menu pelo controle no pé da coluna, para ganhar
+largura: ficam só os ícones e o seu avatar, e o nome de cada item aparece ao
+apontá-lo.
 
-No alto de toda tela há um campo **Buscar documentos**. Digite o termo e
-pressione Enter (ou clique na lupa): você vai para a tela de resultados com o
-termo **já aplicado**, sem redigitar. O campo não procura enquanto você digita
-— a busca acontece só quando você a aciona —, e na tela de resultados você
-refina por tipo, autor e período. Ver
-[Buscar e filtrar](colaborador/buscar.md).
+## Seu cartão no pé do menu
+
+No **pé do menu** fica o seu cartão: as **iniciais** do seu nome no avatar, o
+seu **nome**, o seu **perfil** e a sua **unidade**, sempre visíveis — você não
+precisa abrir nada para lê-los. Clicando no cartão você vai para
+[Minha conta](colaborador/minha-conta.md); logo abaixo dele fica o botão
+**Sair**.
+
+Se a sua conta ainda não tem nome cadastrado, aparece no lugar o nome do seu
+perfil (por exemplo, "Colaborador") — nunca um código interno. Se o seu nome
+for mais longo do que a largura do cartão, ele aparece abreviado na tela e
+completo ao apontá-lo.
+
+## Barra superior
+
+A barra no alto de toda tela reúne, da esquerda para a direita:
+
+- o campo de **busca** (ver abaixo);
+- o botão **Enviar documento**, que leva direto à área de envio;
+- o **sino de notificações** (ver abaixo);
+- o botão de **Ajuda**, que abre este manual numa nova aba.
+
+!!! note "O botão Enviar documento leva ao envio, nunca a uma recusa"
+    Quem decide se você pode enviar numa pasta é sempre o servidor. O botão
+    leva você aos **Documentos** com o envio pedido: se você pode enviar ali, a
+    área de envio já aparece pronta para uso; se não pode, a tela abre
+    normalmente para consulta, sem mensagem de recusa.
+
+## Busca na barra superior
+
+À esquerda da barra, em toda tela, há o campo **Buscar por nome, código (ex.:
+PRT-NSP-001) ou palavra-chave**. Digite o termo e pressione Enter (ou clique na
+lupa, dentro do próprio campo): você vai para a tela de resultados com o termo
+**já aplicado**, sem redigitar. O campo não procura enquanto você digita — a
+busca acontece só quando você a aciona —, e na tela de resultados você refina
+por tipo, autor e período. Ver [Buscar e filtrar](colaborador/buscar.md).
 
 ## Sino de notificações
 
-No canto superior direito, ao lado do menu do seu perfil, fica o **sino de
-notificações**. Um número sobre o sino indica quantas notificações você ainda não
-leu. Clique nele para ver a lista — por exemplo, avisos de que você recebeu um
-acesso temporário ou de que ele está prestes a vencer. Abrir uma notificação a
-marca como lida, mas ela continua disponível na lista.
-
-## Menu do perfil
-
-No canto superior direito fica também o **menu do seu perfil**: o seu **nome**,
-com as iniciais no avatar. Clicando nele, você acessa
-[Minha conta](colaborador/minha-conta.md) e **Sair**. Se a sua conta ainda não
-tem nome cadastrado, aparece no lugar o nome do seu perfil (por exemplo,
-"Colaborador") — nunca um código interno.
+Na barra superior, entre o botão de envio e o de Ajuda, fica o **sino de
+notificações**. Um número sobre o sino indica quantas notificações você ainda
+não leu — sem nenhuma pendente, o sino aparece sem número. Clique nele para ver
+a lista — por exemplo, avisos de que você recebeu um acesso temporário ou de
+que ele está prestes a vencer. Abrir uma notificação a marca como lida, mas ela
+continua disponível na lista.

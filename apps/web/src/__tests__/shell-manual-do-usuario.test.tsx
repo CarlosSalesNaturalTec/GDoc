@@ -7,13 +7,19 @@ import { renderApp } from './render-app';
 const MANUAL_URL = 'https://carlossalesnaturaltec.github.io/GDoc/';
 
 /**
- * Acesso ao manual como último item da navegação (change
- * `responsividade-mobile-tablet`, design.md D2/D3 — reverte D6/D8 de
- * `acesso-ao-manual-no-shell`, que o colocava em `<Menu>` próprio ao pé) —
- * item presente/ausente conforme `publicConfig.manualUrl`, sempre com
- * `href`/`target`/`rel` corretos, sem participar de `selectedKeys` e com
- * nome acessível anunciando a saída da aplicação — agora a **única**
- * portadora dessa distinção, sem a separação visual de antes.
+ * Acesso ao manual na navegação (change `responsividade-mobile-tablet`,
+ * design.md D2/D3 — reverte D6/D8 de `acesso-ao-manual-no-shell`, que o
+ * colocava em `<Menu>` próprio ao pé) — item presente/ausente conforme
+ * `publicConfig.manualUrl`, sempre com `href`/`target`/`rel` corretos, sem
+ * participar de `selectedKeys` e com nome acessível anunciando a saída da
+ * aplicação.
+ *
+ * A change `menu-lateral-e-barra-superior` o reúne no grupo **AJUDA**, de modo
+ * que o nome acessível deixa de ser a **única** portadora da distinção — o
+ * rótulo do grupo acrescenta a visual. O nome acessível continua obrigatório:
+ * afrouxá-lo seria regressão para quem não enxerga a tela. Ele segue sendo o
+ * último item da navegação, agora por consequência de AJUDA vir depois de
+ * NAVEGAÇÃO.
  *
  * `manualUrl` vazia não é mais um estado alcançável por configuração (change
  * corrige-alcance-do-manual, design.md D3): a API sempre resolve para o
@@ -22,7 +28,7 @@ const MANUAL_URL = 'https://carlossalesnaturaltec.github.io/GDoc/';
  * de `GET /auth/public-config` indisponível (`DEFAULT_PUBLIC_CONFIG`) — os
  * dois casos abaixo cobrem essa degradação, não mais "não configurado".
  */
-describe('Acesso ao manual como último item da navegação (responsividade-mobile-tablet)', () => {
+describe('Acesso ao manual no grupo AJUDA da navegação (responsividade-mobile-tablet)', () => {
   it('item presente com href, target e rel corretos quando manualUrl está configurada', async () => {
     mockFetch({
       ...ROTAS_DA_TELA_INICIAL,
@@ -59,7 +65,7 @@ describe('Acesso ao manual como último item da navegação (responsividade-mobi
     });
     renderApp(['/']);
 
-    await screen.findByRole('img', { name: 'PapelHub' });
+    await screen.findByText('PapelHub');
     expect(screen.queryByRole('link', { name: /Manual do usuário/ })).not.toBeInTheDocument();
   });
 
@@ -74,7 +80,7 @@ describe('Acesso ao manual como último item da navegação (responsividade-mobi
     });
     renderApp(['/']);
 
-    await screen.findByRole('img', { name: 'PapelHub' });
+    await screen.findByText('PapelHub');
     expect(screen.queryByRole('link', { name: /Manual do usuário/ })).not.toBeInTheDocument();
   });
 
