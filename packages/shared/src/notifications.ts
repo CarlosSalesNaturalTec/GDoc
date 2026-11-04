@@ -2,12 +2,21 @@ import type { GrantResourceType, Permission } from './permissions.js';
 
 /**
  * Tipo de evento notificado (change `expiracao-permissoes`, design.md D4/D6).
- * O canal nasce genérico, mas nesta fatia só a expiração de permissão o usa.
+ * O canal nasceu genérico para a expiração de permissão; a change
+ * `arquivo-geral-e-pendente-de-cadastro` é a primeira a usá-lo para outro
+ * assunto.
  */
 export const NotificationKind = {
   GRANT_CREATED: 'grant_created',
   GRANT_EXPIRING: 'grant_expiring',
   GRANT_EXPIRED: 'grant_expired',
+  /**
+   * Arquivo enviado sem os dados de controle exigidos ficou pendente de
+   * cadastro (US 10.9). Destinado a **quem enviou**, com o arquivo como evento
+   * de origem — a idempotência por `(destinatário, tipo, evento)` que o canal
+   * já garante basta para que repetir a transferência não duplique o aviso.
+   */
+  REGISTRATION_PENDING: 'registration_pending',
 } as const;
 
 export type NotificationKind = (typeof NotificationKind)[keyof typeof NotificationKind];
@@ -29,10 +38,28 @@ export interface GrantNotificationPayload {
   subjectUserId?: string;
 }
 
+/**
+ * Payload do aviso de pendência de cadastro (US 10.9). Carrega o nome do
+ * arquivo, e não só o identificador, para que o sino diga **qual** arquivo
+ * completar sem uma segunda ida ao servidor — que, além de custar uma volta,
+ * falharia justamente para quem já não alcança o arquivo.
+ */
+export interface RegistrationPendingNotificationPayload {
+  fileId: string;
+  fileName: string;
+}
+
+/**
+ * Payload de uma notificação, discriminado pelo `kind` da notificação que o
+ * carrega. Quem lê deve ramificar por `kind` antes de acessar campos — é o que
+ * mantém o canal aberto a assuntos novos sem que cada leitor presuma concessão.
+ */
+export type NotificationPayload = GrantNotificationPayload | RegistrationPendingNotificationPayload;
+
 export interface NotificationResponse {
   id: string;
   kind: NotificationKind;
-  payload: GrantNotificationPayload;
+  payload: NotificationPayload;
   createdAt: string;
   readAt: string | null;
 }

@@ -245,7 +245,15 @@ describe('Épico 10: controle documental', () => {
 
       expect(res.status).toBe(400);
       expect(res.body.error).toBe('document_control_required');
-      expect(res.body.missing.sort()).toEqual(['documentCode', 'documentRevision', 'nextReviewAt']);
+      // Cinco campos exigidos desde a change
+      // `arquivo-geral-e-pendente-de-cadastro` (design.md D5): o responsável
+      // entrou por força da tabela 2.2 da demanda.
+      expect(res.body.missing.sort()).toEqual([
+        'documentCode',
+        'documentRevision',
+        'nextReviewAt',
+        'responsibleSector',
+      ]);
       expect((await listarRaiz(ids.userA)).length).toBe(antes);
     });
 
@@ -320,7 +328,14 @@ describe('Épico 10: controle documental', () => {
       });
     });
 
-    it('envio em lote e envio de pasta dispensam os dados e nascem sem controle de revisão', async () => {
+    // Este caso afirmava, até a change `arquivo-geral-e-pendente-de-cadastro`,
+    // que o lote **dispensava** os dados e nascia "Sem controle de revisão".
+    // A demanda do cliente (seção 2) classificou essa dispensa como defeito: é
+    // o caminho de entrada mais rápido e também o único que não pedia nada. A
+    // expectativa invertida é o objeto da change — o item sem dados continua
+    // sendo **aceito** (não recusado), mas nasce fora de circulação, pendente
+    // de cadastro, em vez de publicado sem rastreio.
+    it('envio em lote sem dados é aceito e nasce pendente de cadastro', async () => {
       const app = createApp(ports);
       const cookie = await sessionCookieFor(ports, ids.userA);
       const res = await request(app)
@@ -339,21 +354,36 @@ describe('Épico 10: controle documental', () => {
           ],
         });
 
+      // Aceito, não recusado: é a distinção que permite exigir os dados sem
+      // quebrar o lote (design.md D6).
       expect(res.status).toBe(200);
       expect(res.body.results.every((r: { ok: boolean }) => r.ok)).toBe(true);
+      // A resposta diz, por item, que ele nasceu pendente — sem isso quem
+      // enviou precisaria consultar os arquivos um a um para descobrir.
+      expect(
+        res.body.results.every((r: { awaitingRegistration: boolean }) => r.awaitingRegistration),
+      ).toBe(true);
 
       const { rows } = await withSystemBypass(pool, (client) =>
-        client.query<{ document_code: string | null; next_review_at: Date | null }>(
-          `SELECT document_code, next_review_at FROM files
+        client.query<{
+          document_code: string | null;
+          next_review_at: Date | null;
+          awaiting_registration: boolean;
+        }>(
+          `SELECT document_code, next_review_at, awaiting_registration FROM files
            WHERE file_name IN ('lote-1.pdf', 'lote-2.pdf', 'na-subpasta.pdf')`,
         ),
       );
       expect(rows).toHaveLength(3);
       expect(rows.every((r) => r.document_code === null && r.next_review_at === null)).toBe(true);
+      expect(rows.every((r) => r.awaiting_registration)).toBe(true);
 
+      // Para quem enviou, o arquivo aparece — é ele quem tem de completar os
+      // dados. A invisibilidade para os demais é coberta em
+      // `pendente-de-cadastro-acesso.test.ts`.
       const porNome = new Map((await listarRaiz(ids.userA)).map((f) => [f.fileName as string, f]));
-      expect(porNome.get('lote-1.pdf')?.documentStatus).toBe(DocumentStatus.UNCONTROLLED);
-      expect(porNome.get('lote-2.pdf')?.documentStatus).toBe(DocumentStatus.UNCONTROLLED);
+      expect(porNome.get('lote-1.pdf')?.documentStatus).toBe(DocumentStatus.AWAITING_REGISTRATION);
+      expect(porNome.get('lote-2.pdf')?.documentStatus).toBe(DocumentStatus.AWAITING_REGISTRATION);
     });
 
     it('acervo anterior ao controle documental permanece acessível, sem controle de revisão', async () => {
@@ -942,7 +972,9 @@ describe('Épico 10: controle documental', () => {
       expect(listagem.get('fluxo-protocolo.pdf')?.documentStatus).toBe(DocumentStatus.CURRENT);
       expect(listagem.get('fluxo-protocolo.pdf')?.documentRevision).toBe(1);
 
-      // 2. Enviar um lote **sem** dados: aceito, e nasce sem controle.
+      // 2. Enviar um lote **sem** dados: aceito, e nasce pendente de cadastro
+      // (US 10.9) — fora de circulação até ser completado, em lugar de
+      // publicado sem rastreio.
       const lote = await request(app)
         .post('/files/upload-urls')
         .set('Cookie', dono)
@@ -955,10 +987,16 @@ describe('Épico 10: controle documental', () => {
       expect(lote.status).toBe(200);
       listagem = await porNome(ids.userA);
       const doLote = listagem.get('fluxo-lote-1.pdf')!;
-      expect(doLote.documentStatus).toBe(DocumentStatus.UNCONTROLLED);
+      expect(doLote.documentStatus).toBe(DocumentStatus.AWAITING_REGISTRATION);
 
-      // 3. Editar os dados do que veio no lote — sem reenviar conteúdo.
-      const edicao = await request(app)
+      // 3. Editar os dados do que veio no lote — sem reenviar conteúdo. Como a
+      // edição completa os cinco campos exigidos, ela também **publica** o
+      // arquivo: a pendência de cadastro se encerra na mesma operação
+      // (design.md D10).
+      // 3a. Preenchimento **parcial** (sem o responsável): grava o que veio e
+      // mantém a pendência — não é erro, é o estado correto de um cadastro
+      // incompleto.
+      const parcial = await request(app)
         .patch(`/files/${doLote.id}/document-control`)
         .set('Cookie', dono)
         .send({
@@ -967,8 +1005,20 @@ describe('Épico 10: controle documental', () => {
           documentRevision: 1,
           nextReviewAt: '2099-01-01',
         });
+      expect(parcial.status).toBe(200);
+      expect(parcial.body.documentCode).toBe('FRM-FLUXO-002');
+      expect(parcial.body.documentStatus).toBe(DocumentStatus.AWAITING_REGISTRATION);
+
+      // 3b. Informar **só** o campo que faltava publica o arquivo, sem
+      // reinformar os quatro que já constavam: a avaliação é sobre a linha
+      // resultante, não sobre a requisição (design.md D10).
+      const edicao = await request(app)
+        .patch(`/files/${doLote.id}/document-control`)
+        .set('Cookie', dono)
+        .send({ responsibleSector: 'Qualidade' });
       expect(edicao.status).toBe(200);
       expect(edicao.body.documentStatus).toBe(DocumentStatus.CURRENT);
+      expect(edicao.body.documentCode).toBe('FRM-FLUXO-002');
 
       // 4. Substituir o documento publicado: a revisão avança no finalize.
       const docId = listagem.get('fluxo-protocolo.pdf')!.id as string;

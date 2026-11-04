@@ -83,15 +83,18 @@ export async function hasAccess(
   // lixeira — sem a opção, o filtro padrão de `deleted_at IS NULL` faria o
   // próprio item a restaurar resolver como inexistente.
   const deletedFilter = options.includeTrash ? '' : 'AND deleted_at IS NULL';
-  // `lifecycle_state` só existe em `files`: pasta não tem ciclo de vida
-  // documental, e pedir a coluna em `folders` quebraria a query.
-  const lifecycleColumn = resourceType === GrantResourceType.FILE ? ', lifecycle_state' : '';
+  // `lifecycle_state` e `awaiting_registration` só existem em `files`: pasta
+  // não tem ciclo de vida documental nem cadastro, e pedir as colunas em
+  // `folders` quebraria a query.
+  const documentColumns =
+    resourceType === GrantResourceType.FILE ? ', lifecycle_state, awaiting_registration' : '';
   const { rows } = await client.query<{
     owner_id: string;
     unit_id: string;
     lifecycle_state?: string | null;
+    awaiting_registration?: boolean | null;
   }>(
-    `SELECT owner_id, unit_id${lifecycleColumn} FROM ${resourceTable(resourceType)} WHERE id = $1 ${deletedFilter}`,
+    `SELECT owner_id, unit_id${documentColumns} FROM ${resourceTable(resourceType)} WHERE id = $1 ${deletedFilter}`,
     [resourceId],
   );
   const resource = rows[0];
@@ -101,6 +104,22 @@ export async function hasAccess(
   // que a função já dá a "não existe" e a "não é seu".
   if (
     resource.lifecycle_state === DocumentLifecycleState.OBSOLETE &&
+    !isAdminOfUnit(ctx, resource.unit_id)
+  ) {
+    return false;
+  }
+  // US 10.9 (change `arquivo-geral-e-pendente-de-cadastro`, design.md D3):
+  // segunda exceção restritiva desta função. O arquivo pendente de cadastro
+  // resolve como inexistente para quem não o enviou nem administra a unidade
+  // dele.
+  //
+  // Difere do obsoleto por preservar o remetente: quem enviou precisa alcançar
+  // o arquivo para completar os dados. A condição é avaliada **antes** dos
+  // ramos de concessão, de modo que uma concessão vigente não vence a
+  // pendência — subtração, nunca concessão.
+  if (
+    resource.awaiting_registration === true &&
+    resource.owner_id !== ctx.userId &&
     !isAdminOfUnit(ctx, resource.unit_id)
   ) {
     return false;

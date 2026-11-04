@@ -114,6 +114,7 @@ describe('Envio de arquivos e pastas (web-upload)', () => {
             {
               fileName: 'a.txt',
               ok: true,
+              awaitingRegistration: false,
               uploadUrl: 'https://storage.example/a',
               objectPath: 'a',
               folderId: null,
@@ -122,6 +123,7 @@ describe('Envio de arquivos e pastas (web-upload)', () => {
             {
               fileName: 'b.txt',
               ok: true,
+              awaitingRegistration: false,
               uploadUrl: 'https://storage.example/b',
               objectPath: 'b',
               folderId: null,
@@ -171,6 +173,7 @@ describe('Envio de arquivos e pastas (web-upload)', () => {
               {
                 fileName: 'a.txt',
                 ok: true,
+                awaitingRegistration: false,
                 uploadUrl: 'https://storage.example/a',
                 objectPath: 'a',
                 folderId: null,
@@ -187,6 +190,7 @@ describe('Envio de arquivos e pastas (web-upload)', () => {
               {
                 fileName: 'b.txt',
                 ok: true,
+                awaitingRegistration: false,
                 uploadUrl: 'https://storage.example/b-retry',
                 objectPath: 'b',
                 folderId: null,
@@ -235,6 +239,7 @@ describe('Envio de arquivos e pastas (web-upload)', () => {
             {
               fileName: 'raiz.txt',
               ok: true,
+              awaitingRegistration: false,
               uploadUrl: 'https://storage.example/raiz',
               objectPath: 'raiz',
               folderId: null,
@@ -243,6 +248,7 @@ describe('Envio de arquivos e pastas (web-upload)', () => {
             {
               fileName: 'nested.txt',
               ok: true,
+              awaitingRegistration: false,
               uploadUrl: 'https://storage.example/nested',
               objectPath: 'nested',
               folderId: 'folder-sub',
@@ -291,6 +297,7 @@ describe('Envio de arquivos e pastas (web-upload)', () => {
             {
               fileName: 'novo.pdf',
               ok: true,
+              awaitingRegistration: false,
               uploadUrl: 'https://storage.example/novo',
               objectPath: 'novo',
               folderId: null,
@@ -299,6 +306,7 @@ describe('Envio de arquivos e pastas (web-upload)', () => {
             {
               fileName: 'acompanha.pdf',
               ok: true,
+              awaitingRegistration: false,
               uploadUrl: 'https://storage.example/acompanha',
               objectPath: 'acompanha',
               folderId: null,
@@ -386,6 +394,7 @@ describe('Envio em lote — fila e vigência da URL (corrige-defeitos-envio-lote
     return {
       fileName: name,
       ok: true,
+      awaitingRegistration: false,
       uploadUrl: url,
       objectPath: name,
       folderId: null,
@@ -609,6 +618,7 @@ describe('Renovação forçada após falhas consecutivas (design.md D5)', () => 
     const result = (url: string): BatchUploadItemResult => ({
       fileName: 'teimosa.txt',
       ok: true,
+      awaitingRegistration: false,
       uploadUrl: url,
       objectPath: 'teimosa.txt',
       folderId: null,
@@ -628,6 +638,7 @@ describe('Renovação forçada após falhas consecutivas (design.md D5)', () => 
               {
                 fileName: 'acompanha.txt',
                 ok: true as const,
+                awaitingRegistration: false,
                 uploadUrl: 'https://storage.example/acompanha',
                 objectPath: 'acompanha.txt',
                 folderId: null,
@@ -712,6 +723,7 @@ describe('Arrastar e soltar várias pastas (design.md D1)', () => {
           results: ['a1.txt', 'a2.txt', 'b1.txt', 'solto.txt'].map((nome) => ({
             fileName: nome,
             ok: true as const,
+            awaitingRegistration: false,
             uploadUrl: `https://storage.example/${nome}`,
             objectPath: nome,
             folderId: null,
@@ -761,6 +773,7 @@ describe('Arrastar e soltar várias pastas (design.md D1)', () => {
             {
               fileName: 'avulso.txt',
               ok: true,
+              awaitingRegistration: false,
               uploadUrl: 'https://storage.example/avulso',
               objectPath: 'avulso',
               folderId: null,
@@ -769,6 +782,7 @@ describe('Arrastar e soltar várias pastas (design.md D1)', () => {
             {
               fileName: 'avulso2.txt',
               ok: true,
+              awaitingRegistration: false,
               uploadUrl: 'https://storage.example/avulso2',
               objectPath: 'avulso2',
               folderId: null,
@@ -918,6 +932,7 @@ describe('Verificação de viabilidade antes de transferir (design.md D3/D4)', (
           results: ['cabe1.bin', 'cabe2.bin'].map((nome) => ({
             fileName: nome,
             ok: true as const,
+            awaitingRegistration: false,
             uploadUrl: `https://storage.example/${nome}`,
             objectPath: nome,
             folderId: null,
@@ -989,6 +1004,7 @@ describe('Verificação de viabilidade antes de transferir (design.md D3/D4)', (
             {
               fileName: 'confirma.txt',
               ok: true,
+              awaitingRegistration: false,
               uploadUrl: 'https://storage.example/confirma',
               objectPath: 'confirma',
               folderId: null,
@@ -997,6 +1013,7 @@ describe('Verificação de viabilidade antes de transferir (design.md D3/D4)', (
             {
               fileName: 'confirma2.txt',
               ok: true,
+              awaitingRegistration: false,
               uploadUrl: 'https://storage.example/confirma2',
               objectPath: 'confirma2',
               folderId: null,
@@ -1036,6 +1053,7 @@ describe('Envio fatiado e progresso macro (design.md D5/D6)', () => {
       results: nomes.map((nome) => ({
         fileName: nome,
         ok: true as const,
+        awaitingRegistration: false,
         uploadUrl: `https://storage.example/${nome}`,
         objectPath: nome,
         folderId: null,
@@ -1175,6 +1193,7 @@ describe('Estouro de cota durante o envio pausa e reapresenta o veredito (design
               {
                 fileName: 'primeiro.bin',
                 ok: true,
+                awaitingRegistration: false,
                 uploadUrl: 'https://storage.example/primeiro',
                 objectPath: 'primeiro',
                 folderId: null,

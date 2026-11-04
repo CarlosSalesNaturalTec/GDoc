@@ -57,8 +57,8 @@ Legenda: `pendente` · `bloqueada` (ver coluna Bloqueio) · `em andamento` ·
 | A4 | Favoritos | 1.1 (menu) | pendente | — | — |
 | A5 | Compartilhados comigo | 1.1 (menu) | pendente | — | — |
 | A6 | Tour guiado | 1.1, 1.3 | pendente | — | — |
-| B1 | Arquivo geral e pendente de cadastro | 2.3, 2.4 | pendente | — | — |
-| B2 | Tabela de cadastro no envio em lote | 2.1, 2.2 | pendente | B1 | — |
+| B1 | Arquivo geral e pendente de cadastro | 2.3, 2.4 | **entregue** | — | `arquivo-geral-e-pendente-de-cadastro` |
+| B2 | Tabela de cadastro no envio em lote | 2.1, 2.2 | **pendente — prioridade** | — | — |
 | C1 | Núcleo da leitura obrigatória (marcar e dar ciência) | 3.1, 3.2 (etapas 1 e 3), 3.3, 3.4 | pendente | D3, D5 | — |
 | C2 | Superfícies de pendência (menu, contador, cartão, abas) | 3.2 (etapa 2), 3.5 | pendente | C1, A2, A3 | — |
 | C3 | Avisos e atrasos | 3.2 (etapas 2 e 4), 3.3 | pendente | C1, D3 | — |
@@ -66,6 +66,13 @@ Legenda: `pendente` · `bloqueada` (ver coluna Bloqueio) · `em andamento` ·
 
 Ordem sugerida: **A1 → A2 → A3 → (A4, A5, A6 em qualquer ordem) → B1 → B2 →
 C1 → C2 → C3 → C4**.
+
+> ⚠️ **B2 é prioridade, e não escolha de ordem.** Com a B1 entregue, o servidor
+> já exige os dados por item, mas a SPA ainda não os envia no lote — de modo que
+> **todo envio em lote nasce Pendente de cadastro**, visível só a quem enviou e à
+> gestão da unidade. Não é beco sem saída (a ação "Dados de controle" por item
+> publica o arquivo), mas é degradação real de fluxo, aceita deliberadamente no
+> aceite da B1. A janela se fecha com a B2.
 
 Os blocos **A** (Fase 1), **B** (envio em lote) e **C** (Fase 2) são
 independentes entre si, exceto por C2, que ocupa espaços de layout criados em
@@ -286,10 +293,39 @@ Governança local; (ii) papel novo de auditor cross-unit, restrito a
 - **Nota**: o tour só percorre o que a pessoa pode ver — passo apontando para
   item fora do perfil é bug de alcance, não de layout.
 
-### B1 — Arquivo geral e pendente de cadastro
+### B1 — Arquivo geral e pendente de cadastro  ✅ entregue
 
-- **Capabilities**: `controle-documental` (**modificada**), `gestao-arquivos`
-  (modificada), `busca` (modificada), `notificacoes` (modificada)
+> Change `arquivo-geral-e-pendente-de-cadastro`. **Desvios do previsto aqui,
+> decididos durante a especificação e a implementação:**
+>
+> - **`busca` e `gestao-arquivos` não foram modificadas.** Por precedente: a
+>   regra do documento obsoleto declara a ocultação **uma vez**, em
+>   `controle-documental`, cobrindo "listagem, busca e acesso direto". A
+>   visibilidade do pendente segue a mesma forma — uma regra, quatro caminhos —
+>   em vez de espalhar cláusulas por capability de consulta. `web-navegacao`
+>   entrou (apresentação da etiqueta).
+> - **O requisito antigo entrou sob REMOVED, não MODIFIED.** O cenário "Envio em
+>   lote dispensa os dados" nomeia a dispensa; mantê-lo sob MODIFIED produziria
+>   nome de cenário em contradição com o corpo. Mesmo tratamento que a change
+>   `identidade-visual-isetes` deu ao caso equivalente, com Reason e Migration.
+> - **O conjunto exigido foi de quatro para cinco campos** (entrou o
+>   responsável, pela tabela 2.2 da demanda), o que altera também o **envio
+>   unitário** já entregue.
+> - **Duas migrações, não uma**: a `0019` precisou ampliar o `CHECK` de
+>   `notifications.kind`, que recusava o valor novo — e recusava **em silêncio**,
+>   porque a emissão do aviso é deliberadamente engolida para não impedir o
+>   envio. Só o teste revelou.
+> - **Defeito corrigido de passagem**: a fronteira Zod da SPA convertia toda
+>   situação desconhecida em "Sem controle de revisão" (`.catch`), que não é
+>   fallback neutro mas afirmação — uma SPA mais antiga que a API apresentaria
+>   arquivo pendente como acervo em circulação.
+> - **Lacuna conhecida**: a checagem de código duplicado **dentro do próprio
+>   lote** foi implementada no servidor (sem ela a colisão abortaria a transação
+>   e derrubaria o lote inteiro), mas a pré-checagem no cliente, que avisa antes
+>   de enviar, continua sendo da B2.
+
+- **Capabilities**: `controle-documental` (**modificada**), `envio-lote`
+  (modificada), `notificacoes` (modificada), `web-navegacao` (modificada)
 - **Demanda**: 2.3 e 2.4; a **Regra** no topo da seção 2
 - **PRD**: **US 10.5 alterada** — ver risco abaixo
 - **Entrega**:

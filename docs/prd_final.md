@@ -467,16 +467,16 @@ O **objetivo principal** do GDoc é entregar um repositório de arquivos corpora
   * **Critérios de Aceitação:**
     * *Cenário 1 — Envio de um documento exige os dados:*
       * **Dado** que estou enviando um único documento
-      * **Quando** confirmo a publicação sem informar tipo, código, revisão e data de próxima revisão
+      * **Quando** confirmo a publicação sem informar tipo, código, revisão, responsável e data de próxima revisão
       * **Então** o sistema recusa a publicação e indica quais dados faltam.
-    * *Cenário 2 — Envio em lote não exige os dados:*
+    * *Cenário 2 — Envio em lote exige os dados de cada arquivo:*
       * **Dado** que estou enviando vários arquivos de uma vez, ou uma pasta inteira
-      * **Quando** confirmo o envio sem informar dados de controle
-      * **Então** os arquivos são enviados normalmente e ficam com situação **Sem controle de revisão**, podendo receber os dados depois.
+      * **Quando** confirmo o envio informando os dados de parte dos arquivos e deixando outros sem eles
+      * **Então** os arquivos com os dados completos são publicados normalmente, e os incompletos são aceitos e ficam **Pendentes de cadastro** (US 10.9) — nenhum arquivo é publicado sem os dados obrigatórios, enviado sozinho ou em lote.
     * *Cenário 3 — Acervo anterior não é invalidado:*
       * **Dado** que a unidade já possuía arquivos enviados antes da existência do controle documental
       * **Quando** navego por eles
-      * **Então** permanecem acessíveis conforme minhas permissões, com situação **Sem controle de revisão**, sem que nenhum deles se torne inválido ou inacessível.
+      * **Então** permanecem acessíveis conforme minhas permissões, com situação **Sem controle de revisão**, sem que nenhum deles se torne inválido, inacessível ou pendente de cadastro.
 
 * **US 10.6:** Como Gestor, eu quero que substituir o arquivo avance a revisão para que a numeração acompanhe a realidade do documento.
   * **Critérios de Aceitação:**
@@ -507,6 +507,48 @@ O **objetivo principal** do GDoc é entregar um repositório de arquivos corpora
       * **Dado** que um Gestor consulta documentos obsoletos
       * **Quando** faz essa consulta
       * **Então** enxerga apenas os da própria unidade, sem que a condição de obsoleto abra qualquer acesso a conteúdo de outra unidade.
+
+* **US 10.8:** Como Colaborador, eu quero poder declarar que um arquivo não é documento da Matriz para que atas, planilhas de trabalho e apresentações convivam no repositório sem fingir ter código e revisão.
+  * **Critérios de Aceitação:**
+    * *Cenário 1 — Arquivo geral pede só o título:*
+      * **Dado** que estou enviando uma ata de reunião
+      * **Quando** escolho o tipo **Arquivo geral** e informo apenas o título
+      * **Então** o arquivo é publicado normalmente, sem exigir código, revisão nem data de próxima revisão.
+    * *Cenário 2 — Arquivo geral não tem situação de revisão:*
+      * **Dado** que um arquivo foi declarado **Arquivo geral**
+      * **Quando** navego pela pasta que o contém
+      * **Então** ele aparece identificado pelo seu tipo e sem nenhuma situação de revisão — nem Vigente, nem A vencer, nem Sem controle de revisão.
+    * *Cenário 3 — Dados de documento controlado são recusados:*
+      * **Dado** que estou declarando um arquivo como **Arquivo geral**
+      * **Quando** informo um código, uma revisão ou uma data de próxima revisão
+      * **Então** a operação é recusada, porque o tipo declara justamente não ter esses dados.
+
+* **US 10.9:** Como Gestor, eu quero que o arquivo enviado sem os dados obrigatórios fique fora de circulação até ser cadastrado para que ninguém leia como oficial um documento que ainda não foi identificado.
+  * **Critérios de Aceitação:**
+    * *Cenário 1 — Pendente não aparece para os leitores:*
+      * **Dado** que um arquivo foi enviado em lote sem os dados obrigatórios
+      * **Quando** um Colaborador que não o enviou navega pela pasta, busca pelo nome, acessa o endereço direto ou baixa a pasta compactada
+      * **Então** em nenhum desses caminhos o arquivo lhe é apresentado, ainda que ele tenha permissão sobre o arquivo.
+    * *Cenário 2 — Quem enviou e a Governança enxergam o pendente:*
+      * **Dado** que um arquivo ficou pendente de cadastro
+      * **Quando** quem o enviou, ou um Gestor da unidade, consulta a pasta
+      * **Então** o arquivo aparece identificado como **Pendente de cadastro**.
+    * *Cenário 3 — Quem enviou é avisado:*
+      * **Dado** que enviei arquivos e parte deles ficou pendente de cadastro
+      * **Quando** abro minhas notificações
+      * **Então** encontro um aviso por arquivo pendente, identificando qual arquivo completar.
+    * *Cenário 4 — Completar o cadastro publica o arquivo:*
+      * **Dado** que um arquivo está pendente de cadastro e já tem parte dos dados preenchidos
+      * **Quando** informo o último dado que faltava, sem reinformar os demais
+      * **Então** o arquivo deixa de estar pendente e passa a circular conforme as permissões já concedidas.
+    * *Cenário 5 — Preenchimento parcial mantém a pendência:*
+      * **Dado** que um arquivo está pendente de cadastro
+      * **Quando** informo parte dos dados obrigatórios e deixo algum em falta
+      * **Então** os dados informados são gravados e o arquivo continua pendente de cadastro, sem erro.
+    * *Cenário 6 — Pendência não atravessa unidades:*
+      * **Dado** que um Gestor consulta arquivos pendentes de cadastro
+      * **Quando** faz essa consulta
+      * **Então** enxerga apenas os da própria unidade, sem que a condição de pendente abra qualquer acesso a conteúdo de outra unidade.
 
 ### Épico 11: Orientação na Tela Inicial
 

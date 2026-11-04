@@ -5,6 +5,7 @@ import {
   AuditAction,
   FileAccessAction,
   GrantResourceType,
+  NotificationKind,
   Permission,
   isPreviewable,
 } from '@gdoc/shared';
@@ -32,9 +33,12 @@ import { ensureFolderPath, findFolderById, validateAnchor } from '../lib/folder-
 import { canReorganize, hasAccess } from '../lib/access.js';
 import {
   FILE_DERIVED_COLUMNS,
+  CONTROL_FIELD_COLUMN,
   findCodeOwner,
+  isAwaitingRegistration,
   isDocumentCodeConflict,
   parseDocumentControl,
+  rowAwaitsRegistration,
   toFileSummaryResponse,
   type FileSummaryRow,
   type NormalizedDocumentControl,
@@ -301,7 +305,10 @@ export function filesRouter(ports: Ports): Router {
         return;
       }
       const control = parsed.value;
-      const documentCode = control.documentCode!;
+      // `null` quando o tipo é Arquivo geral, que declara **não ter** código
+      // (US 10.8) e por isso não passa pela checagem de unicidade nem pelo
+      // caminho de retomada — ambos condicionados à existência do código.
+      const documentCode = control.documentCode ?? null;
 
       const objectId = randomUUID();
       const objectPath = ports.storage.buildObjectPath(
@@ -335,7 +342,10 @@ export function filesRouter(ports: Ports): Router {
           // resolve o caso comum com erro nomeado; o índice único resolve a
           // corrida, no `catch` abaixo. RLS filtra por baixo, então o homônimo
           // de outra unidade não aparece aqui — e nada dele é revelado.
-          const occupant = await findCodeOwner(client, documentCode);
+          // Sem código (Arquivo geral) não há unicidade a verificar nem
+          // retomada a reconhecer: o caminho inteiro é condicionado à
+          // existência do código.
+          const occupant = documentCode === null ? null : await findCodeOwner(client, documentCode);
           // **Retomada**: se o código está preso a um envio `pending` do próprio
           // solicitante, este pedido é a retomada daquela publicação, não uma
           // duplicata — a linha é reaproveitada com o objeto novo. Sem isso, um
@@ -347,7 +357,7 @@ export function filesRouter(ports: Ports): Router {
               ? occupant.id
               : null;
           if (occupant && !retomada) {
-            return { ok: false as const, status: 409 as const, code: documentCode };
+            return { ok: false as const, status: 409 as const, code: documentCode! };
           }
 
           const controlValues = [
@@ -402,7 +412,9 @@ export function filesRouter(ports: Ports): Router {
           // índice único consegue decidir, e o perdedor recebe a mesma recusa
           // nomeada da checagem acima (design.md D5).
           if (isDocumentCodeConflict(err)) {
-            return { ok: false as const, status: 409 as const, code: documentCode };
+            // Conflito de código só é alcançável quando havia código: o índice
+            // único é parcial (`WHERE document_code IS NOT NULL`).
+            return { ok: false as const, status: 409 as const, code: documentCode! };
           }
           throw err;
         });
@@ -479,6 +491,10 @@ export function filesRouter(ports: Ports): Router {
             objectPath: string;
             contentType: string;
             folderId: string | null;
+            /** US 10.9: item sem os dados exigidos pelo seu tipo nasce pendente. */
+            awaitingRegistration: boolean;
+            /** Identificador da linha, para o aviso ao remetente (US 10.9). */
+            fileId: string;
           }
         | { fileName: string; ok: false; error: string };
 
@@ -507,9 +523,18 @@ export function filesRouter(ports: Ports): Router {
         let reserved = Number(pendingRows[0]?.total ?? '0');
 
         const prepared: PreparedItem[] = [];
+        // Códigos já consumidos **por este lote** (US 10.2, design.md D6).
+        // Sem esta guarda, dois itens do mesmo lote com o mesmo código
+        // passariam pela checagem individual — nenhum dos dois existe no banco
+        // ainda — e colidiriam no índice único `files_unit_document_code_uidx`,
+        // cujo erro aborta a **transação inteira** e derrubaria o lote todo.
+        // Isso contrariaria "falha parcial não derruba o lote"
+        // (`envio-lote`), então a colisão intra-lote é recusada por item,
+        // como qualquer outro conflito de código.
+        const codesInBatch = new Set<string>();
 
         for (const item of items) {
-          const { fileName, contentType, declaredSizeBytes, relativePath } =
+          const { fileName, contentType, declaredSizeBytes, relativePath, documentControl } =
             item ?? ({} as (typeof items)[number]);
 
           if (
@@ -521,6 +546,19 @@ export function filesRouter(ports: Ports): Router {
             prepared.push({ fileName: fileName ?? '', ok: false, error: 'invalid item' });
             continue;
           }
+
+          // US 10.5 (design.md D6): dados de controle **deste** item.
+          // `requireAll: false` é deliberado e é o coração da change: dado
+          // **ausente** não recusa — produz pendência de cadastro —, enquanto
+          // dado **inválido** recusa, e só este item. Confundir os dois é o que
+          // obrigava o lote a dispensar os dados por inteiro.
+          const parsedControl = parseDocumentControl(documentControl, { requireAll: false });
+          if (!parsedControl.ok) {
+            prepared.push({ fileName, ok: false, error: parsedControl.error });
+            continue;
+          }
+          const control = parsedControl.value;
+          const awaitingRegistration = isAwaitingRegistration(control);
 
           const pathResult = await ensureFolderPath(
             client,
@@ -539,27 +577,99 @@ export function filesRouter(ports: Ports): Router {
             continue;
           }
 
-          const objectId = randomUUID();
+          // Unicidade do código na unidade (US 10.2, design.md D5), agora
+          // também no lote, porque o lote passou a carregar código. Duas
+          // fontes de colisão: o acervo (via `findCodeOwner`, com RLS
+          // filtrando por baixo — homônimo de outra unidade não aparece nem é
+          // revelado) e o próprio lote (via `codesInBatch`).
+          let retomada: string | null = null;
+          if (control.documentCode) {
+            const codeKey = control.documentCode.toLowerCase();
+            if (codesInBatch.has(codeKey)) {
+              prepared.push({ fileName, ok: false, error: 'document_code_conflict' });
+              continue;
+            }
+            const occupant = await findCodeOwner(client, control.documentCode);
+            // **Retomada**, pelo mesmo motivo e da mesma forma que na rota
+            // unitária: código preso a um envio `pending` do próprio
+            // solicitante é a retomada daquela publicação, não duplicata. Sem
+            // isto, repetir um item de lote que falhou na transferência seria
+            // recusado por conflito com a sua própria linha — quebrando "nova
+            // tentativa apenas do item que falhou" (`envio-lote`) justamente
+            // no caso que ela existe para cobrir.
+            //
+            // A linha é **reaproveitada**, não substituída: apagá-la e inserir
+            // outra trocaria o identificador do arquivo, e com ele as
+            // concessões que apontam para o id antigo, o histórico de
+            // auditoria e a identidade do evento de origem do aviso de
+            // pendência — que passaria a avisar duas vezes do mesmo arquivo.
+            if (
+              occupant !== null &&
+              occupant.owner_id === ctx.userId &&
+              occupant.status === 'pending'
+            ) {
+              retomada = occupant.id;
+            } else if (occupant) {
+              prepared.push({ fileName, ok: false, error: 'document_code_conflict' });
+              continue;
+            }
+            codesInBatch.add(codeKey);
+          }
+
+          const objectId = retomada ?? randomUUID();
           const objectPath = ports.storage.buildObjectPath(
             ctx.unitId,
             ctx.userId,
-            `${objectId}-${fileName}`,
+            `${randomUUID()}-${fileName}`,
           );
 
-          await client.query(
-            `INSERT INTO files (id, unit_id, owner_id, folder_id, object_path, file_name, content_type, size_bytes, status)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'pending')`,
-            [
-              objectId,
-              ctx.unitId,
-              ctx.userId,
-              pathResult.folderId,
-              objectPath,
-              fileName,
-              contentType,
-              declaredSizeBytes,
-            ],
-          );
+          const controlValues = [
+            control.documentType ?? null,
+            control.documentCode ?? null,
+            control.documentRevision ?? null,
+            control.responsibleSector ?? null,
+            control.nextReviewAt ?? null,
+            control.lifecycleState ?? null,
+            awaitingRegistration,
+          ];
+
+          if (retomada) {
+            await client.query(
+              `UPDATE files SET object_path = $1, file_name = $2, content_type = $3, size_bytes = $4,
+                 folder_id = $5, status = 'pending', pending_object_path = NULL,
+                 document_type = $6, document_code = $7, document_revision = $8,
+                 responsible_sector = $9, next_review_at = $10, lifecycle_state = $11,
+                 awaiting_registration = $12
+               WHERE id = $13`,
+              [
+                objectPath,
+                fileName,
+                contentType,
+                declaredSizeBytes,
+                pathResult.folderId,
+                ...controlValues,
+                retomada,
+              ],
+            );
+          } else {
+            await client.query(
+              `INSERT INTO files (id, unit_id, owner_id, folder_id, object_path, file_name, content_type, size_bytes, status,
+                 document_type, document_code, document_revision, responsible_sector, next_review_at, lifecycle_state,
+                 awaiting_registration)
+               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'pending', $9, $10, $11, $12, $13, $14, $15)`,
+              [
+                objectId,
+                ctx.unitId,
+                ctx.userId,
+                pathResult.folderId,
+                objectPath,
+                fileName,
+                contentType,
+                declaredSizeBytes,
+                ...controlValues,
+              ],
+            );
+          }
           reserved += declaredSizeBytes!;
 
           prepared.push({
@@ -568,6 +678,8 @@ export function filesRouter(ports: Ports): Router {
             objectPath,
             contentType,
             folderId: pathResult.folderId,
+            awaitingRegistration,
+            fileId: objectId,
           });
         }
 
@@ -594,8 +706,34 @@ export function filesRouter(ports: Ports): Router {
             objectPath: item.objectPath,
             folderId: item.folderId,
             expiresAt: signed.expiresAt.toISOString(),
+            awaitingRegistration: item.awaitingRegistration,
           };
         }),
+      );
+
+      // US 10.9: aviso a quem enviou, um por arquivo pendente. Fora da
+      // transação e **depois** da assinatura, com a falha engolida de
+      // propósito: "a falha ao avisar NÃO SHALL impedir a conclusão do envio"
+      // — mesmo princípio já aplicado ao aviso de concessão. A idempotência
+      // por `(destinatário, tipo, sourceRef = arquivo)` é do próprio canal, de
+      // modo que repetir a transferência não duplica nada.
+      await Promise.all(
+        outcome.prepared
+          .filter((item) => item.ok && item.awaitingRegistration)
+          .map(async (item) => {
+            if (!item.ok) return;
+            try {
+              await ports.notifications.notify({
+                unitId: ctx.unitId,
+                recipientUserId: ctx.userId,
+                kind: NotificationKind.REGISTRATION_PENDING,
+                sourceRef: item.fileId,
+                payload: { fileId: item.fileId, fileName: item.fileName },
+              });
+            } catch (err) {
+              console.error('files: falha ao emitir aviso registration_pending', err);
+            }
+          }),
       );
 
       res.json({ results });
@@ -684,14 +822,9 @@ export function filesRouter(ports: Ports): Router {
         return;
       }
 
-      const COLUNA: Record<keyof NormalizedDocumentControl, string> = {
-        documentType: 'document_type',
-        documentCode: 'document_code',
-        documentRevision: 'document_revision',
-        responsibleSector: 'responsible_sector',
-        nextReviewAt: 'next_review_at',
-        lifecycleState: 'lifecycle_state',
-      };
+      // Fonte única do mapa campo→coluna, compartilhada com
+      // `rowAwaitsRegistration` (US 10.9).
+      const COLUNA = CONTROL_FIELD_COLUMN;
 
       const outcome = await ports.database
         .withTenantTransaction(ctx, async (client) => {
@@ -720,7 +853,23 @@ export function filesRouter(ports: Ports): Router {
              RETURNING *, ${FILE_DERIVED_COLUMNS}`,
             params,
           );
-          return { ok: true as const, file: rows[0]! };
+          const atualizado = rows[0]!;
+
+          // US 10.9 (design.md D10): completar os dados **publica** o arquivo
+          // pendente, na mesma transação. A avaliação é sobre a linha
+          // resultante — por isso vem depois do `UPDATE` —, de modo que
+          // informar só o campo que faltava baste. Preenchimento parcial
+          // mantém a pendência, sem erro: gravar o que veio e continuar
+          // pendente é o comportamento pedido.
+          if (atualizado.awaiting_registration && !rowAwaitsRegistration(atualizado)) {
+            const { rows: publicado } = await client.query<FileRow>(
+              `UPDATE files SET awaiting_registration = false WHERE id = $1
+               RETURNING *, ${FILE_DERIVED_COLUMNS}`,
+              [file.id],
+            );
+            return { ok: true as const, file: publicado[0]! };
+          }
+          return { ok: true as const, file: atualizado };
         })
         .catch((err) => {
           if (isDocumentCodeConflict(err)) {

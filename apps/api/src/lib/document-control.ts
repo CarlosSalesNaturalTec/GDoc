@@ -4,11 +4,11 @@ import {
   DOCUMENT_TYPES,
   DocumentLifecycleState,
   DocumentStatus,
+  DocumentType,
   GrantResourceType,
   Permission,
   REVIEW_DUE_SOON_DAYS,
   type DocumentControlInput,
-  type DocumentType,
   type FileSummaryResponse,
 } from '@gdoc/shared';
 import type { TenantContext } from '../ports/database-port.js';
@@ -31,15 +31,27 @@ import { isAdminOfUnit, resourceScopeClause } from './access.js';
  * (`current_date`), não o do processo Node nem o do dispositivo, exatamente
  * como a vigência de concessão já faz com `now()`.
  *
- * A ordem dos ramos é a regra: o estado **declarado** prevalece sobre a data
- * (US 10.4 cenário 4), e a ausência de data resolve para "sem controle de
- * revisão" antes de qualquer aritmética.
+ * A ordem dos ramos é a regra, e é lida de cima para baixo:
+ *
+ * 1. **Pendência de cadastro** prevalece sobre tudo (US 10.9): um arquivo que
+ *    ainda não foi cadastrado não tem situação de revisão a apurar, mesmo que
+ *    já traga data ou estado declarado — ele está fora de circulação, e
+ *    anunciar "Vigente" sobre o que nenhum leitor alcança seria mentira.
+ * 2. **Arquivo geral** (US 10.8) vem em seguida: a ausência de situação nele é
+ *    definitiva, não um estágio. Fica abaixo da pendência porque um Arquivo
+ *    geral nunca nasce pendente — declarar o tipo já é cadastrá-lo —, e a
+ *    ordem deixa isso explícito em vez de depender dessa invariante.
+ * 3. O estado **declarado** prevalece sobre a data (US 10.4 cenário 4).
+ * 4. A ausência de data resolve para "sem controle de revisão" antes de
+ *    qualquer aritmética.
  *
  * Nenhum literal vem de entrada do usuário — são constantes do enum
  * compartilhado —, então o fragmento não tem superfície de injeção (mesmo
  * padrão de `resourceScopeClause` em `lib/access.ts`).
  */
 export const DOCUMENT_STATUS_SQL = `CASE
+    WHEN awaiting_registration THEN '${DocumentStatus.AWAITING_REGISTRATION}'
+    WHEN document_type = '${DocumentType.GENERAL_FILE}' THEN '${DocumentStatus.NOT_APPLICABLE}'
     WHEN lifecycle_state = '${DocumentLifecycleState.OBSOLETE}' THEN '${DocumentStatus.OBSOLETE}'
     WHEN lifecycle_state = '${DocumentLifecycleState.IN_REVIEW}' THEN '${DocumentStatus.IN_REVIEW}'
     WHEN next_review_at IS NULL THEN '${DocumentStatus.UNCONTROLLED}'
@@ -97,9 +109,26 @@ export interface FileSummaryRow {
   lifecycle_state: string | null;
   document_status: string;
   days_until_review: number | null;
+  /**
+   * US 10.9: estado do **cadastro**, não da transferência (ver `status`) nem
+   * da revisão (`document_status` é derivado). Só vem nas consultas que leem
+   * a linha inteira; nas de listagem a condição já chega em `document_status`.
+   */
+  awaiting_registration?: boolean;
   /** Só vem nas consultas de listagem (ver `fileSummaryColumns`). */
   can_edit_control?: boolean;
 }
+
+/** Colunas de controle de uma linha de `files`, como o driver as entrega. */
+export type ControlColumns = Pick<
+  FileSummaryRow,
+  | 'document_type'
+  | 'document_code'
+  | 'document_revision'
+  | 'responsible_sector'
+  | 'next_review_at'
+  | 'lifecycle_state'
+>;
 
 /**
  * `YYYY-MM-DD` a partir do que o driver entregar. Coluna `date` vira `Date` à
@@ -156,13 +185,86 @@ export function nonObsoleteClause(ctx: TenantContext): string {
   return `lifecycle_state IS DISTINCT FROM '${DocumentLifecycleState.OBSOLETE}'`;
 }
 
-/** Campos que a publicação de **um** documento exige (US 10.5 cenário 1). */
+/**
+ * Fragmento SQL que **retira** da listagem, da busca e do manifesto de
+ * download o arquivo pendente de cadastro, para quem não é quem o enviou nem
+ * administrador da unidade (US 10.9, design.md D3).
+ *
+ * Irmão de `nonObsoleteClause`, com uma diferença que merece ser lida com
+ * atenção: **esta cláusula relaxa**. O obsoleto desaparece até para o dono;
+ * o pendente **tem** de aparecer para quem o enviou, senão ninguém completa os
+ * dados — e é o `OR owner_id = …` que expressa isso.
+ *
+ * Por que a relaxação não abre furo: o fragmento entra por `AND` **depois** de
+ * `visibleResourceClause`, que já recortou por dono/concessão/admin **e por
+ * unidade**. O ramo do dono só pode fazer reaparecer linha que a cláusula
+ * externa já autorizou; e `owner_id = ctx.userId` nunca casa com arquivo de
+ * outra unidade, porque uma pessoa pertence a uma unidade só.
+ *
+ * Dito de outro modo: a relaxação é sobre a **própria restrição**, não sobre o
+ * alcance. Fica escrito aqui porque, diferente do obsoleto, a propriedade "só
+ * subtrai" deixou de ser verificável por inspeção desta função e passou a
+ * depender da composição — motivo pelo qual
+ * `__tests__/pendente-de-cadastro-acesso.test.ts` cobre o caso cross-unit
+ * explicitamente.
+ *
+ * `ownerIdParam` é o placeholder que a consulta já usa para `ctx.userId`
+ * (mesmo padrão de `fileSummaryColumns`). Para admin da unidade o fragmento
+ * resolve para `TRUE` e nem o referencia.
+ */
+export function visibleRegistrationClause(ctx: TenantContext, ownerIdParam: string): string {
+  if (isAdminOfUnit(ctx, ctx.unitId)) return 'TRUE';
+  return `(awaiting_registration IS NOT TRUE OR owner_id = ${ownerIdParam})`;
+}
+
+/**
+ * Campos que a publicação de um documento **controlado** exige (US 10.5).
+ *
+ * São cinco, não quatro: o **responsável** entra por força da tabela 2.2 da
+ * demanda do cliente, que o marca obrigatório ao lado dos demais. A mudança
+ * vale também para o envio unitário, porque a Regra da seção 2 é explícita em
+ * que os dados sejam os mesmos "seja enviado sozinho ou em lote".
+ *
+ * Título não está aqui porque já é obrigatório por outro caminho: mapeia para
+ * `file_name`, que nenhum envio consegue omitir (design.md D8).
+ */
 export const REQUIRED_CONTROL_FIELDS = [
   'documentType',
   'documentCode',
   'documentRevision',
+  'responsibleSector',
   'nextReviewAt',
 ] as const satisfies readonly (keyof DocumentControlInput)[];
+
+/**
+ * Campos que o tipo **Arquivo geral** não admite (US 10.8): ele declara não ter
+ * código nem prazo, então informá-los é contradição, não complemento — e é
+ * recusado em vez de silenciosamente ignorado, para que a contradição apareça
+ * a quem a escreveu.
+ *
+ * `responsibleSector` **não** está na lista: "pede só o Título" diz o que é
+ * obrigatório, não o que é proibido, e saber a quem pertence uma ata é útil
+ * sem implicar controle de revisão.
+ */
+export const FIELDS_REJECTED_FOR_GENERAL_FILE = [
+  'documentCode',
+  'documentRevision',
+  'nextReviewAt',
+] as const satisfies readonly (keyof DocumentControlInput)[];
+
+/**
+ * Conjunto exigido para publicar, **em função do tipo** (design.md D5).
+ *
+ * O Arquivo geral não exige nenhum dos cinco: declarar o tipo já é cadastrá-lo.
+ * É isso que o torna distinto de um arquivo sem dados — um está cadastrado como
+ * não-controlado, o outro aguarda cadastro.
+ */
+export function requiredFieldsForType(
+  documentType: DocumentType | null | undefined,
+): readonly (keyof DocumentControlInput)[] {
+  if (documentType === DocumentType.GENERAL_FILE) return [];
+  return REQUIRED_CONTROL_FIELDS;
+}
 
 /**
  * Dados de controle já validados. `undefined` em um campo significa "não
@@ -183,7 +285,12 @@ export type ParseControlResult =
   | { ok: true; value: NormalizedDocumentControl }
   | { ok: false; error: 'invalid_document_type' }
   | { ok: false; error: 'invalid_request_body' }
-  | { ok: false; error: 'document_control_required'; missing: (keyof DocumentControlInput)[] };
+  | { ok: false; error: 'document_control_required'; missing: (keyof DocumentControlInput)[] }
+  | {
+      ok: false;
+      error: 'general_file_rejects_control_fields';
+      rejected: (keyof DocumentControlInput)[];
+    };
 
 const CODE_MAX_LENGTH = 60;
 const SECTOR_MAX_LENGTH = 120;
@@ -283,8 +390,21 @@ export function parseDocumentControl(
     }
   }
 
+  // US 10.8: Arquivo geral declara não ter código nem prazo, então informá-los
+  // é contradição. Recusa **sempre**, inclusive na edição e no lote — não é
+  // exigência de publicação, é coerência do tipo, e por isso fica fora do
+  // `requireAll`.
+  if (value.documentType === DocumentType.GENERAL_FILE) {
+    const rejected = FIELDS_REJECTED_FOR_GENERAL_FILE.filter(
+      (field) => value[field] !== undefined && value[field] !== null,
+    );
+    if (rejected.length > 0) {
+      return { ok: false, error: 'general_file_rejects_control_fields', rejected: [...rejected] };
+    }
+  }
+
   if (requireAll) {
-    const missing = REQUIRED_CONTROL_FIELDS.filter(
+    const missing = requiredFieldsForType(value.documentType).filter(
       (field) => value[field] === undefined || value[field] === null,
     );
     if (missing.length > 0) {
@@ -293,6 +413,55 @@ export function parseDocumentControl(
   }
 
   return { ok: true, value };
+}
+
+/**
+ * Se um item de envio **nasce pendente de cadastro** (US 10.9): os dados já
+ * passaram pela validação, mas falta algum dos exigidos pelo seu tipo.
+ *
+ * Separado de `parseDocumentControl` de propósito. A validação responde "este
+ * dado é aceitável?", cuja resposta negativa **recusa** o item; esta responde
+ * "este item está completo?", cuja resposta negativa o **aceita como
+ * pendente**. Misturar as duas foi o que levou a dispensa do lote a existir
+ * (design.md D6): sem a distinção, exigir implicaria recusar.
+ */
+export function isAwaitingRegistration(value: NormalizedDocumentControl): boolean {
+  return requiredFieldsForType(value.documentType).some(
+    (field) => value[field] === undefined || value[field] === null,
+  );
+}
+
+/**
+ * Coluna de `files` que guarda cada campo de controle. **Fonte única**: a rota
+ * de edição monta o seu `SET` a partir deste mapa, e `rowAwaitsRegistration`
+ * lê a linha por ele. Duas cópias divergiriam no dia em que um sexto campo
+ * entrasse, e a divergência apareceria como arquivo publicado sem o campo
+ * novo — não como erro.
+ */
+export const CONTROL_FIELD_COLUMN = {
+  documentType: 'document_type',
+  documentCode: 'document_code',
+  documentRevision: 'document_revision',
+  responsibleSector: 'responsible_sector',
+  nextReviewAt: 'next_review_at',
+  lifecycleState: 'lifecycle_state',
+} as const satisfies Record<keyof NormalizedDocumentControl, string>;
+
+/**
+ * Se a **linha gravada** ainda aguarda cadastro (US 10.9, design.md D10).
+ *
+ * Avalia o estado resultante, não a requisição que o produziu. É o que permite
+ * completar o cadastro aos poucos: quem informa o último campo que faltava
+ * publica o arquivo sem reenviar os que já constavam. Avaliar a requisição
+ * obrigaria a reinformar tudo só para provar que o conjunto está completo.
+ */
+export function rowAwaitsRegistration(row: ControlColumns): boolean {
+  const colunas = row as unknown as Record<string, unknown>;
+  const documentType = colunas[CONTROL_FIELD_COLUMN.documentType] as DocumentType | null;
+  return requiredFieldsForType(documentType).some((field) => {
+    const value = colunas[CONTROL_FIELD_COLUMN[field]];
+    return value === undefined || value === null;
+  });
 }
 
 /**

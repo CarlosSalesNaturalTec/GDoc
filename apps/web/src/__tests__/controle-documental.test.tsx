@@ -152,6 +152,102 @@ describe('Controle documental no explorador (web-navegacao)', () => {
     ).toBeInTheDocument();
   });
 
+  it('arquivo pendente de cadastro tem etiqueta própria, distinta de sem controle (US 10.9)', async () => {
+    // As duas linhas têm código, revisão e prazo vazios. O que as distingue é
+    // a condição apurada pelo servidor: uma está fora de circulação à espera
+    // de cadastro, a outra é acervo legítimo sem controle de revisão.
+    const files = [
+      file({
+        id: 'f1',
+        fileName: 'pendente.pdf',
+        documentStatus: DocumentStatus.AWAITING_REGISTRATION,
+      }),
+      file({ id: 'f2', fileName: 'sem-controle.pdf' }),
+    ];
+
+    mockFetch({
+      'GET /auth/me': { status: 200, body: IDENTITY },
+      'GET /folders/root/contents': { status: 200, body: contents({ files }) },
+    });
+
+    renderApp(['/pastas']);
+    await waitFor(() => linhaDe('pendente.pdf'));
+
+    expect(within(linhaDe('pendente.pdf')).getByText('Pendente de cadastro')).toBeInTheDocument();
+    expect(
+      within(linhaDe('pendente.pdf')).queryByText('Sem controle de revisão'),
+    ).not.toBeInTheDocument();
+    expect(
+      within(linhaDe('sem-controle.pdf')).getByText('Sem controle de revisão'),
+    ).toBeInTheDocument();
+  });
+
+  it('Arquivo geral aparece com a sua sigla e sem situação de revisão (US 10.8)', async () => {
+    const geral = file({
+      id: 'f1',
+      fileName: 'ata-da-reuniao.pdf',
+      documentType: DocumentType.GENERAL_FILE,
+      documentStatus: DocumentStatus.NOT_APPLICABLE,
+    });
+
+    mockFetch({
+      'GET /auth/me': { status: 200, body: IDENTITY },
+      'GET /folders/root/contents': { status: 200, body: contents({ files: [geral] }) },
+    });
+
+    renderApp(['/pastas']);
+    const linha = await waitFor(() => linhaDe('ata-da-reuniao.pdf'));
+
+    // A sigla é apresentada: sem ela, o Arquivo geral pareceria arquivo **sem**
+    // tipo, que é a condição da qual ele precisa se distinguir.
+    expect(within(linha).getByText('ARQ')).toBeInTheDocument();
+    // Nenhuma etiqueta de situação — nem "Sem controle de revisão", que seria
+    // uma afirmação falsa sobre um arquivo que declara não ter prazo.
+    for (const rotulo of [
+      'Vigente',
+      'A vencer',
+      'Em revisão',
+      'Revisão vencida',
+      'Obsoleto',
+      'Sem controle de revisão',
+      'Pendente de cadastro',
+    ]) {
+      expect(within(linha).queryByText(rotulo)).not.toBeInTheDocument();
+    }
+  });
+
+  it('situação desconhecida não quebra a listagem', async () => {
+    // Servidor mais novo que esta SPA. Antes, o `default` do rótulo respondia
+    // "Sem controle de revisão" a qualquer valor não previsto — uma afirmação
+    // sobre o documento em lugar de um fallback neutro.
+    const files = [
+      file({
+        id: 'f1',
+        fileName: 'situacao-do-futuro.pdf',
+        documentStatus: 'situacao_que_ainda_nao_existe' as never,
+      }),
+      file({
+        id: 'f2',
+        fileName: 'vizinha-vigente.pdf',
+        documentStatus: DocumentStatus.CURRENT,
+        nextReviewAt: '2030-01-01',
+      }),
+    ];
+
+    mockFetch({
+      'GET /auth/me': { status: 200, body: IDENTITY },
+      'GET /folders/root/contents': { status: 200, body: contents({ files }) },
+    });
+
+    renderApp(['/pastas']);
+    const linha = await waitFor(() => linhaDe('situacao-do-futuro.pdf'));
+
+    expect(within(linha).queryByText('Sem controle de revisão')).not.toBeInTheDocument();
+    // A linha é apresentada, e a vizinha também: o valor desconhecido não
+    // impede a apresentação do restante da listagem.
+    expect(within(linhaDe('vizinha-vigente.pdf')).getByText('Vigente')).toBeInTheDocument();
+  });
+
   it('arquivo sem dados de controle mostra ausência explícita, sem valor presumido (US 10.3 cenário 2)', async () => {
     const semControle = file({ id: 'file-1', fileName: 'enviado-em-lote.pdf' });
 
