@@ -125,6 +125,16 @@ export interface FolderContentsResponse {
    * ela é livre a qualquer pessoa autenticada.
    */
   canUpload: boolean;
+  /**
+   * Ids das pastas e dos arquivos **desta listagem** que são favoritos de quem
+   * consulta (change `favoritos`, design.md D5) — para o explorador oferecer
+   * "Favoritar" ou "Remover dos favoritos" sem cruzar a página com a lista
+   * inteira. Lido na mesma transação, restrito aos ids já listados: não amplia
+   * nada. Opcionais no contrato porque uma API anterior a esta change não os
+   * envia — ausência é "nada é favorito", nunca erro.
+   */
+  favoriteFolderIds?: string[];
+  favoriteFileIds?: string[];
 }
 
 /** Um arquivo do manifesto de download de pasta (design.md D1/D7 de `download-pasta-zip`). */

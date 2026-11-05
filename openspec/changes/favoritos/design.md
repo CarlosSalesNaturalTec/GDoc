@@ -87,13 +87,18 @@ teto conta **todas** as marcas, inclusive as ocultas por perda de acesso (D3) �
 contar só as visíveis exigiria resolver o alcance de todas a cada marcação.
 Marcas ocultas que ocupem o teto são caso de borda aceito (Risks).
 
-### D5 — `isFavorite` na listagem de pasta, de graça na mesma consulta
+### D5 — Favoritos da página na própria listagem de pasta
 
-O explorador precisa saber o que já é favorito para mostrar a ação certa
+O explorador precisa saber o que já é favorito para oferecer a ação certa
 ("Favoritar" / "Remover dos favoritos"). Em vez de a SPA cruzar a página com a
-lista inteira, a listagem de pasta acrescenta `isFavorite` a cada pasta e
-arquivo por `EXISTS` sobre `favorites` com `user_id` do contexto — uma
-subconsulta por linha já filtrada pelo alcance, sem ampliar nada.
+lista inteira, a listagem de pasta devolve `favoriteFolderIds` e
+`favoriteFileIds`: **uma** consulta a `favorites`, na mesma transação,
+restrita a `user_id` do contexto **e** aos ids que a listagem acabou de
+liberar — não amplia nada. Uma consulta à parte em vez de `EXISTS` por linha
+porque o fragmento de colunas da listagem (`fileSummaryColumns`) é
+compartilhado com a busca e os recentes, e mexer nele espalharia o campo por
+respostas que não o usam. Os campos são opcionais no contrato: uma API
+anterior a esta change não os envia, e ausência é "nada é favorito".
 
 ### D6 — Prefixo de topo `/favorites`
 

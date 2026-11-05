@@ -54,7 +54,7 @@ Legenda: `pendente` · `bloqueada` (ver coluna Bloqueio) · `em andamento` ·
 | A1 | Função e setor na identidade | 1.3 (Atenção: Perfil), 3.1 | **entregue** | — | `funcao-e-setor-na-identidade` |
 | A2 | Menu lateral e barra superior | 1.1, 1.2 | **entregue** | E1 (parcial) | `menu-lateral-e-barra-superior` |
 | A3 | Conteúdo da tela Início | 1.3 | **entregue** | E1 (marca d'água) | `conteudo-da-tela-inicio` |
-| A4 | Favoritos | 1.1 (menu) | em andamento | — | `favoritos` (em voo) |
+| A4 | Favoritos | 1.1 (menu) | **entregue** | — | `favoritos` |
 | A5 | Compartilhados comigo | 1.1 (menu) | **entregue** | — | `compartilhados-comigo` |
 | A6 | Tour guiado | 1.1, 1.3 | pendente | — | — |
 | A7 | Rótulo "Administrador da unidade" | — (resposta 5 de D3) | pendente | — | — |
@@ -543,7 +543,36 @@ revisão de segurança antes do código.
   passar pela mesma resolução de acesso da listagem, como já exige a capability
   `tela-inicial` ("a lista de recentes não amplia alcance").
 
-### A4 — Favoritos
+### A4 — Favoritos  ✅ entregue
+
+> Change `favoritos`. **Desvios do previsto aqui, decididos durante a
+> especificação e a implementação:**
+>
+> - **A US entrou no Épico 2, não no 11** — como a A5, que foi para o Épico 4:
+>   favoritos é navegação, não orientação da tela inicial. É a **US 2.5**, e a
+>   linha correspondente saiu da lista de Fora de Escopo do PRD.
+> - **Perder o acesso oculta, não apaga** (design.md D3): a lista parte da
+>   marca e confirma cada item por `hasAccess`, e uma concessão vencida é
+>   reversível. Ida para a lixeira também só oculta; o **expurgo** apaga as
+>   marcas, em `lib/purge-file.ts` (arquivos) e `jobs/purge-trash.ts` (pastas),
+>   junto com as concessões.
+> - **Desmarcar não exige alcance** — quem perdeu o acesso pode limpar a
+>   própria marca; marcar exige `view`, com 404 indistinguível.
+> - **A indicação no explorador vem em `favoriteFolderIds`/`favoriteFileIds`**
+>   da listagem de pasta, numa consulta à parte restrita aos ids já liberados,
+>   e não como coluna nova em `fileSummaryColumns` (design.md D5) — aquele
+>   fragmento é compartilhado com busca e recentes. Campos **opcionais** no
+>   contrato, para uma API anterior não quebrar a SPA.
+> - **Prefixo de topo novo `/favorites`** nas três listas, com caso próprio em
+>   `web-serving.test.ts`.
+>
+> **Lacunas conhecidas, aceitas:**
+>
+> - Favoritar só no explorador e na própria lista — busca, recentes e
+>   visualizador ficaram fora (Non-Goals).
+> - Marcas ocultas por perda de acesso **contam no teto de 200**, e a pessoa
+>   não as vê para desmarcar.
+> - Sem paginação nem filtros na lista, como em Compartilhados.
 
 - **Capabilities**: `favoritos` (nova), `web-navegacao` (modificada)
 - **Demanda**: 1.1 (item de menu)

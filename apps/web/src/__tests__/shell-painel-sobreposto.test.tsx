@@ -81,6 +81,7 @@ describe('Painel sobreposto de navegação (responsividade-mobile-tablet)', () =
       'Início',
       'Documentos',
       'Recentes',
+      'Favoritos',
       'Compartilhados comigo',
       'Lixeira',
       'Colaboradores',

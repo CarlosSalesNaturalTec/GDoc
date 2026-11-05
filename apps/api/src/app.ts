@@ -18,6 +18,7 @@ import { dashboardRouter } from './routes/dashboard.js';
 import { searchRouter } from './routes/search.js';
 import { recentRouter } from './routes/recent.js';
 import { notificationsRouter } from './routes/notifications.js';
+import { favoritesRouter } from './routes/favorites.js';
 import { attachTenantContext } from './middleware/tenant-context.js';
 import { config } from './config.js';
 import { isApiPath } from './lib/api-prefixes.js';
@@ -158,6 +159,7 @@ export function createApp(ports: Ports, options: CreateAppOptions = {}): Express
     '/trash',
     '/dashboard',
     '/notifications',
+    '/favorites',
   ];
   app.use(tenantScopedPrefixes, attachTenantContext(ports));
   app.use(filesRouter(ports));
@@ -172,6 +174,7 @@ export function createApp(ports: Ports, options: CreateAppOptions = {}): Express
   app.use(searchRouter(ports));
   app.use(recentRouter(ports));
   app.use(notificationsRouter(ports));
+  app.use(favoritesRouter(ports));
 
   const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
     console.error(err);

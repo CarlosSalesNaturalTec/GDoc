@@ -63,11 +63,10 @@ navegador.
 ## Impact
 
 - **Banco**: migração `0021_favorites.sql` (tabela, índice único, RLS).
-- **API**: rota `routes/favorites.ts` (`GET`, `PUT`, `DELETE`), `isFavorite` na
-  listagem de pasta, expurgo em `jobs/purge-trash.ts`, `config.favorites`,
+- **API**: rota `routes/favorites.ts` (`GET`, `PUT`, `DELETE`), ids favoritos na
+  listagem de pasta, expurgo em `jobs/purge-trash.ts` e `lib/purge-file.ts`, `config.favorites`,
   prefixo em `lib/api-prefixes.ts`.
-- **Shared**: DTOs da lista e da marcação; `isFavorite` no item da listagem de
-  pasta.
+- **Shared**: DTOs da lista e da marcação; ids favoritos na listagem de pasta.
 - **Web**: `favoritos/` (página e consultas), item de menu no `AppShell`, ação no
   `ExplorerPage`, proxy em `vite.config.ts`.
 - **Infra**: `infra/terraform/locals.tf` (`api_proxy_prefixes`).

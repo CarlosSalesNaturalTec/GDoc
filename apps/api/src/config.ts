@@ -168,6 +168,12 @@ export const config = {
   // `ensureFolderPath` + N `INSERT` sequenciais, versus a memória do parser),
   // e amarrar um ao outro reproduz o acoplamento que causou o defeito do
   // corpo de 100 KB.
+  // Teto de favoritos por pessoa (change `favoritos`, design.md D4): a lista
+  // resolve o alcance item a item, então o tamanho dela precisa de limite.
+  favorites: {
+    maxPerUser: Number(optional('FAVORITES_MAX_PER_USER', '200')),
+  },
+
   uploadBatch: {
     maxItems: Number(optional('UPLOAD_BATCH_MAX_ITEMS', String(UPLOAD_BATCH_MAX_ITEMS_DEFAULT))),
   },

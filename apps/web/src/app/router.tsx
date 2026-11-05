@@ -13,6 +13,7 @@ import { MinhaContaPage } from '../conta/MinhaContaPage';
 import { InicioPage } from '../inicio/InicioPage';
 import { RecentesPage } from '../inicio/RecentesPage';
 import { CompartilhadosPage } from '../compartilhados/CompartilhadosPage';
+import { FavoritosPage } from '../favoritos/FavoritosPage';
 
 /**
  * Guarda por papel aninhada (design.md D6): as próximas fatias só declaram a
@@ -38,6 +39,7 @@ export const routes: RouteObject[] = [
           // acessível a **qualquer** papel autenticado — não é item de
           // administração, e a rota do servidor é auto-escopada pela sessão,
           // então não há alcance a filtrar por papel aqui.
+          { path: '/favoritos', element: <FavoritosPage /> },
           { path: '/compartilhados', element: <CompartilhadosPage /> },
           { path: '/lixeira', element: <LixeiraPage /> },
           // "Minha conta" (US 1.3, `web-minha-conta`): acessível a qualquer

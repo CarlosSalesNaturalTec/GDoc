@@ -42,7 +42,6 @@ O **objetivo principal** do GDoc é entregar um repositório de arquivos corpora
   * Compartilhamento de arquivos entre unidades diferentes.
   * Notificações fora do contexto de expiração de permissão (ex.: aviso a cada novo compartilhamento recebido).
   * Leitura obrigatória com registro de ciência (confirmação datada de que a pessoa leu um documento).
-  * Marcação de documentos como favoritos e lista pessoal de favoritos.
   * Tour guiado de primeiro acesso.
   * Busca pelo conteúdo interno dos arquivos (a busca alcança nome e código do documento, não o texto dentro do PDF ou do documento de escritório).
 
@@ -191,6 +190,29 @@ O **objetivo principal** do GDoc é entregar um repositório de arquivos corpora
       * **Dado** que tenho itens selecionados na pasta corrente
       * **Quando** entro em uma subpasta ou volto pela trilha de navegação
       * **Então** a seleção anterior é esvaziada, sem misturar itens de pastas diferentes num mesmo lote.
+
+* **US 2.5:** Como Colaborador, eu quero marcar pastas e arquivos como favoritos e encontrá-los numa lista pessoal para que eu chegue ao que uso com frequência sem percorrer as pastas. *(Reentrada de escopo pela demanda do cliente nº 2, tabela 1.1 — antes excluída "por decisão do cliente".)*
+  * **Critérios de Aceitação:**
+    * *Cenário 1 — Marcar o que alcanço:*
+      * **Dado** que posso visualizar uma pasta ou um arquivo
+      * **Quando** o marco como favorito
+      * **Então** ele passa a constar da minha lista de favoritos, do marcado mais recentemente para o mais antigo, com a pasta que o contém e a data da marcação.
+    * *Cenário 2 — Não marco o que não alcanço:*
+      * **Dado** um recurso que não posso visualizar, de outra unidade ou na lixeira
+      * **Quando** tento marcá-lo
+      * **Então** a marcação é recusada com a mesma resposta de recurso inexistente, sem revelar o motivo.
+    * *Cenário 3 — Favorito não é permissão:*
+      * **Dado** um favorito meu
+      * **Quando** perco o acesso a ele (concessão vencida, documento obsoleto, ida para a lixeira)
+      * **Então** ele some da lista sem erro e sem que a marca seja apagada; se o acesso voltar, ele volta a aparecer.
+    * *Cenário 4 — A lista é pessoal:*
+      * **Dado** que outra pessoa marcou um recurso que eu também alcanço
+      * **Quando** abro os meus favoritos
+      * **Então** o favorito dela não aparece, qualquer que seja o meu papel.
+    * *Cenário 5 — Teto:*
+      * **Dado** que já tenho o número máximo de favoritos (200)
+      * **Quando** marco mais um
+      * **Então** a marcação é recusada com aviso de limite atingido.
 
 ### Épico 3: Envio e Download em Lote
 

@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { favoriteIdsAmong } from './favorites.js';
 import type { Ports } from '../ports/index.js';
 import type { TenantContext } from '../ports/database-port.js';
 import { AuditAction, GrantResourceType, Permission } from '@gdoc/shared';
@@ -284,8 +285,18 @@ export function foldersRouter(ports: Ports): Router {
   router.get('/folders/root/contents', async (req, res, next) => {
     try {
       const ctx = req.tenantContext!;
-      const { folders, files } = await ports.database.withTenantTransaction(ctx, (client) =>
-        listContents(client, ctx, null),
+      const { folders, files, favoritos } = await ports.database.withTenantTransaction(
+        ctx,
+        async (client) => {
+          const conteudo = await listContents(client, ctx, null);
+          const favoritos = await favoriteIdsAmong(
+            client,
+            ctx,
+            conteudo.folders.map((f) => f.id),
+            conteudo.files.map((f) => f.id),
+          );
+          return { ...conteudo, favoritos };
+        },
       );
 
       res.json({
@@ -297,6 +308,7 @@ export function foldersRouter(ports: Ports): Router {
         // enviar para ela é livre a qualquer pessoa autenticada, então não há
         // `view`/`upload` a resolver aqui.
         canUpload: true,
+        ...favoritos,
       });
     } catch (err) {
       next(err);
@@ -339,7 +351,15 @@ export function foldersRouter(ports: Ports): Router {
           folder.id,
           Permission.UPLOAD,
         );
-        return { status: 200 as const, folder, breadcrumb, folders, files, canUpload };
+        // Favoritos entre os itens já listados (change `favoritos`, design.md
+        // D5): restrito aos ids que a listagem acabou de liberar.
+        const favoritos = await favoriteIdsAmong(
+          client,
+          ctx,
+          folders.map((f) => f.id),
+          files.map((f) => f.id),
+        );
+        return { status: 200 as const, folder, breadcrumb, folders, files, canUpload, favoritos };
       });
 
       if (outcome.status !== 200) {
@@ -353,6 +373,7 @@ export function foldersRouter(ports: Ports): Router {
         folders: outcome.folders.map(toFolderResponse),
         files: outcome.files.map(toFileSummaryResponse),
         canUpload: outcome.canUpload,
+        ...outcome.favoritos,
       });
     } catch (err) {
       next(err);
