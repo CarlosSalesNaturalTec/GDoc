@@ -391,7 +391,7 @@ describe('Documentos recentes (routes/recent.ts, GET /files/recent, US 11.2)', (
     const doDono = await consultar(ids.userA);
     expect(doDono.documents).toEqual([]);
 
-    // …e para o gestor da unidade, não.
+    // …e para o administrador da unidade, não.
     const doGestor = await consultar(unitAdminAId);
     expect(doGestor.documents.map((d) => d.id)).toEqual([obsoleto]);
   });

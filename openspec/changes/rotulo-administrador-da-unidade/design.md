@@ -56,9 +56,17 @@ rótulo.
 ## Risks / Trade-offs
 
 - **Rótulo mais longo** no cartão do usuário (menu de 264 px) e na tabela de
-  colaboradores. Medir no navegador; o cartão já trunca com reticências e
-  `title` desde a A2? — conferir, e não truncar o rótulo do papel se a
-  conferência mostrar corte.
+  colaboradores. Medido no navegador: na tabela cabe inteiro; no cartão, a
+  linha "função · unidade" era de uma linha só, com reticências, e passou a
+  cortar o nome da unidade. Ver D5.
+
+### D5 — Linha do cartão do usuário em até duas linhas
+
+A segunda linha do cartão (`CartaoDoUsuario`) passa de uma linha com
+reticências para **até duas** antes de cortar. Com "Administrador da unidade",
+uma linha deixava o nome da unidade fora (191 px para o texto); duas comportam
+o caso comum, e o corte volta só acima disso, com o texto íntegro preservado no
+`title` e no nome acessível, como antes.
 - **Menção esquecida.** Mitigação: busca por `Gestor`/`gestor` no repositório
   inteiro como tarefa, com a lista do que fica (fixtures) justificada.
 

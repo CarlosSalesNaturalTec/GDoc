@@ -46,8 +46,12 @@ const PESSOA: PersonResponse = {
 };
 
 describe('Rótulo do papel de acesso (nomenclatura-interface)', () => {
-  it('o papel com privilégio administrativo de unidade é rotulado "Gestor"', () => {
-    expect(ROLE_LABEL[UserRole.UNIT_ADMIN]).toBe('Gestor');
+  it('o papel com privilégio administrativo de unidade é rotulado "Administrador da unidade"', () => {
+    expect(ROLE_LABEL[UserRole.UNIT_ADMIN]).toBe('Administrador da unidade');
+  });
+
+  it('"Gestor" não nomeia papel algum — reservado a quem acompanha leituras (design.md D3)', () => {
+    expect(Object.values(ROLE_LABEL)).not.toContain('Gestor');
   });
 
   it('"Colaborador" e "Administrador global" permanecem inalterados', () => {
@@ -144,6 +148,9 @@ describe('Rótulo do papel de acesso (nomenclatura-interface)', () => {
     renderApp(['/admin/pessoas']);
 
     await screen.findByText('Fulana Gestora');
-    expect(document.body.textContent).not.toMatch(/Administrador da unidade/);
+    // O rótulo anterior é "Gestor" (change `rotulo-administrador-da-unidade`):
+    // a palavra inteira, não o nome da fixture ("Gestora") nem "Gestão".
+    expect(document.body.textContent).not.toMatch(/\bGestor\b/);
+    expect(document.body.textContent).toMatch(/Administrador da unidade/);
   });
 });

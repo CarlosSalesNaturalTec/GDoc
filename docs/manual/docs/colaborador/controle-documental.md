@@ -68,7 +68,7 @@ cadastro**. Nesse estado:
 
 - o arquivo fica na pasta, mas **não aparece para os outros leitores nem na busca** —
   mesmo para quem tem permissão sobre ele;
-- quem o enviou e os gestores da unidade continuam enxergando-o, com a etiqueta
+- quem o enviou e os administradores da unidade continuam enxergando-o, com a etiqueta
   **Pendente de cadastro**;
 - quem o enviou recebe um **aviso no sino**, um por arquivo, dizendo qual completar;
 - ao completar os dados, o arquivo passa a circular normalmente, com as permissões
