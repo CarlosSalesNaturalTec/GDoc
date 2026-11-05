@@ -321,10 +321,50 @@ cliente concordou explicitamente com isso no item (i).
   geração no cliente (sem dependência nova no servidor, tetos de volume) ou
   biblioteca no servidor. Recomendação: cliente, como já se faz no `.zip` de
   pasta (`client-zip`), mantendo a regra de que a API não monta artefato.
-- **Prazo da Fase 2** (seção 5): o cliente pede o prazo da leitura obrigatória.
-  **D3 e D5 estão respondidas — o prazo já é estimável** e é a próxima entrega
-  devida ao cliente. O tamanho ficou: A7 (pequena), C0, C1, C2, C3 e C4 com a
-  exceção estreita de D5; **sem** D7.
+- **Prazo da Fase 2** (seção 5): **estimado em 2026-11-05** — ver
+  [Estimativa da Fase 2](#estimativa-da-fase-2). Formato de exportação segue
+  com a recomendação acima; decide-se na proposta da C4 sem voltar ao cliente,
+  salvo se ele pedir o contrário.
+
+### Estimativa da Fase 2
+
+Feita depois de D3 e D5 respondidas, quando o tamanho do bloco C ficou
+conhecido. **Base**: o ritmo medido nas seis fatias já entregues desta demanda
+(proposta → implementação → arquivamento de cada uma coube num dia útil,
+inclusive a B1, a maior delas, com duas migrações e reversão de requisito) e o
+tamanho relativo de cada fatia do bloco C contra essas.
+
+| Fatia | Tamanho relativo | Dias úteis |
+| :-- | :--- | --: |
+| A7 — rótulo "Administrador da unidade" | menor que a A5 (só texto, manual e PRD) | 0,5 |
+| C0 — gestor de acompanhamento no cadastro | ≈ A1 (migração, cadastro, identidade) | 1 |
+| C1 — marcar e dar ciência | ≈ B1 + B2 (duas tabelas com RLS, público reavaliado, regra por revisão) | 3 |
+| C2 — superfícies de pendência | ≈ A2 (só apresentação, sobre espaços que a A3 cria) | 1,5 |
+| C3 — avisos e atrasos | job + scheduler no Terraform + deploy | 1,5 |
+| C4 — acompanhamento e exportação | a maior em risco: exceção de D5, três recortes de alcance, exportação | 3 |
+| **Subtotal** | | **10,5** |
+| Folga de 20% (retrabalho de homologação, revisão de segurança da C4) | | 2 |
+| **Total de desenvolvimento** | | **≈ 13** |
+
+**Calendário**, contando que a Fase 2 começa depois de fechar o que resta da
+Fase 1 (A3, A4 e A6, ≈ 3 dias úteis, a partir de 2026-11-05) e descontando o
+feriado de 20/11:
+
+- **início da Fase 2**: 10/11/2026;
+- **entrega completa em homologação**: até **27/11/2026**;
+- **produção**: depois de uma semana de homologação pelo cliente — previsão
+  **semana de 07/12/2026**.
+
+Entregas intermediárias, para o cliente homologar por partes: **A7 + C0 + C1**
+(marcar e dar ciência funcionando) por volta de 17/11; **C2 + C3** por volta de
+23/11; **C4** em 27/11.
+
+**Condições** — o prazo vale se: (1) o ambiente de homologação e o contato de
+TI (**E3**) estiverem definidos até o início de C1; (2) a marcação de quem é
+gestor (C0) for **feita pelo cliente** no cadastro antes de homologar C3 e C4 —
+é dado dele, não do sistema; (3) **D7 não entrar** na Fase 2. Qualquer pedido
+de D7 dentro da Fase 2 reabre a estimativa: é trabalho de isolamento, com
+revisão de segurança antes do código.
 
 ---
 
@@ -853,7 +893,7 @@ Blocos A, B e C são independentes; os laços entre eles são **C2 → A2/A3**
 | Ajustar a tela Início (seção 1) | TI | fatias A1–A3 |
 | Enviar prints de Documentos e Login | TI | E2 — pendente |
 | Implementar envio em lote (seção 2) | TI | fatias B1–B2 |
-| Informar prazo da leitura obrigatória (Fase 2) | TI | **estimável** — D3 e D5 respondidas em 2026-11-05 |
+| Informar prazo da leitura obrigatória (Fase 2) | TI | **estimado** em 2026-11-05: homologação até 27/11, produção na semana de 07/12 — ver D6 |
 | Planejar acesso da Governança a documentos das unidades e "Documentos Institucionais" | TI + Governança | D7 — fora da demanda nº 2, change própria |
 | Enviar logo branca e símbolo em PNG | Governança | E1 — pendente |
 | Definir ambiente de homologação e contato de TI | TI + Governança | E3 — pendente |
