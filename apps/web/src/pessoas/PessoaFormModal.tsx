@@ -1,8 +1,9 @@
 import { useEffect } from 'react';
 import { Alert, App, Form, Input, InputNumber, Modal, Select, Switch, Typography } from 'antd';
 import type { PersonResponse } from '@gdoc/shared';
-import { UserRole } from '@gdoc/shared';
+import { READING_OVERSIGHTS, ReadingOversight, UserRole } from '@gdoc/shared';
 import { ApiError } from '../lib/api-client';
+import { ACOMPANHAMENTO_LABEL, SEM_ACOMPANHAMENTO } from '../shell/acompanhamento-label';
 import { useSession } from '../auth/session-context';
 import { ROLE_LABEL } from '../shell/role-label';
 import { useUnits } from '../unidades/queries';
@@ -25,6 +26,9 @@ interface PessoaFormModalProps {
   onClose: () => void;
 }
 
+/** Valor do `Select` para "não acompanha" — o `Select` não guarda `null`. */
+const NAO_ACOMPANHA = 'nenhum';
+
 interface PessoaFormValues {
   fullName: string;
   email: string;
@@ -36,6 +40,8 @@ interface PessoaFormValues {
   sectorId?: string;
   notes?: string;
   role: UserRole;
+  /** Alcance do acompanhamento de leituras; `NAO_ACOMPANHA` ⇒ `null`. */
+  readingOversight?: ReadingOversight | typeof NAO_ACOMPANHA;
   /** `true` ⇒ a pessoa segue o padrão da plataforma (envia `null`). */
   quotaSeguePadrao?: boolean;
   /** Exceção nominal em GB; convertida para bytes no envio. */
@@ -133,6 +139,7 @@ export function PessoaFormModal({ target, open, onClose }: PessoaFormModalProps)
         sectorId: target.sectorId ?? undefined,
         notes: target.notes ?? undefined,
         role: target.role,
+        readingOversight: target.readingOversight ?? NAO_ACOMPANHA,
         quotaSeguePadrao: target.storageQuotaBytes === null,
         storageQuotaGb:
           target.storageQuotaBytes === null ? undefined : target.storageQuotaBytes / BYTES_POR_GB,
@@ -149,6 +156,26 @@ export function PessoaFormModal({ target, open, onClose }: PessoaFormModalProps)
     .filter((role) => !isSelf || ROLE_RANK[role] >= ROLE_RANK[target!.role])
     .map((role) => ({ value: role, label: ROLE_LABEL[role] }));
 
+  // Acompanhamento de leituras (change `gestor-de-acompanhamento`). A opção
+  // "todas as unidades" só é oferecida ao administrador global (design.md D3)
+  // — ou exibida, desabilitada, quando já é o valor da pessoa editada. O campo
+  // fica travado na própria conta (D4) e, para quem não é global, na pessoa
+  // que tem "todas as unidades": nesses casos ele nem é enviado, porque o
+  // servidor recusaria a requisição inteira.
+  const ehGlobal = identity?.role === UserRole.GLOBAL_ADMIN;
+  const alvoTemTodasAsUnidades = target?.readingOversight === ReadingOversight.ALL_UNITS;
+  const acompanhamentoTravado = isSelf || (alvoTemTodasAsUnidades && !ehGlobal);
+  const opcoesDeAcompanhamento = [
+    { value: NAO_ACOMPANHA, label: SEM_ACOMPANHAMENTO },
+    ...READING_OVERSIGHTS.filter(
+      (alcance) => alcance !== ReadingOversight.ALL_UNITS || ehGlobal || alvoTemTodasAsUnidades,
+    ).map((alcance) => ({ value: alcance, label: ACOMPANHAMENTO_LABEL[alcance] })),
+  ];
+  const acompanhamentoEnviado = (values: PessoaFormValues) =>
+    !values.readingOversight || values.readingOversight === NAO_ACOMPANHA
+      ? null
+      : values.readingOversight;
+
   async function handleSubmit(values: PessoaFormValues) {
     try {
       if (target) {
@@ -164,6 +191,7 @@ export function PessoaFormModal({ target, open, onClose }: PessoaFormModalProps)
             sectorId: values.sectorId ?? null,
             notes: values.notes || undefined,
             role: values.role,
+            ...(acompanhamentoTravado ? {} : { readingOversight: acompanhamentoEnviado(values) }),
             // Só o `global_admin` manda o campo. Quem não pode concedê-lo o
             // omite por completo: enviar o valor vigente "sem querer" faria o
             // servidor recusar a requisição inteira (design.md D3).
@@ -189,6 +217,7 @@ export function PessoaFormModal({ target, open, onClose }: PessoaFormModalProps)
           sectorId: values.sectorId || undefined,
           notes: values.notes || undefined,
           role: values.role,
+          readingOversight: acompanhamentoEnviado(values),
         });
       }
       onClose();
@@ -196,6 +225,21 @@ export function PessoaFormModal({ target, open, onClose }: PessoaFormModalProps)
       // 409 `invalid_sector`: o setor escolhido não é da unidade de destino —
       // na prática, lista obsoleta depois de a unidade mudar. Sinaliza no
       // campo de setor, não como falha genérica.
+      // 409 `reading_oversight_requires_sector` (design.md D2): gestor do setor
+      // sem setor. Explicado no próprio campo, sem perder o preenchimento.
+      if (
+        err instanceof ApiError &&
+        err.status === 409 &&
+        err.message === 'reading_oversight_requires_sector'
+      ) {
+        form.setFields([
+          {
+            name: 'readingOversight',
+            errors: ['Gestor do setor precisa de um setor: escolha o setor da pessoa acima.'],
+          },
+        ]);
+        return;
+      }
       if (err instanceof ApiError && err.status === 409 && err.message === 'invalid_sector') {
         form.setFields([{ name: 'sectorId', errors: ['Setor indisponível; escolha outro'] }]);
         return;
@@ -341,6 +385,18 @@ export function PessoaFormModal({ target, open, onClose }: PessoaFormModalProps)
           rules={[{ required: true, message: 'Selecione um papel' }]}
         >
           <Select options={roleOptions} />
+        </Form.Item>
+        <Form.Item
+          name="readingOversight"
+          label="Acompanhamento de leituras"
+          initialValue={NAO_ACOMPANHA}
+          extra={
+            isSelf
+              ? 'Você não altera o seu próprio acompanhamento.'
+              : 'Quem acompanha vê quem leu e quem não leu os documentos de leitura obrigatória. Não dá acesso a arquivos nem a esta tela.'
+          }
+        >
+          <Select options={opcoesDeAcompanhamento} disabled={acompanhamentoTravado} />
         </Form.Item>
       </Form>
     </Modal>

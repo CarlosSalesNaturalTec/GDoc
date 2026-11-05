@@ -1,3 +1,4 @@
+import type { ReadingOversight } from '@gdoc/shared';
 import type { Request, Response, NextFunction } from 'express';
 import type { TenantContext } from '../ports/database-port.js';
 import type { Ports } from '../ports/index.js';
@@ -24,6 +25,12 @@ export interface IdentityDisplay {
   sectorName: string;
   /** Change `tour-guiado`, design.md D4 — mesma releitura, nenhum round-trip a mais. */
   tourCompleted: boolean;
+  /**
+   * Alcance do acompanhamento de leituras (change `gestor-de-acompanhamento`,
+   * design.md D6) — relido aqui para que retirar a marcação valha na
+   * requisição seguinte, como desativar a conta.
+   */
+  readingOversight: ReadingOversight | null;
 }
 
 declare module 'express-serve-static-core' {
@@ -88,6 +95,7 @@ export function attachTenantContext(ports: Ports) {
             job_title: string | null;
             sector_name: string | null;
             tour_completed: boolean;
+            reading_oversight: string | null;
           }>(
             // `LEFT JOIN` no setor: pessoa sem setor é estado válido e não pode
             // sumir da releitura que autentica — um `JOIN` aqui negaria o
@@ -95,7 +103,8 @@ export function attachTenantContext(ports: Ports) {
             `SELECT u.id, u.unit_id, u.role, u.status, u.password_changed_at,
                     u.full_name, un.name AS unit_name,
                     u.job_title, s.name AS sector_name,
-                    (u.tour_completed_at IS NOT NULL) AS tour_completed
+                    (u.tour_completed_at IS NOT NULL) AS tour_completed,
+                    u.reading_oversight
              FROM users u
              JOIN units un ON un.id = u.unit_id
              LEFT JOIN sectors s ON s.id = u.sector_id
@@ -136,6 +145,7 @@ export function attachTenantContext(ports: Ports) {
         jobTitle: identity.job_title ?? '',
         sectorName: identity.sector_name ?? '',
         tourCompleted: identity.tour_completed,
+        readingOversight: identity.reading_oversight as ReadingOversight | null,
       };
       next();
     } catch (err) {

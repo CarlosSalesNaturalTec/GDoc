@@ -706,6 +706,29 @@ O **objetivo principal** do GDoc é entregar um repositório de arquivos corpora
       * **Quando** volto à tela inicial, neste ou em outro computador
       * **Então** o convite não aparece mais, e o tour continua disponível no menu.
 
+### Épico 12: Leitura Obrigatória
+
+> Este épico trata da leitura obrigatória com registro de ciência e do seu acompanhamento (demanda do cliente nº 2, seção 3). Decorre de solicitação direta do cliente; o desenho do perfil Gestor foi fixado em `docs/respostas_a1_funcao_e_setor.txt` (respostas 3b e 4b) e `docs/respostas_d1_d3_d5_decisoes_estruturais.txt` (respostas 5a, 6a, 7a e 8).
+
+* **US 12.1:** Como Administrador da unidade, eu quero marcar no cadastro quem acompanha as leituras da equipe, e de que alcance, para que coordenadores, gerentes e diretores possam acompanhar quem leu sem ganhar acesso de administração.
+  * **Critérios de Aceitação:**
+    * *Cenário 1 — Marcação explícita:*
+      * **Dado** que edito o cadastro de uma pessoa da minha unidade
+      * **Quando** marco o acompanhamento "do setor" ou "da unidade"
+      * **Então** a pessoa passa a constar como Gestor do setor ou Gestor da unidade, e fica registrado quem marcou e quando; o cargo escrito no cadastro não decide nada.
+    * *Cenário 2 — Gestor do setor exige setor:*
+      * **Dado** uma pessoa sem setor
+      * **Quando** tento marcá-la como Gestor do setor, ou tento remover o setor de quem já é Gestor do setor
+      * **Então** a operação é recusada com a explicação, sem converter o alcance em outro.
+    * *Cenário 3 — Todas as unidades só pelo administrador global:*
+      * **Dado** que sou Administrador da unidade
+      * **Quando** tento conceder, alterar ou retirar o alcance "de todas as unidades"
+      * **Então** a operação é recusada; só o Administrador global o faz, pessoa a pessoa.
+    * *Cenário 4 — Não é acesso:*
+      * **Dado** uma pessoa marcada como gestora
+      * **Quando** ela tenta abrir arquivo sem permissão ou a gestão de pessoas
+      * **Então** é recusada como antes; a marcação libera apenas o acompanhamento da leitura obrigatória, e ninguém marca a si mesmo.
+
 ## 5. Requisitos Funcionais
 
 1. Autenticação por usuário e senha; contas criadas exclusivamente pela área administrativa, sem autocadastro.

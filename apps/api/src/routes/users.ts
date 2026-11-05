@@ -1,6 +1,12 @@
 import { Router } from 'express';
 import type { PoolClient } from 'pg';
-import { UserRole, UnitStatus, PersonStatus } from '@gdoc/shared';
+import {
+  UserRole,
+  UnitStatus,
+  PersonStatus,
+  READING_OVERSIGHTS,
+  ReadingOversight,
+} from '@gdoc/shared';
 import type {
   CreatePersonRequest,
   UpdatePersonRequest,
@@ -22,6 +28,7 @@ interface PersonRow {
   sector_id: string | null;
   sector_name: string | null;
   notes: string | null;
+  reading_oversight: string | null;
   role: string;
   status: string;
   created_at: string;
@@ -30,7 +37,7 @@ interface PersonRow {
 }
 
 const PERSON_COLUMNS =
-  'id, unit_id, full_name, email, phone, job_title, sector_id, notes, role, status, created_at, ' +
+  'id, unit_id, full_name, email, phone, job_title, sector_id, notes, reading_oversight, role, status, created_at, ' +
   // Nome do setor por **subconsulta escalar**, não por JOIN (change
   // `funcao-e-setor-na-identidade`): assim a mesma lista de colunas serve ao
   // `SELECT` e aos dois `RETURNING` de INSERT/UPDATE, onde não há FROM para
@@ -55,6 +62,7 @@ function toPersonResponse(row: PersonRow): PersonResponse {
     sectorId: row.sector_id,
     sectorName: row.sector_name,
     notes: row.notes,
+    readingOversight: row.reading_oversight as PersonResponse['readingOversight'],
     role: row.role as PersonResponse['role'],
     status: row.status as PersonResponse['status'],
     createdAt: new Date(row.created_at).toISOString(),
@@ -68,6 +76,26 @@ function toPersonResponse(row: PersonRow): PersonResponse {
 
 function isAdmin(ctx: TenantContext): boolean {
   return ctx.role === UserRole.GLOBAL_ADMIN || ctx.role === UserRole.UNIT_ADMIN;
+}
+
+/**
+ * Violação do `CHECK` "gestor do setor exige setor" (change
+ * `gestor-de-acompanhamento`, design.md D2). A regra vive no banco porque há
+ * dois caminhos para violá-la — marcar sem setor e remover o setor de quem já
+ * é gestor do setor —, e a rota só traduz a recusa.
+ */
+function isOversightSectorViolation(err: unknown): boolean {
+  return (
+    typeof err === 'object' &&
+    err !== null &&
+    (err as { code?: string }).code === '23514' &&
+    (err as { constraint?: string }).constraint === 'users_reading_oversight_sector_check'
+  );
+}
+
+/** Valor aceito para a marcação: um dos alcances, ou `null` (não acompanha). */
+function isValidOversight(value: unknown): value is ReadingOversight | null {
+  return value === null || READING_OVERSIGHTS.includes(value as ReadingOversight);
 }
 
 function isUniqueViolation(err: unknown): boolean {
@@ -207,6 +235,19 @@ export function usersRouter(ports: Ports): Router {
         return;
       }
 
+      // Acompanhamento de leituras (change `gestor-de-acompanhamento`): valor
+      // fora do conjunto é corpo malformado; "todas as unidades" é exclusivo
+      // do administrador global (design.md D3).
+      const readingOversight = body.readingOversight ?? null;
+      if (!isValidOversight(readingOversight)) {
+        res.status(400).json({ error: 'invalid request body' });
+        return;
+      }
+      if (readingOversight === ReadingOversight.ALL_UNITS && ctx.role !== UserRole.GLOBAL_ADMIN) {
+        res.status(403).json({ error: 'forbidden' });
+        return;
+      }
+
       // unit_admin é sempre forçado à própria unidade, ignorando o que foi
       // informado (US 5.1, cenário "unit_admin não cria fora da própria
       // unidade"); global_admin pode escolher, com fallback para a própria.
@@ -245,8 +286,11 @@ export function usersRouter(ports: Ports): Router {
           }
 
           const { rows } = await client.query<PersonRow>(
-            `INSERT INTO users (unit_id, email, password_hash, role, full_name, phone, job_title, sector_id, notes)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+            `INSERT INTO users (unit_id, email, password_hash, role, full_name, phone, job_title, sector_id, notes,
+                                reading_oversight, reading_oversight_set_by, reading_oversight_set_at)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::text,
+                     CASE WHEN $10::text IS NULL THEN NULL ELSE $11::uuid END,
+                     CASE WHEN $10::text IS NULL THEN NULL ELSE now() END)
              RETURNING ${PERSON_COLUMNS}`,
             [
               unitId,
@@ -258,6 +302,8 @@ export function usersRouter(ports: Ports): Router {
               body.jobTitle ?? null,
               sectorId,
               body.notes ?? null,
+              readingOversight,
+              ctx.userId,
             ],
           );
           return { kind: 'ok', row: rows[0]! };
@@ -265,6 +311,10 @@ export function usersRouter(ports: Ports): Router {
       } catch (err) {
         if (isUniqueViolation(err)) {
           res.status(409).json({ error: 'email already in use' });
+          return;
+        }
+        if (isOversightSectorViolation(err)) {
+          res.status(409).json({ error: 'reading_oversight_requires_sector' });
           return;
         }
         throw err;
@@ -358,7 +408,31 @@ export function usersRouter(ports: Ports): Router {
       // demais campos e ignorar o proibido devolveria sucesso por uma operação
       // que não ocorreu. Reenviar o MESMO papel não é alteração — o formulário
       // sempre manda o papel vigente, e recusá-lo travaria a edição de si.
+      // Acompanhamento de leituras (change `gestor-de-acompanhamento`): três
+      // estados, como o setor — ausente preserva, `null` retira, valor marca.
+      const oversightRequested = Object.prototype.hasOwnProperty.call(body, 'readingOversight');
+      const requestedOversight = oversightRequested ? (body.readingOversight ?? null) : undefined;
+      if (oversightRequested && !isValidOversight(requestedOversight)) {
+        res.status(400).json({ error: 'invalid request body' });
+        return;
+      }
+      if (requestedOversight === ReadingOversight.ALL_UNITS && ctx.role !== UserRole.GLOBAL_ADMIN) {
+        res.status(403).json({ error: 'forbidden' });
+        return;
+      }
+
       const isSelf = req.params.id === ctx.userId;
+      // Ninguém altera a própria marcação (design.md D4): ela amplia o que a
+      // pessoa verá no acompanhamento. Reenviar o valor vigente não é
+      // alteração — o formulário sempre manda o que está lá.
+      if (
+        isSelf &&
+        oversightRequested &&
+        requestedOversight !== (req.identityDisplay?.readingOversight ?? null)
+      ) {
+        res.status(403).json({ error: 'cannot change own reading oversight' });
+        return;
+      }
       if (isSelf && body.role !== undefined && body.role !== ctx.role) {
         res.status(403).json({ error: 'cannot change own role' });
         return;
@@ -388,6 +462,26 @@ export function usersRouter(ports: Ports): Router {
       // `null` remove a exceção e devolve a pessoa ao padrão da plataforma,
       // sem exigir que quem chama conheça o valor do padrão (design.md D8).
       if (quotaRequested) setField('storage_quota_bytes', body.storageQuotaBytes);
+      if (oversightRequested) {
+        // Quem e quando só mudam se o alcance **mudar** (design.md D5). No
+        // `SET` do Postgres o lado direito lê os valores antigos da linha,
+        // então a comparação é com o alcance vigente.
+        values.push(requestedOversight);
+        const novo = '$' + values.length + '::text';
+        values.push(ctx.userId);
+        const autor = '$' + values.length + '::uuid';
+        setClauses.push(
+          'reading_oversight = ' + novo,
+          'reading_oversight_set_by = CASE WHEN reading_oversight IS DISTINCT FROM ' +
+            novo +
+            ' THEN ' +
+            autor +
+            ' ELSE reading_oversight_set_by END',
+          'reading_oversight_set_at = CASE WHEN reading_oversight IS DISTINCT FROM ' +
+            novo +
+            ' THEN now() ELSE reading_oversight_set_at END',
+        );
+      }
 
       if (setClauses.length === 0) {
         res.status(400).json({ error: 'no fields to update' });
@@ -408,13 +502,31 @@ export function usersRouter(ports: Ports): Router {
       // — caem no mesmo 403, sem distinção (mesmo tratamento usado por
       // routes/files.ts para "linha escondida pela RLS").
       type PatchOutcome =
-        { kind: 'ok'; row: PersonRow } | { kind: 'forbidden' } | { kind: 'invalid_sector' };
+        | { kind: 'ok'; row: PersonRow }
+        | { kind: 'forbidden' }
+        | { kind: 'invalid_sector' }
+        | { kind: 'oversight_requires_sector' };
 
-      const outcome = await ports.database.withTenantTransaction<PatchOutcome>(
-        ctx,
-        async (client) => {
+      const transacao = () =>
+        ports.database.withTenantTransaction<PatchOutcome>(ctx, async (client) => {
           const allowed = await canEditTarget(client, ctx, req.params.id!);
           if (!allowed) return { kind: 'forbidden' };
+
+          // "Todas as unidades" é concessão do administrador global (design.md
+          // D3): quem não é global não a retira nem a troca — retirar é tão
+          // sensível quanto atribuir. Reenviar o mesmo valor passa.
+          if (oversightRequested && ctx.role !== UserRole.GLOBAL_ADMIN) {
+            const { rows: atual } = await client.query<{ reading_oversight: string | null }>(
+              'SELECT reading_oversight FROM users WHERE id = $1',
+              [req.params.id],
+            );
+            if (
+              atual[0]?.reading_oversight === ReadingOversight.ALL_UNITS &&
+              requestedOversight !== ReadingOversight.ALL_UNITS
+            ) {
+              return { kind: 'forbidden' };
+            }
+          }
 
           // Setor validado contra a unidade **da pessoa editada**, lida aqui e
           // nao deduzida do contexto: um `global_admin` edita pessoa de
@@ -443,9 +555,22 @@ export function usersRouter(ports: Ports): Router {
           );
           const row = rows[0];
           return row ? { kind: 'ok', row } : { kind: 'forbidden' };
-        },
-      );
+        });
 
+      let outcome: PatchOutcome;
+      try {
+        outcome = await transacao();
+      } catch (err) {
+        // Recusa total (design.md D2): a transação inteira desfaz, nenhum
+        // campo enviado é aplicado.
+        if (!isOversightSectorViolation(err)) throw err;
+        outcome = { kind: 'oversight_requires_sector' };
+      }
+
+      if (outcome.kind === 'oversight_requires_sector') {
+        res.status(409).json({ error: 'reading_oversight_requires_sector' });
+        return;
+      }
       if (outcome.kind === 'forbidden') {
         res.status(403).json({ error: 'forbidden' });
         return;

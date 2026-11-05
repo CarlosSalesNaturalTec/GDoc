@@ -80,6 +80,7 @@ describe('Autenticação: /auth/login, /auth/logout, /auth/me', () => {
       jobTitle: '',
       sectorName: '',
       tourCompleted: false,
+      readingOversight: null,
     });
 
     const setCookie = res.headers['set-cookie'];
@@ -136,6 +137,7 @@ describe('Autenticação: /auth/login, /auth/logout, /auth/me', () => {
       jobTitle: '',
       sectorName: '',
       tourCompleted: false,
+      readingOversight: null,
     });
     expect(res.body.password).toBeUndefined();
     expect(res.body.passwordHash).toBeUndefined();
@@ -166,6 +168,7 @@ describe('Autenticação: /auth/login, /auth/logout, /auth/me', () => {
         jobTitle: '',
         sectorName: '',
         tourCompleted: false,
+        readingOversight: null,
       });
     });
 

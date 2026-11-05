@@ -12,6 +12,7 @@ import { PessoaFormModal } from './PessoaFormModal';
 import { SetoresDrawer } from '../setores/SetoresDrawer';
 import { RotuloDeEstado } from '../app/RotuloDeEstado';
 import { ROLE_LABEL } from '../shell/role-label';
+import { ACOMPANHAMENTO_LABEL } from '../shell/acompanhamento-label';
 import { SenhaGeradaModal } from './SenhaGeradaModal';
 import { useResetPersonPassword, useUpdatePerson, useUsers } from './queries';
 
@@ -119,6 +120,18 @@ export function PessoasPage() {
       title: 'Papel',
       key: 'role',
       render: (_, person) => <RotuloDeEstado>{ROLE_LABEL[person.role]}</RotuloDeEstado>,
+    },
+    {
+      // Acompanhamento de leituras (change `gestor-de-acompanhamento`): rótulo
+      // de origem única; quem não acompanha fica com a ausência explícita.
+      title: 'Acompanhamento',
+      key: 'readingOversight',
+      render: (_, person) =>
+        person.readingOversight ? (
+          <RotuloDeEstado>{ACOMPANHAMENTO_LABEL[person.readingOversight]}</RotuloDeEstado>
+        ) : (
+          '—'
+        ),
     },
     {
       title: 'Status',

@@ -60,7 +60,7 @@ Legenda: `pendente` · `bloqueada` (ver coluna Bloqueio) · `em andamento` ·
 | A7 | Rótulo "Administrador da unidade" | — (resposta 5 de D3) | **entregue** | — | `rotulo-administrador-da-unidade` |
 | B1 | Arquivo geral e pendente de cadastro | 2.3, 2.4 | **entregue** | — | `arquivo-geral-e-pendente-de-cadastro` |
 | B2 | Tabela de cadastro no envio em lote | 2.1, 2.2 | **entregue** | — | `tabela-de-cadastro-no-envio-em-lote` |
-| C0 | Gestor de acompanhamento no cadastro | 3.1 | pendente | — | — |
+| C0 | Gestor de acompanhamento no cadastro | 3.1 | **entregue** | — | `gestor-de-acompanhamento` |
 | C1 | Núcleo da leitura obrigatória (marcar e dar ciência) | 3.1, 3.2 (etapas 1 e 3), 3.3, 3.4 | pendente | — | — |
 | C2 | Superfícies de pendência (menu, contador, cartão, abas) | 3.2 (etapa 2), 3.5 | pendente | C1, A2, A3 | — |
 | C3 | Avisos e atrasos | 3.2 (etapas 2 e 4), 3.3 | pendente | C0, C1 | — |
@@ -862,7 +862,30 @@ revisão de segurança antes do código.
   tetos — e a publicação parcial ("só os completos") tem de conviver com a
   reserva de cota sem vazar reserva dos itens não publicados.
 
-### C0 — Gestor de acompanhamento no cadastro
+### C0 — Gestor de acompanhamento no cadastro  ✅ entregue
+
+> Change `gestor-de-acompanhamento`. **Desvios e decisões da implementação:**
+>
+> - **Uma coluna em `users`** (`reading_oversight`), não tabela de vínculos: um
+>   alcance por pessoa basta (design.md D1). O terceiro alcance, **"todas as
+>   unidades"**, entrou como previsto — atribuível, alterável e retirável só
+>   pelo administrador global (D3).
+> - **"do setor exige setor" mora no banco** (`CHECK`), porque também é violável
+>   pela remoção do setor, não só pela marcação (D2). 409
+>   `reading_oversight_requires_sector`, recusa total.
+> - **Quem marcou e quando** (`reading_oversight_set_by`/`_at`) ficam no banco,
+>   fora da resposta da API — são trilha (D5).
+> - **Na identidade** (`readingOversight`), pela mesma releitura por requisição:
+>   retirar vale na seguinte, testado (D6).
+> - **`lib/access.ts` não mudou**: teste prova que um gestor de todas as
+>   unidades continua recusado em arquivo alheio e na gestão de pessoas (D7).
+> - O administrador da unidade **não edita a própria conta** (regra anterior a
+>   esta fatia); a trava de auto-marcação vale, na prática, para o global.
+> - Nasce o **Épico 12** no PRD, com a **US 12.1**.
+>
+> **Lacuna conhecida**: nada muda no que o gestor vê até a C3 (avisos) e a C4
+> (acompanhamento); a tabela de colaboradores ganhou uma coluna e já rolava por
+> dentro em 1440 px.
 
 - **Capabilities**: `gestao-pessoas` (modificada), `web-pessoas` (modificada),
   `autenticacao` (modificada, se o alcance entrar na identidade)

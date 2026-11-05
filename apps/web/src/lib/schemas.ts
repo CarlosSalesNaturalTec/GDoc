@@ -52,6 +52,7 @@ import {
   NotificationKind,
   Permission,
   PersonStatus,
+  ReadingOversight,
   UnitStatus,
   UserRole,
 } from '@gdoc/shared';
@@ -61,6 +62,13 @@ import {
  * DTOs — design.md D5). `z.ZodType<T>` amarra o schema ao tipo compartilhado:
  * se o DTO mudar sem o schema acompanhar, o `tsc` acusa a divergência.
  */
+/** Alcance do acompanhamento de leituras (change `gestor-de-acompanhamento`). */
+const readingOversightSchema = z.enum([
+  ReadingOversight.SECTOR,
+  ReadingOversight.UNIT,
+  ReadingOversight.ALL_UNITS,
+]);
+
 export const authenticatedIdentitySchema: z.ZodType<AuthenticatedIdentity> = z.object({
   id: z.string(),
   unitId: z.string(),
@@ -82,6 +90,8 @@ export const authenticatedIdentitySchema: z.ZodType<AuthenticatedIdentity> = z.o
   // registrá-lo, e o convite apareceria para sempre — ausência conta como
   // feito, para não insistir com quem não tem como dispensá-lo.
   tourCompleted: z.boolean().catch(true),
+  // Change `gestor-de-acompanhamento`, design.md D6.
+  readingOversight: readingOversightSchema.nullable().catch(null),
 });
 
 /** Espelha `FolderResponse` (design.md D8, `web-navegacao`). */
@@ -391,6 +401,9 @@ export const personResponseSchema: z.ZodType<PersonResponse> = z.object({
   sectorId: z.string().nullable(),
   sectorName: z.string().nullable(),
   notes: z.string().nullable(),
+  // Change `gestor-de-acompanhamento`: ausente numa API anterior = não
+  // acompanha.
+  readingOversight: readingOversightSchema.nullable().catch(null),
   role: z.enum([UserRole.COLLABORATOR, UserRole.UNIT_ADMIN, UserRole.GLOBAL_ADMIN]),
   status: z.enum([PersonStatus.ACTIVE, PersonStatus.DISABLED]),
   createdAt: z.string(),

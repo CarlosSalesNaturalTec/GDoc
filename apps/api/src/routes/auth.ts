@@ -28,6 +28,7 @@ interface UserAuthRow {
   job_title: string | null;
   sector_name: string | null;
   tour_completed: boolean;
+  reading_oversight: string | null;
 }
 
 /**
@@ -79,7 +80,8 @@ export function authRouter(ports: Ports, appManualUrl: string): Router {
             `SELECT u.id, u.unit_id, u.role, u.status, u.password_hash,
                     u.full_name, un.name AS unit_name,
                     u.job_title, s.name AS sector_name,
-                    (u.tour_completed_at IS NOT NULL) AS tour_completed
+                    (u.tour_completed_at IS NOT NULL) AS tour_completed,
+                    u.reading_oversight
              FROM users u
              JOIN units un ON un.id = u.unit_id
              LEFT JOIN sectors s ON s.id = u.sector_id
@@ -121,6 +123,7 @@ export function authRouter(ports: Ports, appManualUrl: string): Router {
         jobTitle: user.job_title ?? '',
         sectorName: user.sector_name ?? '',
         tourCompleted: user.tour_completed,
+        readingOversight: user.reading_oversight as AuthenticatedIdentity['readingOversight'],
       };
       res.json(identity);
     } catch (err) {
@@ -149,6 +152,7 @@ export function authRouter(ports: Ports, appManualUrl: string): Router {
       jobTitle: display.jobTitle,
       sectorName: display.sectorName,
       tourCompleted: display.tourCompleted,
+      readingOversight: display.readingOversight,
     };
     res.json(identity);
   });
