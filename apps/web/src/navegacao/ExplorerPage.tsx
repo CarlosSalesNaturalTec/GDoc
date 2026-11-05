@@ -23,6 +23,7 @@ import {
   IconeBaixarVarios,
   IconeControleDocumental,
   IconeExcluir,
+  IconeFavorito,
   IconeMaisAcoes,
   IconeMover,
   IconeNovaPasta,
@@ -49,6 +50,9 @@ import { useDownloadFile } from '../visualizacao/useDownloadFile';
 import { UploadArea } from '../upload/UploadArea';
 import { PARAM_PEDIDO_DE_ENVIO } from './pedido-de-envio';
 import { PARAM_PEDIDO_DE_NOVA_PASTA } from './pedido-de-nova-pasta';
+import { paleta } from '../app/theme';
+import { useToggleFavorite } from '../favoritos/queries';
+import { mensagemDeFalhaAoFavoritar } from '../favoritos/acao-de-favorito';
 import { DownloadFolderModal } from './DownloadFolderModal';
 import {
   useCreateFolder,
@@ -204,6 +208,7 @@ export function ExplorerPage() {
   const moveFoldersBatch = useMoveFoldersBatch();
   const deleteFile = useDeleteFile();
   const deleteFolder = useDeleteFolder();
+  const alternarFavorito = useToggleFavorite();
 
   const [newFolderOpen, setNewFolderOpen] = useState(false);
   const [renamingItem, setRenamingItem] = useState<RenamingItem | null>(null);
@@ -316,6 +321,49 @@ export function ExplorerPage() {
       return;
     }
     handlePermissionError(err);
+  }
+
+  // Favoritos (change `favoritos`, design.md D5): a indicação vem do servidor,
+  // na própria listagem — a SPA não cruza a página com a lista inteira.
+  const pastasFavoritas = new Set(data?.favoriteFolderIds ?? []);
+  const arquivosFavoritos = new Set(data?.favoriteFileIds ?? []);
+
+  async function handleToggleFavorite(
+    resourceType: GrantResourceType,
+    resourceId: string,
+    favorite: boolean,
+  ) {
+    try {
+      await alternarFavorito.mutateAsync({ resourceType, resourceId, favorite });
+      message.success(favorite ? 'Adicionado aos favoritos.' : 'Removido dos favoritos.');
+    } catch (err) {
+      message.error(mensagemDeFalhaAoFavoritar(err));
+    }
+  }
+
+  /** Ação de favorito do item: o rótulo diz o estado, sem depender de cor. */
+  function botaoDeFavorito(resourceType: GrantResourceType, resourceId: string, favorito: boolean) {
+    return (
+      <Button
+        key="favorito"
+        size="small"
+        icon={<IconeFavorito />}
+        loading={alternarFavorito.isPending}
+        onClick={() => handleToggleFavorite(resourceType, resourceId, !favorito)}
+      >
+        {favorito ? 'Remover dos favoritos' : 'Favoritar'}
+      </Button>
+    );
+  }
+
+  /** Marca de favorito junto ao nome — texto acessível, cor só como redundância. */
+  function marcaDeFavorito(favorito: boolean) {
+    if (!favorito) return null;
+    return (
+      <span role="img" aria-label="Favorito" title="Favorito" style={{ color: paleta.verdeAcao }}>
+        <IconeFavorito />
+      </span>
+    );
   }
 
   async function handleCreateFolder(name: string) {
@@ -521,7 +569,10 @@ export function ExplorerPage() {
       key: 'name',
       render: (_, row) =>
         row.kind === 'folder' ? (
-          <Link to={`/pastas/${row.folder.id}`}>{row.folder.name}</Link>
+          <Space size={4}>
+            <Link to={`/pastas/${row.folder.id}`}>{row.folder.name}</Link>
+            {marcaDeFavorito(pastasFavoritas.has(row.folder.id))}
+          </Space>
         ) : (
           <div>
             <Space>
@@ -535,6 +586,7 @@ export function ExplorerPage() {
               >
                 {row.file.fileName}
               </Button>
+              {marcaDeFavorito(arquivosFavoritos.has(row.file.id))}
               {row.file.status !== 'active' && <Tag>{row.file.status}</Tag>}
             </Space>
             {row.file.documentCode && (
@@ -607,6 +659,11 @@ export function ExplorerPage() {
             >
               Baixar pasta
             </Button>,
+            botaoDeFavorito(
+              GrantResourceType.FOLDER,
+              row.folder.id,
+              pastasFavoritas.has(row.folder.id),
+            ),
             <Button
               key="renomear"
               size="small"
@@ -679,6 +736,7 @@ export function ExplorerPage() {
           >
             Baixar
           </Button>,
+          botaoDeFavorito(GrantResourceType.FILE, row.file.id, arquivosFavoritos.has(row.file.id)),
           <Button
             key="renomear"
             size="small"

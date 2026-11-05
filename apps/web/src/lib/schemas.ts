@@ -25,6 +25,8 @@ import type {
   RecentDocumentResponse,
   RecentDocumentsResponse,
   NewDocumentsCountResponse,
+  FavoriteItemResponse,
+  FavoritesResponse,
   ResetPasswordResponse,
   SearchFilesResponse,
   SharedPermissionResponse,
@@ -173,6 +175,11 @@ export const folderContentsResponseSchema: z.ZodType<FolderContentsResponse> = z
   // API mais antiga que a SPA simplesmente não oferece a ação na orientação
   // de pasta vazia, em vez de oferecê-la sem respaldo.
   canUpload: z.boolean().catch(false),
+  // Favoritos entre os itens listados (change `favoritos`, design.md D5).
+  // Ausentes numa API mais antiga: nada aparece como favorito, em vez de a
+  // resposta inteira ser recusada.
+  favoriteFolderIds: z.array(z.string()).optional().catch(undefined),
+  favoriteFileIds: z.array(z.string()).optional().catch(undefined),
 });
 
 /** Espelha `SignedUrlResponse` (design.md D7, `web-visualizacao`). */
@@ -595,4 +602,20 @@ export const sharedWithMeItemResponseSchema: z.ZodType<SharedWithMeItemResponse>
 /** Espelha `SharedWithMeResponse` — `GET /grants/received`. */
 export const sharedWithMeResponseSchema: z.ZodType<SharedWithMeResponse> = z.object({
   items: z.array(sharedWithMeItemResponseSchema),
+});
+
+/** Espelha `FavoriteItemResponse` — mesma forma da lista de compartilhados (change `favoritos`). */
+export const favoriteItemResponseSchema: z.ZodType<FavoriteItemResponse> = z.object({
+  resourceType: z.enum([GrantResourceType.FOLDER, GrantResourceType.FILE]),
+  id: z.string(),
+  name: z.string(),
+  folderName: z.string().nullable(),
+  permissions: z.array(permissionSchema),
+  favoritedAt: z.string(),
+  file: fileSummaryResponseSchema.nullable(),
+});
+
+/** Espelha `FavoritesResponse` — `GET /favorites`. */
+export const favoritesResponseSchema: z.ZodType<FavoritesResponse> = z.object({
+  items: z.array(favoriteItemResponseSchema),
 });

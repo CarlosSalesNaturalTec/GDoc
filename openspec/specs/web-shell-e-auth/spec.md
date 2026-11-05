@@ -125,10 +125,11 @@ identificador interno nem um fragmento dele. Conta sem nome cadastrado SHALL
 recorrer a um tratamento genérico, nunca ao identificador.
 
 O conjunto de destinos internos SHALL cobrir a tela inicial, os documentos, os
-recentes, **os compartilhados comigo** e a lixeira, acrescidos dos destinos de
-administração permitidos ao papel. O destino de compartilhados SHALL ser
-oferecido a **qualquer** papel autenticado, inclusive `collaborator`, por não ser
-item de administração (ver capability `compartilhados-comigo`). A busca NÃO SHALL
+recentes, **os favoritos**, os compartilhados comigo e a lixeira, nessa ordem,
+acrescidos dos destinos de administração permitidos ao papel. Os destinos de
+favoritos e de compartilhados SHALL ser oferecidos a **qualquer** papel
+autenticado, inclusive `collaborator`, por não serem itens de administração (ver
+capabilities `favoritos` e `compartilhados-comigo`). A busca NÃO SHALL
 ocupar um destino da navegação, por estar permanentemente acessível na barra
 superior (ver capability `web-busca`).
 
@@ -244,6 +245,12 @@ change `menu-lateral-e-barra-superior`.
 - **WHEN** uma pessoa de papel `collaborator` percorre os destinos da navegação
 - **THEN** encontra "Compartilhados comigo" entre eles, e acioná-lo a leva ao
   destino sem recusa
+
+#### Scenario: Favoritos é destino de qualquer papel, antes de compartilhados
+- **WHEN** uma pessoa de papel `collaborator` percorre os destinos da navegação
+- **THEN** encontra o destino de favoritos logo depois de recentes e antes de
+  compartilhados comigo, e o abre sem recusa
+
 ### Requirement: Navegação reúne os itens em grupos rotulados
 
 A navegação SHALL reunir seus itens em grupos com rótulo visível: os destinos

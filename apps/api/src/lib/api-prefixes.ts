@@ -21,6 +21,7 @@ export const API_PREFIXES = [
   '/dashboard',
   '/search',
   '/notifications',
+  '/favorites',
   '/health',
   '/internal',
 ];

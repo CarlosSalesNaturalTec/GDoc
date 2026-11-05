@@ -7,6 +7,7 @@ import {
   IconeColaboradores,
   IconeCompartilhados,
   IconeEnviar,
+  IconeFavorito,
   IconeInicio,
   IconeLixeira,
   IconeManual,
@@ -70,15 +71,21 @@ export function AppShell() {
     // administração permitidos ao papel. A **busca não ocupa destino** — está
     // permanentemente acessível na barra superior (capability `web-busca`).
     //
-    // "Compartilhados comigo" entrou com a change `compartilhados-comigo`
-    // (fatia A5), junto com o seu destino. Favoritos e Leitura obrigatória
-    // pertencem às fatias A4 e C2 e **não entram aqui** até que seus destinos
-    // existam: item de menu que não leva a nada é regressão (`tela-inicial`,
+    // "Compartilhados comigo" (A5) e "Favoritos" (A4) entraram junto com os
+    // seus destinos. Leitura obrigatória pertence à fatia C2 e **não entra
+    // aqui** até que o seu destino exista: item de menu que não leva a nada é regressão (`tela-inicial`,
     // "atalho apresentado conduz a uma ação executável").
     const destinos: MenuProps['items'] = [
       { key: '/', icon: <IconeInicio />, label: <Link to="/">Início</Link> },
       { key: '/pastas', icon: <IconeArquivos />, label: <Link to="/pastas">Documentos</Link> },
       { key: '/recentes', icon: <IconeRecentes />, label: <Link to="/recentes">Recentes</Link> },
+      // Favoritos entre Recentes e Compartilhados, na ordem da tabela 1.1 da
+      // demanda nº 2 (change `favoritos`), para qualquer papel.
+      {
+        key: '/favoritos',
+        icon: <IconeFavorito />,
+        label: <Link to="/favoritos">Favoritos</Link>,
+      },
       {
         key: '/compartilhados',
         icon: <IconeCompartilhados />,

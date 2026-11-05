@@ -104,6 +104,14 @@ describe('Serving da SPA (apps/web/dist) pela API — deploy-frontend-gcp', () =
       expect(res.text).not.toContain('SPA');
     });
 
+    it('GET /favorites sem sessão responde como API (401), não index.html (change favoritos)', async () => {
+      // Prefixo de topo novo (design.md D6): as três listas mudaram juntas.
+      const app = createApp(ports, { webDistDir });
+      const res = await request(app).get('/favorites');
+      expect(res.status).toBe(401);
+      expect(res.text).not.toContain('SPA');
+    });
+
     it('GET /sectors sem sessão responde como API (401), não index.html (change funcao-e-setor-na-identidade)', async () => {
       // Prefixo de topo **novo**: é o caso em que as três pontas
       // (api-prefixes.ts, vite.config.ts, locals.tf) precisam ter mudado

@@ -75,6 +75,7 @@ perfil, reunidos em dois grupos — **NAVEGAÇÃO** e **AJUDA**:
 | **NAVEGAÇÃO** | **Início**            | Todos                | Tela inicial: saudação, atalhos, pastas da unidade e documentos recentes. |
 | **NAVEGAÇÃO** | **Documentos**        | Todos                | Navegar por pastas, enviar, baixar, visualizar e gerenciar documentos.  |
 | **NAVEGAÇÃO** | **Recentes**          | Todos                | O recorte completo dos documentos alterados recentemente (o "histórico completo" da tela inicial). |
+| **NAVEGAÇÃO** | **Favoritos**         | Todos                | A sua lista pessoal de pastas e arquivos marcados — ver [Favoritos](colaborador/favoritos.md). |
 | **NAVEGAÇÃO** | **Compartilhados comigo** | Todos            | O que outras pessoas liberaram para você, com o que pode fazer em cada um. |
 | **NAVEGAÇÃO** | **Lixeira**           | Todos                | Recuperar ou acompanhar itens excluídos.                                |
 | **NAVEGAÇÃO** | **Colaboradores**     | Administradores      | Cadastrar, editar, ativar/desativar contas e redefinir senhas.          |

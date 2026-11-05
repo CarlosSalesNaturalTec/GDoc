@@ -332,6 +332,7 @@ describe('Busca fora da navegação e permanente na barra superior (web-busca)',
       'Início',
       'Documentos',
       'Recentes',
+      'Favoritos',
       'Compartilhados comigo',
       'Lixeira',
     ]);

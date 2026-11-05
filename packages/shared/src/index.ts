@@ -14,3 +14,4 @@ export * from './recent.js';
 export * from './document-control.js';
 export * from './notifications.js';
 export * from './shared-with-me.js';
+export * from './favorites.js';
