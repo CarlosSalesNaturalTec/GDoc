@@ -150,6 +150,14 @@ export interface DocumentControlFields {
    * continua sendo a autorização real.
    */
   canEditControl?: boolean;
+  /**
+   * A **revisão vigente** tem marcação de leitura obrigatória em curso
+   * (change `superficies-de-pendencia`, design.md D4): marcação da revisão
+   * atual, de documento não obsoleto. Apurado na própria consulta de listagem,
+   * como `canEditControl`, e ausente fora dela — ausência é "não apresentar o
+   * ícone". Não revela público, prazo nem mensagem da marcação.
+   */
+  requiredReading?: boolean;
 }
 
 /**

@@ -176,6 +176,9 @@ export const fileSummaryResponseSchema: z.ZodType<FileSummaryResponse> = z.objec
     .transform((valor) => valor as DocumentStatus),
   daysUntilReview: z.number().nullable().catch(null),
   canEditControl: z.boolean().optional().catch(undefined),
+  // Mesma tolerância de `canEditControl` (change `superficies-de-pendencia`,
+  // design.md D4): API anterior não traz o veredito, e ausência é "sem ícone".
+  requiredReading: z.boolean().optional().catch(undefined),
 });
 
 /** Espelha `FolderContentsResponse` (design.md D8, `web-navegacao`). */

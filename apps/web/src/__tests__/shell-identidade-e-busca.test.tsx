@@ -339,6 +339,7 @@ describe('Busca fora da navegação e permanente na barra superior (web-busca)',
       'Recentes',
       'Favoritos',
       'Compartilhados comigo',
+      'Leitura obrigatória',
       'Lixeira',
       'Tour guiado',
     ]);

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Button, Drawer, Layout, Menu, Space, Tooltip } from 'antd';
+import { Badge, Button, Drawer, Layout, Menu, Space, Tooltip } from 'antd';
 import type { MenuProps } from 'antd';
 import {
   IconeAjuda,
@@ -9,6 +9,7 @@ import {
   IconeEnviar,
   IconeFavorito,
   IconeInicio,
+  IconeLeituraObrigatoria,
   IconeLixeira,
   IconeManual,
   IconeMenu,
@@ -29,6 +30,7 @@ import { NotificationCenter } from './NotificationCenter';
 import { BuscaNoCabecalho } from './BuscaNoCabecalho';
 import { NOME_ACESSIVEL_MANUAL } from './manual';
 import { DESTINO_PEDIDO_DE_TOUR } from '../tour/pedido-de-tour';
+import { estaAberta, useMyReadings } from '../leitura/queries';
 
 const { Header, Sider, Content } = Layout;
 
@@ -57,6 +59,11 @@ export function AppShell() {
   const isAdmin =
     identity?.role === UserRole.UNIT_ADMIN || identity?.role === UserRole.GLOBAL_ADMIN;
   const isGlobalAdmin = identity?.role === UserRole.GLOBAL_ADMIN;
+  // Contador do item Leitura obrigatória (design.md D1): a mesma consulta do
+  // cartão do Início, das abas e do visualizador — confirmar ciência a
+  // invalida e o contador acompanha.
+  const leituras = useMyReadings(identity !== null);
+  const leiturasAbertas = (leituras.data?.items ?? []).filter(estaAberta).length;
 
   // Prefixo (design.md D1, `web-navegacao`): qualquer rota sob `/pastas`
   // mantém "Documentos" selecionado no menu, não só a raiz do explorador.
@@ -80,10 +87,10 @@ export function AppShell() {
     // administração permitidos ao papel. A **busca não ocupa destino** — está
     // permanentemente acessível na barra superior (capability `web-busca`).
     //
-    // "Compartilhados comigo" (A5) e "Favoritos" (A4) entraram junto com os
-    // seus destinos. Leitura obrigatória pertence à fatia C2 e **não entra
-    // aqui** até que o seu destino exista: item de menu que não leva a nada é regressão (`tela-inicial`,
-    // "atalho apresentado conduz a uma ação executável").
+    // "Compartilhados comigo" (A5), "Favoritos" (A4) e "Leitura obrigatória"
+    // (C2) entraram junto com os seus destinos: item de menu que não leva a
+    // nada é regressão (`tela-inicial`, "atalho apresentado conduz a uma ação
+    // executável").
     const destinos: MenuProps['items'] = [
       { key: '/', icon: <IconeInicio />, label: <Link to="/">Início</Link> },
       { key: '/pastas', icon: <IconeArquivos />, label: <Link to="/pastas">Documentos</Link> },
@@ -99,6 +106,41 @@ export function AppShell() {
         key: '/compartilhados',
         icon: <IconeCompartilhados />,
         label: <Link to="/compartilhados">Compartilhados comigo</Link>,
+      },
+      // Leitura obrigatória (change `superficies-de-pendencia`, design.md
+      // D5/D6), para qualquer papel, com o contador das abertas. O nome
+      // acessível diz a contagem por extenso; o selo é a forma visual dela.
+      {
+        key: '/leituras',
+        icon: <IconeLeituraObrigatoria />,
+        // Colapsada, a coluna mostra só o ícone e o design system esconde o
+        // rótulo — e o selo com ele. A dica ao apontar carrega a contagem.
+        title:
+          leiturasAbertas > 0 ? `Leitura obrigatória (${leiturasAbertas})` : 'Leitura obrigatória',
+        label: (
+          <Link
+            to="/leituras"
+            aria-label={
+              leiturasAbertas > 0
+                ? `Leitura obrigatória, ${leiturasAbertas} ${
+                    leiturasAbertas === 1 ? 'pendente' : 'pendentes'
+                  }`
+                : undefined
+            }
+          >
+            <Space size={8}>
+              Leitura obrigatória
+              {leiturasAbertas > 0 && (
+                <Badge
+                  count={leiturasAbertas}
+                  overflowCount={99}
+                  color={paleta.verdeAcao}
+                  aria-hidden
+                />
+              )}
+            </Space>
+          </Link>
+        ),
       },
       { key: '/lixeira', icon: <IconeLixeira />, label: <Link to="/lixeira">Lixeira</Link> },
       ...(isAdmin
@@ -164,7 +206,7 @@ export function AppShell() {
     grupos.push({ key: 'grupo-ajuda', type: 'group', label: 'AJUDA', children: ajuda });
 
     return grupos;
-  }, [isAdmin, isGlobalAdmin, publicConfig.manualUrl]);
+  }, [isAdmin, isGlobalAdmin, publicConfig.manualUrl, leiturasAbertas]);
 
   // Painel sobreposto (design.md D2): tocar um destino interno navega e
   // fecha o painel; tocar o manual abre outra aba e não fecha — não há

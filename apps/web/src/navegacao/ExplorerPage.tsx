@@ -371,6 +371,24 @@ export function ExplorerPage() {
     );
   }
 
+  // Documento de leitura obrigatória (change `superficies-de-pendencia`,
+  // design.md D4): o veredito vem da listagem (`requiredReading`), e ausência
+  // é "não apresentar". Mesma forma da marca de favorito — nome acessível e
+  // dica com o mesmo texto, a informação nunca só no desenho.
+  function marcaDeLeituraObrigatoria(marcado: boolean | undefined) {
+    if (!marcado) return null;
+    return (
+      <span
+        role="img"
+        aria-label="Leitura obrigatória"
+        title="Leitura obrigatória"
+        style={{ color: paleta.azulLink }}
+      >
+        <IconeLeituraObrigatoria />
+      </span>
+    );
+  }
+
   async function handleCreateFolder(name: string) {
     try {
       await createFolder.mutateAsync({ name, parentId: currentFolderId ?? undefined });
@@ -592,6 +610,7 @@ export function ExplorerPage() {
                 {row.file.fileName}
               </Button>
               {marcaDeFavorito(arquivosFavoritos.has(row.file.id))}
+              {marcaDeLeituraObrigatoria(row.file.requiredReading)}
               {row.file.status !== 'active' && <Tag>{row.file.status}</Tag>}
             </Space>
             {row.file.documentCode && (

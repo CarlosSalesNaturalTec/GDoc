@@ -76,13 +76,14 @@ describe('Painel sobreposto de navegação (responsividade-mobile-tablet)', () =
     // "Recentes" entrou. "Compartilhados comigo" entrou com a change
     // `compartilhados-comigo` (fatia A5), junto com o seu destino. O manual
     // segue por último, por estar no grupo AJUDA — Favoritos, Leitura
-    // obrigatória e Tour guiado entram com as fatias A4, C2 e A6, não aqui.
+    // obrigatória e Tour guiado entraram com as fatias A4, C2 e A6.
     expect(wideItems).toEqual([
       'Início',
       'Documentos',
       'Recentes',
       'Favoritos',
       'Compartilhados comigo',
+      'Leitura obrigatória',
       'Lixeira',
       'Colaboradores',
       'Painel',

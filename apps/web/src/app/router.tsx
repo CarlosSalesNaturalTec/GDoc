@@ -14,6 +14,7 @@ import { InicioPage } from '../inicio/InicioPage';
 import { RecentesPage } from '../inicio/RecentesPage';
 import { CompartilhadosPage } from '../compartilhados/CompartilhadosPage';
 import { FavoritosPage } from '../favoritos/FavoritosPage';
+import { LeiturasPage } from '../leitura/LeiturasPage';
 
 /**
  * Guarda por papel aninhada (design.md D6): as próximas fatias só declaram a
@@ -41,6 +42,10 @@ export const routes: RouteObject[] = [
           // então não há alcance a filtrar por papel aqui.
           { path: '/favoritos', element: <FavoritosPage /> },
           { path: '/compartilhados', element: <CompartilhadosPage /> },
+          // "Leitura obrigatória" (US 12.4, `superficies-de-pendencia`,
+          // design.md D5): qualquer pessoa pode ser do público, então não há
+          // guarda de papel; a rota do servidor é auto-escopada pela sessão.
+          { path: '/leituras', element: <LeiturasPage /> },
           { path: '/lixeira', element: <LixeiraPage /> },
           // "Minha conta" (US 1.3, `web-minha-conta`): acessível a qualquer
           // papel autenticado — não é item de administração, então não entra
