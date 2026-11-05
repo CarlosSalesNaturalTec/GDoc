@@ -25,6 +25,10 @@ clique, a "quem sou, onde estou, o que posso fazer e o que mudou":
   linha continua aparecendo.
   Cargo e setor são dados do cadastro: quem os ajusta é quem administra a sua
   unidade, e **nenhum dos dois altera as suas permissões**.
+- **Primeira vez aqui? Faça o tour de 2 minutos**: à direita da saudação,
+  enquanto você ainda não fez o tour guiado. Depois de feito (ou fechado), o
+  convite some — e o tour continua no menu, em **AJUDA → Tour guiado**. Veja
+  [Tour guiado](#tour-guiado).
 - **Quatro atalhos** para as ações do dia a dia, cada um com ícone, título e
   descrição:
     - **Enviar documento** leva direto à área de envio, já pronta para uso,
@@ -65,6 +69,21 @@ clique, a "quem sou, onde estou, o que posso fazer e o que mudou":
     temporária que o liberava vence. Apenas **alterações** entram nos recentes:
     visualizar ou baixar um documento não o coloca ali.
 
+## Tour guiado
+
+O tour apresenta, um passo de cada vez, as áreas da tela inicial: o menu, a
+busca, o botão de envio, o sino de avisos, os atalhos, as pastas da unidade, os
+documentos recentes, a coluna de leitura obrigatória e a ajuda.
+
+- Comece pelo convite **Primeira vez aqui?** na saudação ou, de qualquer tela,
+  pelo item **Tour guiado** do menu (grupo **AJUDA**).
+- Use **Próximo** e **Anterior** para andar entre os passos, ou o **×** para
+  sair quando quiser. O teclado também funciona.
+- O tour só mostra o que está na sua tela: no celular, por exemplo, o passo do
+  menu aponta o botão ☰ e o passo da ajuda não aparece.
+- O sistema lembra, na sua conta, que você já fez o tour — o convite não volta
+  a aparecer, nem em outro computador. Para rever, use o menu.
+
 ## Menu de navegação
 
 Depois de entrar, você vê a navegação com os itens disponíveis para o seu
@@ -82,6 +101,7 @@ perfil, reunidos em dois grupos — **NAVEGAÇÃO** e **AJUDA**:
 | **NAVEGAÇÃO** | **Painel**            | Administradores      | Ver estatísticas e gráficos de uso.                                     |
 | **NAVEGAÇÃO** | **Unidades**          | Administrador global | Criar, renomear e ativar/desativar unidades.                            |
 | **AJUDA**     | **Manual do usuário** | Todos                | Abre este material numa nova aba, sem fechar o que você estava fazendo. |
+| **AJUDA**     | **Tour guiado**       | Todos                | Leva à tela inicial e mostra, passo a passo, para que serve cada área. Pode ser refeito quando quiser. |
 
 O título do grupo é só um rótulo: ele não é clicável e não leva a nenhuma tela.
 

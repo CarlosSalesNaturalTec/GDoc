@@ -43,6 +43,12 @@ export interface AuthenticatedIdentity {
   jobTitle: string;
   /** Nome do setor da pessoa; vazio = sem setor (a interface omite). */
   sectorName: string;
+  /**
+   * Se a pessoa já fez (ou fechou) o tour guiado — memória **por pessoa**, no
+   * servidor (change `tour-guiado`, design.md D4). Decide só se o convite da
+   * saudação aparece; refazer pelo menu continua possível.
+   */
+  tourCompleted: boolean;
 }
 
 /**

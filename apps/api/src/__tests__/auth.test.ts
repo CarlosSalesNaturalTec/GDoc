@@ -79,6 +79,7 @@ describe('Autenticação: /auth/login, /auth/logout, /auth/me', () => {
       unitName: 'Unidade Auth',
       jobTitle: '',
       sectorName: '',
+      tourCompleted: false,
     });
 
     const setCookie = res.headers['set-cookie'];
@@ -134,6 +135,7 @@ describe('Autenticação: /auth/login, /auth/logout, /auth/me', () => {
       unitName: 'Unidade Auth',
       jobTitle: '',
       sectorName: '',
+      tourCompleted: false,
     });
     expect(res.body.password).toBeUndefined();
     expect(res.body.passwordHash).toBeUndefined();
@@ -163,6 +165,7 @@ describe('Autenticação: /auth/login, /auth/logout, /auth/me', () => {
         unitName: 'Unidade Auth',
         jobTitle: '',
         sectorName: '',
+        tourCompleted: false,
       });
     });
 
@@ -613,6 +616,53 @@ describe('Autenticação: /auth/login, /auth/logout, /auth/me', () => {
     it('sem sessão retorna 401', async () => {
       const app = createApp(ports);
       const res = await request(app).get('/auth/profile');
+      expect(res.status).toBe(401);
+    });
+  });
+
+  describe('memória do tour guiado (POST /auth/tour-completed, change tour-guiado)', () => {
+    it('grava na própria conta, reflete em /auth/me e preserva a primeira data (design.md D4)', async () => {
+      const app = createApp(ports);
+      const cookie = await sessionCookieFor(ports, activeUserId);
+      await withSystemBypass(pool, (c) =>
+        c.query('UPDATE users SET tour_completed_at = NULL WHERE unit_id = $1', [unitId]),
+      );
+
+      expect((await request(app).get('/auth/me').set('Cookie', cookie)).body.tourCompleted).toBe(
+        false,
+      );
+      expect((await request(app).post('/auth/tour-completed').set('Cookie', cookie)).status).toBe(
+        204,
+      );
+      expect((await request(app).get('/auth/me').set('Cookie', cookie)).body.tourCompleted).toBe(
+        true,
+      );
+
+      const primeira = await withSystemBypass(pool, (c) =>
+        c.query<{ t: string }>('SELECT tour_completed_at AS t FROM users WHERE id = $1', [
+          activeUserId,
+        ]),
+      );
+      await request(app).post('/auth/tour-completed').set('Cookie', cookie);
+      const segunda = await withSystemBypass(pool, (c) =>
+        c.query<{ t: string }>('SELECT tour_completed_at AS t FROM users WHERE id = $1', [
+          activeUserId,
+        ]),
+      );
+      expect(String(segunda.rows[0]!.t)).toBe(String(primeira.rows[0]!.t));
+
+      // Só a própria conta: nenhuma outra pessoa da unidade foi marcada.
+      const outras = await withSystemBypass(pool, (c) =>
+        c.query<{ n: string }>(
+          'SELECT count(*) AS n FROM users WHERE unit_id = $1 AND id <> $2 AND tour_completed_at IS NOT NULL',
+          [unitId, activeUserId],
+        ),
+      );
+      expect(Number(outras.rows[0]!.n)).toBe(0);
+    });
+
+    it('sem sessão retorna 401', async () => {
+      const res = await request(createApp(ports)).post('/auth/tour-completed');
       expect(res.status).toBe(401);
     });
   });

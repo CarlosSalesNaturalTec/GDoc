@@ -38,6 +38,10 @@ Ao entrar, você é levado ao seu ambiente com o conteúdo que lhe é permitido.
 Depois de entrar, você pode trocar sua senha quando quiser em
 [Minha conta](colaborador/minha-conta.md).
 
+Na primeira vez, a tela inicial convida a um **tour de 2 minutos** pelas áreas
+da tela — ver [Tour guiado](a-tela.md#tour-guiado). Ele não começa sozinho, e
+pode ser refeito pelo menu, em **AJUDA**.
+
 ## Sair
 
 No pé do menu lateral, clique em **Sair**.

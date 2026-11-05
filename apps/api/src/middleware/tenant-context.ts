@@ -22,6 +22,8 @@ export interface IdentityDisplay {
   unitName: string;
   jobTitle: string;
   sectorName: string;
+  /** Change `tour-guiado`, design.md D4 — mesma releitura, nenhum round-trip a mais. */
+  tourCompleted: boolean;
 }
 
 declare module 'express-serve-static-core' {
@@ -85,13 +87,15 @@ export function attachTenantContext(ports: Ports) {
             unit_name: string;
             job_title: string | null;
             sector_name: string | null;
+            tour_completed: boolean;
           }>(
             // `LEFT JOIN` no setor: pessoa sem setor é estado válido e não pode
             // sumir da releitura que autentica — um `JOIN` aqui negaria o
             // acesso de quem não tem setor.
             `SELECT u.id, u.unit_id, u.role, u.status, u.password_changed_at,
                     u.full_name, un.name AS unit_name,
-                    u.job_title, s.name AS sector_name
+                    u.job_title, s.name AS sector_name,
+                    (u.tour_completed_at IS NOT NULL) AS tour_completed
              FROM users u
              JOIN units un ON un.id = u.unit_id
              LEFT JOIN sectors s ON s.id = u.sector_id
@@ -131,6 +135,7 @@ export function attachTenantContext(ports: Ports) {
         unitName: identity.unit_name,
         jobTitle: identity.job_title ?? '',
         sectorName: identity.sector_name ?? '',
+        tourCompleted: identity.tour_completed,
       };
       next();
     } catch (err) {

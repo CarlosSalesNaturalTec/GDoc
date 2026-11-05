@@ -12,6 +12,7 @@ import {
   IconeLixeira,
   IconeManual,
   IconeMenu,
+  IconeTour,
   IconePainel,
   IconeRecentes,
   IconeUnidades,
@@ -27,11 +28,19 @@ import { CartaoDoUsuario } from './CartaoDoUsuario';
 import { NotificationCenter } from './NotificationCenter';
 import { BuscaNoCabecalho } from './BuscaNoCabecalho';
 import { NOME_ACESSIVEL_MANUAL } from './manual';
+import { DESTINO_PEDIDO_DE_TOUR } from '../tour/pedido-de-tour';
 
 const { Header, Sider, Content } = Layout;
 
 /** Chave do acesso auxiliar ao manual — nunca coincide com um `pathname`, então nunca entra em `selectedKeys`. */
 const MANUAL_KEY = 'manual-do-usuario';
+
+/**
+ * Chave do tour guiado (change `tour-guiado`, design.md D7): acesso auxiliar
+ * **interno** — também nunca coincide com um `pathname`, então não marca tela
+ * corrente; e, por navegar, fecha o painel sobreposto como um destino.
+ */
+const TOUR_KEY = 'tour-guiado';
 
 /** Altura do gatilho de recolher do design system, reservada no rodapé da coluna. */
 const ALTURA_GATILHO_RECOLHER = 64;
@@ -121,39 +130,38 @@ export function AppShell() {
       { key: 'grupo-navegacao', type: 'group', label: 'NAVEGAÇÃO', children: destinos },
     ];
 
-    // Grupo AJUDA só existe quando tem filho: montá-lo sempre deixaria um
-    // rótulo encabeçando seção vazia (requisito "Grupo sem item visível não
-    // apresenta rótulo"). Hoje o único filho é o manual, cuja ausência é
-    // degradação de `GET /auth/public-config`, não configuração alcançável.
-    // O item Tour guiado entra aqui com a fatia A6.
+    // Grupo AJUDA (change `tour-guiado`, design.md D7): o tour guiado é
+    // acesso auxiliar **interno** — sempre presente, sem anúncio de saída — e
+    // o manual, externo, entra só quando a implantação o tem. Com o tour, o
+    // grupo nunca fica vazio; a regra "grupo sem item não apresenta rótulo"
+    // continua valendo para qualquer grupo futuro.
+    const ajuda: NonNullable<MenuProps['items']> = [];
     if (publicConfig.manualUrl) {
-      grupos.push({
-        key: 'grupo-ajuda',
-        type: 'group',
-        label: 'AJUDA',
-        children: [
-          {
-            key: MANUAL_KEY,
-            icon: <IconeManual />,
-            title: 'Manual do usuário',
-            label: (
-              // Sem a separação visual de antes, o rótulo do grupo acrescenta
-              // a distinção visual — mas o nome acessível continua sendo
-              // obrigatório, e é ele que anuncia a saída da aplicação a quem
-              // não enxerga a tela. Afrouxá-lo seria regressão.
-              <a
-                href={publicConfig.manualUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label={NOME_ACESSIVEL_MANUAL}
-              >
-                Manual do usuário
-              </a>
-            ),
-          },
-        ],
+      ajuda.push({
+        key: MANUAL_KEY,
+        icon: <IconeManual />,
+        title: 'Manual do usuário',
+        label: (
+          // O nome acessível anuncia a saída da aplicação a quem não enxerga
+          // a tela; o rótulo do grupo só acrescenta a distinção visual.
+          <a
+            href={publicConfig.manualUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={NOME_ACESSIVEL_MANUAL}
+          >
+            Manual do usuário
+          </a>
+        ),
       });
     }
+    ajuda.push({
+      key: TOUR_KEY,
+      icon: <IconeTour />,
+      title: 'Tour guiado',
+      label: <Link to={DESTINO_PEDIDO_DE_TOUR}>Tour guiado</Link>,
+    });
+    grupos.push({ key: 'grupo-ajuda', type: 'group', label: 'AJUDA', children: ajuda });
 
     return grupos;
   }, [isAdmin, isGlobalAdmin, publicConfig.manualUrl]);
@@ -231,6 +239,7 @@ export function AppShell() {
              parar abaixo da dobra — a medição na app o encontrou em y=977
              numa viewport de 900px, isto é, fora da tela. O rodapé da
              navegação só é rodapé se a navegação ocupar a altura visível. */
+          data-tour="navegacao"
           style={{
             background: DEGRADE_NAVEGACAO,
             position: 'sticky',
@@ -256,12 +265,18 @@ export function AppShell() {
               type="text"
               icon={<IconeMenu style={{ fontSize: 18 }} />}
               aria-label="Abrir navegação"
+              data-tour="navegacao"
               onClick={() => setNavOpen(true)}
             />
           )}
           {/* Busca à **esquerda** da barra (demanda 1.2), antes das ações.
               Ela é o elemento elástico: `flex: 1` com teto de largura. */}
-          <BuscaNoCabecalho />
+          {/* Alvo do tour (change `tour-guiado`): o invólucro não altera o
+              layout — `display: contents` deixa o campo continuar sendo o
+              item elástico da barra. */}
+          <div data-tour="busca" style={{ display: 'contents' }}>
+            <BuscaNoCabecalho />
+          </div>
           <Space>
             {/* Ação principal da aplicação. Oferecida a **qualquer** papel:
                 permissão de envio é por pasta e vem do servidor (`canUpload`),
@@ -280,12 +295,15 @@ export function AppShell() {
                 type="primary"
                 icon={<IconeEnviar />}
                 aria-label={isNarrow ? 'Enviar documento' : undefined}
+                data-tour="enviar"
                 onClick={() => navigate(DESTINO_PEDIDO_DE_ENVIO)}
               >
                 {isNarrow ? null : 'Enviar documento'}
               </Button>
             </Tooltip>
-            <NotificationCenter />
+            <span data-tour="avisos">
+              <NotificationCenter />
+            </span>
             {/* Ajuda: mesma `manualUrl` do grupo AJUDA — uma origem, dois
                 acessos, que nunca divergem. Omitida quando a implantação não
                 a tem, para não oferecer acionador sem destino.
@@ -300,6 +318,7 @@ export function AppShell() {
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label="Ajuda (abre o manual em nova aba, fora da aplicação)"
+                  data-tour="ajuda"
                   icon={<IconeAjuda style={{ fontSize: 18 }} />}
                 />
               </Tooltip>

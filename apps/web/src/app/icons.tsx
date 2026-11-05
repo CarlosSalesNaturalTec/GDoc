@@ -6,6 +6,7 @@ import {
   Building2,
   CircleHelp,
   ClipboardList,
+  Compass,
   Clock,
   CloudDownload,
   Copy,
@@ -119,6 +120,7 @@ export const IconeControleDocumental = criarIcone(ClipboardList, 'IconeControleD
 
 // Envio
 export const IconeAjuda = criarIcone(CircleHelp, 'IconeAjuda');
+export const IconeTour = criarIcone(Compass, 'IconeTour');
 export const IconeEnviar = criarIcone(Upload, 'IconeEnviar');
 export const IconeEnviarPasta = criarIcone(FolderOpen, 'IconeEnviarPasta');
 export const IconeArrastarSoltar = criarIcone(Inbox, 'IconeArrastarSoltar');

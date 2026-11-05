@@ -42,7 +42,6 @@ O **objetivo principal** do GDoc é entregar um repositório de arquivos corpora
   * Compartilhamento de arquivos entre unidades diferentes.
   * Notificações fora do contexto de expiração de permissão (ex.: aviso a cada novo compartilhamento recebido).
   * Leitura obrigatória com registro de ciência (confirmação datada de que a pessoa leu um documento).
-  * Tour guiado de primeiro acesso.
   * Busca pelo conteúdo interno dos arquivos (a busca alcança nome e código do documento, não o texto dentro do PDF ou do documento de escritório).
 
 ## 4. Histórias de Usuário e Critérios de Aceitação
@@ -687,6 +686,25 @@ O **objetivo principal** do GDoc é entregar um repositório de arquivos corpora
       * **Dado** que mais de cinco documentos a que tenho acesso foram alterados
       * **Quando** abro a tela inicial
       * **Então** a área "Documentos recentes" apresenta os cinco mais recentes, cada um com tipo, nome com o código abaixo, unidade, revisão, situação e data da atualização, e "Ver histórico completo" leva ao recorte inteiro.
+
+* **US 11.3:** Como Colaborador, eu quero um tour curto pelas áreas da tela inicial para que eu aprenda a usar o sistema sem depender de treinamento. *(Reentrada de escopo pela demanda do cliente nº 2, tabelas 1.1 e 1.3 — antes excluída.)*
+  * **Critérios de Aceitação:**
+    * *Cenário 1 — Convite a quem não fez:*
+      * **Dado** que nunca fiz o tour
+      * **Quando** abro a tela inicial
+      * **Então** vejo, à direita da saudação, "Primeira vez aqui? Faça o tour de 2 minutos"; o tour não começa sem que eu o acione.
+    * *Cenário 2 — O tour só aponta o que vejo:*
+      * **Dado** que comecei o tour
+      * **Quando** percorro os passos
+      * **Então** cada passo destaca uma área presente na minha tela, e área ausente (pela largura da tela ou pela configuração) não tem passo.
+    * *Cenário 3 — Acionável de qualquer tela:*
+      * **Dado** que estou em qualquer tela
+      * **Quando** aciono "Tour guiado" no grupo AJUDA do menu
+      * **Então** a tela inicial é apresentada e o tour começa; recarregar a tela não o reabre.
+    * *Cenário 4 — Memória por pessoa:*
+      * **Dado** que concluí ou fechei o tour
+      * **Quando** volto à tela inicial, neste ou em outro computador
+      * **Então** o convite não aparece mais, e o tour continua disponível no menu.
 
 ## 5. Requisitos Funcionais
 
