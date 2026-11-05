@@ -4,6 +4,9 @@ import { ReadingStatus, UserRole } from '@gdoc/shared';
 import type {
   CreateReadingCampaignRequest,
   MyReadingsResponse,
+  OversightCampaignResponse,
+  OversightListResponse,
+  OversightReportResponse,
   ReadingAudience,
   ReadingAudienceOptionsResponse,
   ReadingCampaignResponse,
@@ -154,5 +157,75 @@ export function useAcknowledgeReading() {
     mutationFn: async (assignmentId: string) =>
       apiClient.post(`/reading/assignments/${assignmentId}/acknowledge`),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: [MY_READINGS_KEY] }),
+  });
+}
+
+const readingStatusSchema = z.enum([
+  ReadingStatus.PENDING,
+  ReadingStatus.LATE,
+  ReadingStatus.DONE,
+  ReadingStatus.CLOSED,
+]);
+
+const oversightCampaignSchema: z.ZodType<OversightCampaignResponse> = z.object({
+  id: z.string(),
+  unitId: z.string(),
+  unitName: z.string(),
+  documentCode: z.string(),
+  documentTitle: z.string(),
+  documentRevision: z.number(),
+  dueDate: z.string(),
+  createdAt: z.string(),
+  inProgress: z.boolean(),
+  scope: z.enum(['full', 'sector']),
+  scopeSectorName: z.string().nullable(),
+  total: z.number(),
+  done: z.number(),
+  pending: z.number(),
+  late: z.number(),
+  closed: z.number(),
+  adherence: z.number().nullable(),
+});
+
+const oversightListSchema: z.ZodType<OversightListResponse> = z.object({
+  available: z.boolean(),
+  campaigns: z.array(oversightCampaignSchema),
+});
+
+const oversightReportSchema: z.ZodType<OversightReportResponse> = z.object({
+  campaign: oversightCampaignSchema,
+  people: z.array(
+    z.object({
+      assignmentId: z.string(),
+      name: z.string(),
+      unitName: z.string(),
+      sectorName: z.string().nullable(),
+      status: readingStatusSchema,
+      dueDate: z.string(),
+      acknowledgedAt: z.string().nullable(),
+    }),
+  ),
+});
+
+/**
+ * Acompanhamento (change `acompanhamento-de-leituras`, design.md D4): o
+ * recorte é todo do servidor; `available` decide se a aba aparece.
+ */
+export function useOversight() {
+  return useQuery({
+    queryKey: ['reading-oversight'],
+    queryFn: async () =>
+      oversightListSchema.parse(await apiClient.get<OversightListResponse>('/reading/oversight')),
+  });
+}
+
+export function useOversightReport(campaignId: string | null) {
+  return useQuery({
+    queryKey: ['reading-oversight-report', campaignId],
+    enabled: campaignId !== null,
+    queryFn: async () =>
+      oversightReportSchema.parse(
+        await apiClient.get<OversightReportResponse>(`/reading/oversight/campaigns/${campaignId}`),
+      ),
   });
 }

@@ -4,7 +4,11 @@ import { RotuloDeEstado } from '../app/RotuloDeEstado';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { formatDate } from '../navegacao/format';
-import { destinoDaNotificacao, mensagemDaNotificacao } from '../notificacoes/mensagens';
+import {
+  destinoDaNotificacao,
+  mensagemDaNotificacao,
+  rotuloDoDestino,
+} from '../notificacoes/mensagens';
 import {
   useMarkNotificationAsRead,
   useNotifications,
@@ -82,7 +86,7 @@ export function NotificationCenter() {
                           to={destinoDaNotificacao(notification)!}
                           onClick={() => setAberto(false)}
                         >
-                          Abrir leituras
+                          {rotuloDoDestino(notification)}
                         </Link>
                       </div>
                     )}

@@ -64,7 +64,7 @@ Legenda: `pendente` · `bloqueada` (ver coluna Bloqueio) · `em andamento` ·
 | C1 | Núcleo da leitura obrigatória (marcar e dar ciência) | 3.1, 3.2 (etapas 1 e 3), 3.3, 3.4 | **entregue** | — | `leitura-obrigatoria` |
 | C2 | Superfícies de pendência (menu, contador, cartão, abas) | 3.2 (etapa 2), 3.5 | **entregue** | — | `superficies-de-pendencia` |
 | C3 | Avisos e atrasos | 3.2 (etapas 2 e 4), 3.3 | **entregue** | — | `avisos-e-atrasos` |
-| C4 | Acompanhamento e relatório exportável | 3.5 | pendente | C0, C1, D6 | — |
+| C4 | Acompanhamento e relatório exportável | 3.5 | **entregue** | — | `acompanhamento-de-leituras` |
 
 Ordem sugerida: **A1 → A2 → A3 → (A4, A5, A6 em qualquer ordem) → B1 → B2 →
 A7 → C0 → C1 → C2 → C3 → C4** (C0 e C1 são independentes entre si; ambas só
@@ -1080,7 +1080,33 @@ revisão de segurança antes do código.
   situação "Atrasada" é **apurada na consulta** pelo relógio do Postgres, nunca
   dependente do job ter rodado, como já se faz na situação do documento.
 
-### C4 — Acompanhamento e relatório exportável
+### C4 — Acompanhamento e relatório exportável  ✅ entregue
+
+> Change `acompanhamento-de-leituras` (PRD **US 12.6**). **Com ela, todas as
+> fatias da demanda nº 2 estão entregues no código.** Desvios e decisões:
+>
+> - **Recorte único em SQL** (design.md D1) para a lista e o relatório:
+>   publicador (o que criou, público inteiro), gestor do setor (unidade própria,
+>   só o setor), gestor da unidade (unidade própria, público inteiro) e todas as
+>   unidades (tudo). Somam por união; o alcance é relido a cada requisição.
+> - **A exceção da D5 num lugar só** (D3): `lib/reading-oversight.ts` é o único
+>   ponto em que consulta de pessoa atravessa unidades, com o contexto de sistema
+>   só no ramo `all_units`, colunas enumeradas e **nada de `files` na
+>   resposta**. Teste próprio: a mesma pessoa continua recusada, de forma
+>   indistinguível de inexistente, em `view-url`, `download-url`, auditoria e
+>   estado de leitura do arquivo de outra unidade.
+> - **D6 decidida**: exportação **no navegador** (`write-excel-file`, `jspdf` +
+>   `jspdf-autotable`, carregados sob demanda), do que está filtrado na tela.
+>   Nenhuma dependência nova no servidor.
+> - **Filtros na tela**, sobre a lista já recortada pelo servidor (D5).
+> - O aviso de **atraso da equipe** (C3) passou a levar ao relatório da marcação
+>   (`/leituras?aba=acompanhamento&marcacao=<id>`).
+>
+> **Lacunas conhecidas, aceitas:** pessoa **desativada** some da lista nominal,
+> não só do cálculo (a ciência dela continua no banco); o **administrador da
+> unidade** não acompanha por ser administrador — acompanha o que marcou ou pela
+> marcação da C0; gestor do setor não vê marcação sem ninguém do seu setor; não
+> há relatório consolidado de várias marcações num arquivo só.
 
 - **Capabilities**: `leitura-obrigatoria` (modificada)
 - **Demanda**: 3.5 (linha Acompanhamento) e a nota de visibilidade

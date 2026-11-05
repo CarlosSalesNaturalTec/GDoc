@@ -102,20 +102,55 @@ aparecem também no cartão **Avisos** da tela inicial:
 | **Leitura atrasada** | Quem não confirmou | Uma vez, no dia seguinte ao fim do prazo. A leitura continua aberta: ainda dá para ler e confirmar. |
 | **Atraso da equipe** | Os gestores de quem está atrasado | Uma vez por documento e prazo, com quantas pessoas estão atrasadas e os nomes e setores delas. |
 
-Nos avisos do leitor, **Abrir leituras** leva à aba **Pendentes**.
+Nos avisos do leitor, **Abrir leituras** leva à aba **Pendentes**; no aviso
+ao gestor, **Abrir acompanhamento** leva ao relatório do documento.
 
 - **Gestor** é quem a administração marcou no cadastro como gestor do setor,
   da unidade ou de todas as unidades (ver [Gestores de
   acompanhamento](../administrador/pessoas.md#gestores-de-acompanhamento)).
   O gestor do setor recebe o atraso das pessoas do **seu setor**; o da unidade,
-  de **toda a unidade**. O gestor de todas as unidades recebe, por enquanto, o
-  atraso da **própria** unidade — o acompanhamento das demais unidades chega
-  com o relatório.
+  de **toda a unidade**. O gestor de todas as unidades recebe o atraso da
+  **própria** unidade; o das demais ele acompanha pela aba **Acompanhamento**.
 - Ninguém recebe o mesmo aviso duas vezes. Os avisos são preparados uma vez
   por dia, de madrugada; o de leitura nova no momento da marcação sai na hora.
 - Quem foi incluído no público depois da marcação passa a ter a leitura — com
   **15 dias** de prazo — no dia seguinte, mesmo sem abrir o PapelHub.
 
-!!! tip "Acompanhamento"
-    A aba de **acompanhamento**, com o relatório de quem leu, para quem publica
-    e para gestores, chega numa próxima entrega.
+## Acompanhar quem leu (publicador, gestor e Governança)
+
+Quem tem leituras para acompanhar encontra, em **Leitura obrigatória**, uma
+terceira aba: **Acompanhamento**. Ela aparece para:
+
+| Quem | O que vê |
+| :--- | :------- |
+| **Quem marcou** documentos | Os documentos que marcou, com o público inteiro. |
+| **Gestor do setor** | Os documentos marcados na sua unidade, só com as pessoas do **seu setor**. |
+| **Gestor da unidade** | Os documentos marcados na sua unidade, com o público inteiro. |
+| **Gestor de todas as unidades** (Governança) | Os documentos marcados em **todas** as unidades, com o público inteiro. |
+
+Quem não marcou nada e não é gestor não vê a aba.
+
+Para cada documento marcado, a lista mostra a unidade, o prazo, se a leitura
+está **Em curso** ou **Encerrada** (o documento ganhou nova revisão ou ficou
+obsoleto), o **alcance** — "Público inteiro" ou "Sua equipe (setor …)" — e os
+números: **Público**, **Confirmados**, **Pendentes**, **Atrasados** e a
+**Adesão** (confirmados sobre o público). Pessoas **desativadas** não entram na
+conta nem na lista.
+
+Clique em **Ver relatório** para a lista nominal: nome, unidade, setor,
+situação, prazo e data e hora da ciência. Para quem confirmou, o setor é o que a
+pessoa tinha **no momento da confirmação**.
+
+- Filtre por **unidade**, **setor** e **situação**; o contador mostra quantas
+  pessoas estão na lista filtrada.
+- **Exportar Excel** e **Exportar PDF** geram o arquivo com **o que está
+  filtrado**, junto do documento, da revisão, dos filtros aplicados e dos
+  números. O arquivo é montado no seu navegador e baixado direto.
+- O aviso de **atraso da equipe** no sino leva direto ao relatório daquele
+  documento (**Abrir acompanhamento**).
+
+!!! note "Acompanhar não é abrir o documento"
+    O acompanhamento mostra **quem leu**, não o documento. A Governança vê o
+    relatório das outras unidades, mas não abre, não baixa e não consulta a
+    auditoria dos arquivos delas; o gestor também não ganha acesso ao documento
+    por ser gestor. Para ler o documento, vale a permissão de sempre.

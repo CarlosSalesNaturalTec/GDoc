@@ -21,15 +21,32 @@ export function ehAvisoDeLeitura(notification: NotificationResponse): boolean {
 }
 
 /**
- * Para onde o aviso leva, quando leva (design.md D5): os do **leitor** abrem a
- * lista das próprias leituras. O do gestor ainda não tem destino — o
- * acompanhamento é da C4 — e diz por escrito quem está atrasado.
+ * Para onde o aviso leva, quando leva (design.md D5 de `avisos-e-atrasos`):
+ * os do **leitor** abrem a lista das próprias leituras.
  */
 export function destinoDaNotificacao(notification: NotificationResponse): string | null {
-  return notification.kind === NotificationKind.READING_ASSIGNED ||
+  if (
+    notification.kind === NotificationKind.READING_ASSIGNED ||
     notification.kind === NotificationKind.READING_OVERDUE
-    ? '/leituras'
-    : null;
+  ) {
+    return '/leituras';
+  }
+  // Aviso ao gestor leva ao relatório da marcação (change
+  // `acompanhamento-de-leituras`, design.md D7).
+  if (
+    notification.kind === NotificationKind.READING_OVERDUE_TEAM &&
+    'campaignId' in notification.payload
+  ) {
+    return `/leituras?aba=acompanhamento&marcacao=${notification.payload.campaignId}`;
+  }
+  return null;
+}
+
+/** Texto do link de destino — o do gestor abre o acompanhamento, não as próprias leituras. */
+export function rotuloDoDestino(notification: NotificationResponse): string {
+  return notification.kind === NotificationKind.READING_OVERDUE_TEAM
+    ? 'Abrir acompanhamento'
+    : 'Abrir leituras';
 }
 
 function nomes(people: { name: string; sectorName: string | null }[], total: number): string {

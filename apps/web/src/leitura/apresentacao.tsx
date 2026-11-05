@@ -28,7 +28,7 @@ export function prazoDaLeitura(leitura: MinhaLeitura): string {
  * negativo (design.md D2): continua aberta, e o texto — não só a cor — diz
  * isso.
  */
-export function RotuloDaLeitura({ leitura }: { leitura: MinhaLeitura }) {
+export function RotuloDaLeitura({ leitura }: { leitura: Pick<MinhaLeitura, 'status'> }) {
   switch (leitura.status) {
     case ReadingStatus.LATE:
       return <RotuloDeEstado tom="negativo">Atrasada</RotuloDeEstado>;
