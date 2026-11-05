@@ -17,6 +17,18 @@ export const NotificationKind = {
    * já garante basta para que repetir a transferência não duplique o aviso.
    */
   REGISTRATION_PENDING: 'registration_pending',
+  /**
+   * Leitura obrigatória (change `avisos-e-atrasos`, design.md D1). Nova
+   * leitura, à pessoa do público; evento de origem = a atribuição.
+   */
+  READING_ASSIGNED: 'reading_assigned',
+  /** Leitura atrasada, ao leitor; evento de origem = atribuição + prazo. */
+  READING_OVERDUE: 'reading_overdue',
+  /**
+   * Atraso da equipe, ao gestor (C0), **agregado** por marcação e prazo
+   * (design.md D3); evento de origem = marcação + prazo.
+   */
+  READING_OVERDUE_TEAM: 'reading_overdue_team',
 } as const;
 
 export type NotificationKind = (typeof NotificationKind)[keyof typeof NotificationKind];
@@ -50,11 +62,54 @@ export interface RegistrationPendingNotificationPayload {
 }
 
 /**
+ * Payload dos avisos de leitura do **leitor** (`reading_assigned`,
+ * `reading_overdue`): o documento como foi marcado e o prazo da pessoa, para o
+ * sino dizer qual leitura sem uma segunda ida ao servidor.
+ */
+export interface ReadingNotificationPayload {
+  assignmentId: string;
+  campaignId: string;
+  documentCode: string;
+  documentTitle: string;
+  documentRevision: number;
+  /** `YYYY-MM-DD` — o prazo é do dia. */
+  dueDate: string;
+}
+
+/** Pessoa atrasada citada no aviso ao gestor: nome e setor, nada mais (design.md D3). */
+export interface ReadingLatePerson {
+  name: string;
+  sectorName: string | null;
+}
+
+/**
+ * Payload do aviso ao gestor (`reading_overdue_team`): quantas pessoas do seu
+ * alcance estão atrasadas na marcação e prazo, e quem (até
+ * `READING_TEAM_NOTICE_MAX_NAMES`; `lateCount` é sempre o total).
+ */
+export interface ReadingTeamOverdueNotificationPayload {
+  campaignId: string;
+  documentCode: string;
+  documentTitle: string;
+  documentRevision: number;
+  dueDate: string;
+  lateCount: number;
+  people: ReadingLatePerson[];
+}
+
+/** Teto de nomes no aviso agregado ao gestor (design.md D3). */
+export const READING_TEAM_NOTICE_MAX_NAMES = 20;
+
+/**
  * Payload de uma notificação, discriminado pelo `kind` da notificação que o
  * carrega. Quem lê deve ramificar por `kind` antes de acessar campos — é o que
  * mantém o canal aberto a assuntos novos sem que cada leitor presuma concessão.
  */
-export type NotificationPayload = GrantNotificationPayload | RegistrationPendingNotificationPayload;
+export type NotificationPayload =
+  | GrantNotificationPayload
+  | RegistrationPendingNotificationPayload
+  | ReadingNotificationPayload
+  | ReadingTeamOverdueNotificationPayload;
 
 export interface NotificationResponse {
   id: string;

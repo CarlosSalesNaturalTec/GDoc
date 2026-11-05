@@ -271,11 +271,13 @@ documento, o prazo e o botão **"Ler e confirmar ciência"**, que SHALL abrir o
 documento no visualizador; SHALL oferecer o acesso à lista completa; e, sem
 leitura aberta, SHALL dizer que não há leitura pendente. Leitura aberta cujo
 documento a pessoa não alcança mais NÃO SHALL oferecer o botão. O cartão
-"Avisos", até que os avisos de leitura existam, SHALL dizer por escrito o que
-vai apresentar, e NÃO SHALL afirmar ausência de avisos. Quando a largura não
+"Avisos" SHALL listar os avisos de leitura obrigatória da pessoa — nova
+pendência, atraso e atraso da equipe —, os mais recentes primeiro, com a data;
+sem nenhum, SHALL dizer que não há aviso de leitura obrigatória e que os demais
+avisos estão no sino. Quando a largura não
 comportar as duas colunas, a coluna SHALL passar para depois do conteúdo
 principal, ocupando a largura disponível, sem rolagem horizontal. Referência:
-PRD US 12.4; demanda do cliente nº 2, seções 1.3 (coluna direita), 3.2 (etapa
+PRD US 12.4 e 12.5; demanda do cliente nº 2, seções 1.3 (coluna direita), 3.2 (etapa
 2, item 3) e 3.5 (Início).
 
 #### Scenario: Coluna lateral na forma larga
@@ -304,9 +306,14 @@ PRD US 12.4; demanda do cliente nº 2, seções 1.3 (coluna direita), 3.2 (etapa
 - **THEN** o cartão "Leitura obrigatória" informa que não há leitura pendente
 
 #### Scenario: Cartão diz o que vai apresentar
-- **WHEN** uma pessoa lê o cartão "Avisos" antes de os avisos de leitura
-  existirem
-- **THEN** lê o que vai aparecer ali, e não uma afirmação de que não há avisos
+- **WHEN** uma pessoa sem aviso de leitura obrigatória lê o cartão "Avisos"
+- **THEN** lê que não há aviso de leitura obrigatória e que os demais avisos
+  estão no sino
+
+#### Scenario: Cartão de avisos lista os avisos de leitura
+- **WHEN** uma pessoa recebeu aviso de nova leitura e aviso de atraso
+- **THEN** o cartão "Avisos" mostra os dois, o mais recente primeiro, com a
+  data
 
 ### Requirement: Saudação convida ao tour quem ainda não o fez
 

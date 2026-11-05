@@ -58,11 +58,12 @@ No campo **Acompanhamento de leituras** do cadastro, escolha:
 - A coluna **Acompanhamento** da lista mostra quem é gestor e de quê. O sistema
   registra quem fez cada marcação e quando.
 
-!!! note "O que o gestor vê"
-    A marcação prepara a **leitura obrigatória**: é ela que vai definir quem
-    recebe os avisos de atraso da equipe e quem vê o acompanhamento de quem leu.
-    Essas telas chegam nas próximas entregas; marcar agora não muda nada do que
-    a pessoa vê hoje.
+!!! note "O que o gestor recebe"
+    A marcação define quem recebe, no sino, o **aviso de atraso da equipe** da
+    leitura obrigatória — com os nomes de quem está atrasado no seu alcance (ver
+    [Leitura obrigatória](../colaborador/leitura-obrigatoria.md#avisos)). Ela
+    também vai definir quem vê o acompanhamento de quem leu, que chega numa
+    próxima entrega.
 
 ## Setores da unidade
 

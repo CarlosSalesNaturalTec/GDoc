@@ -56,9 +56,11 @@ clique, a "quem sou, onde estou, o que posso fazer e o que mudou":
   com prazo vencido aparece marcada como **Atrasada** — e o botão **Ler e
   confirmar ciência**, que abre o documento no visualizador. **Ver todas** leva
   à lista completa; sem nada pendente, o cartão diz isso. Ver [Leitura
-  obrigatória](colaborador/leitura-obrigatoria.md). O cartão **Avisos** ainda
-  está reservado e explica o que vai aparecer ali; os avisos de hoje continuam
-  no **sino**, no topo da tela.
+  obrigatória](colaborador/leitura-obrigatoria.md). O cartão **Avisos** mostra
+  os seus avisos de leitura obrigatória mais recentes — leitura nova, leitura
+  atrasada e, para gestores, atraso da equipe —, com a data e, nos seus, o
+  link **Abrir leituras**. Os demais avisos ficam só no **sino**, no topo da
+  tela.
 
 !!! tip "Os cartões são clicáveis por inteiro"
     Nos atalhos e em **Pastas da unidade**, basta clicar ou tocar em qualquer
@@ -176,5 +178,6 @@ Na barra superior, entre o botão de envio e o de Ajuda, fica o **sino de
 notificações**. Um número sobre o sino indica quantas notificações você ainda
 não leu — sem nenhuma pendente, o sino aparece sem número. Clique nele para ver
 a lista — por exemplo, avisos de que você recebeu um acesso temporário ou de
-que ele está prestes a vencer. Abrir uma notificação a marca como lida, mas ela
+que ele está prestes a vencer, ou de uma **leitura obrigatória** nova ou
+atrasada (ver [Leitura obrigatória](colaborador/leitura-obrigatoria.md#avisos)). Abrir uma notificação a marca como lida, mas ela
 continua disponível na lista.

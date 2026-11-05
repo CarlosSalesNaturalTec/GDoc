@@ -79,4 +79,6 @@ export const ROTAS_DA_TELA_INICIAL: RouteTable = {
   // Cartão "Leitura obrigatória" da coluna direita (change
   // `superficies-de-pendencia`): a mesma consulta do contador do menu.
   'GET /reading/mine': { status: 200, body: { items: [] } },
+  // Cartão "Avisos" (change `avisos-e-atrasos`): a mesma lista do sino.
+  'GET /notifications': { status: 200, body: { notifications: [] } },
 };

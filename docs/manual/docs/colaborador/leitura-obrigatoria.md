@@ -91,7 +91,31 @@ como **Atrasada**.
     botão, é porque você deixou de ter acesso ao documento depois que ele foi
     marcado. Procure quem publicou o documento ou a administração da unidade.
 
-!!! tip "Avisos no sino e acompanhamento"
-    Os avisos de nova leitura e de atraso no **sino** e a aba de
-    **acompanhamento** para quem publica e para gestores chegam numa próxima
-    entrega.
+## Avisos
+
+Os avisos de leitura obrigatória chegam pelo **sino**, no topo da tela, e
+aparecem também no cartão **Avisos** da tela inicial:
+
+| Aviso | Quem recebe | Quando |
+| :---- | :---------- | :----- |
+| **Nova leitura obrigatória** | Cada pessoa do público | Assim que o documento é marcado — ou, para quem passou a fazer parte do público depois (admissão, troca de setor), quando a leitura dela é criada. |
+| **Leitura atrasada** | Quem não confirmou | Uma vez, no dia seguinte ao fim do prazo. A leitura continua aberta: ainda dá para ler e confirmar. |
+| **Atraso da equipe** | Os gestores de quem está atrasado | Uma vez por documento e prazo, com quantas pessoas estão atrasadas e os nomes e setores delas. |
+
+Nos avisos do leitor, **Abrir leituras** leva à aba **Pendentes**.
+
+- **Gestor** é quem a administração marcou no cadastro como gestor do setor,
+  da unidade ou de todas as unidades (ver [Gestores de
+  acompanhamento](../administrador/pessoas.md#gestores-de-acompanhamento)).
+  O gestor do setor recebe o atraso das pessoas do **seu setor**; o da unidade,
+  de **toda a unidade**. O gestor de todas as unidades recebe, por enquanto, o
+  atraso da **própria** unidade — o acompanhamento das demais unidades chega
+  com o relatório.
+- Ninguém recebe o mesmo aviso duas vezes. Os avisos são preparados uma vez
+  por dia, de madrugada; o de leitura nova no momento da marcação sai na hora.
+- Quem foi incluído no público depois da marcação passa a ter a leitura — com
+  **15 dias** de prazo — no dia seguinte, mesmo sem abrir o PapelHub.
+
+!!! tip "Acompanhamento"
+    A aba de **acompanhamento**, com o relatório de quem leu, para quem publica
+    e para gestores, chega numa próxima entrega.

@@ -786,6 +786,25 @@ O **objetivo principal** do GDoc é entregar um repositório de arquivos corpora
       * **Quando** abro a pasta dele
       * **Então** a linha do documento traz o ícone de leitura obrigatória; uma revisão nova ainda não marcada não traz.
 
+* **US 12.5:** Como leitor e como gestor, eu quero ser avisado da leitura nova e do atraso para que nenhum prazo passe sem que alguém saiba.
+  * **Critérios de Aceitação:**
+    * *Cenário 1 — Leitura nova:*
+      * **Dado** que um documento foi marcado e eu sou do público, ou passei a ser depois
+      * **Quando** a minha leitura é criada
+      * **Então** recebo no sino um aviso com o documento e o prazo, uma vez só; se o aviso falhar, a marcação continua valendo e o aviso sai na rotina diária.
+    * *Cenário 2 — Quem entra depois:*
+      * **Dado** que fui admitido ou mudei para um setor do público de uma marcação em curso
+      * **Quando** a rotina diária roda
+      * **Então** passo a ter a leitura, com 15 dias de prazo, e o aviso — sem precisar abrir o sistema.
+    * *Cenário 3 — Atraso ao leitor:*
+      * **Dado** que o prazo da minha leitura passou sem ciência
+      * **Quando** a rotina diária roda
+      * **Então** recebo um aviso de atraso, uma vez por prazo, e a leitura continua aberta como Atrasada.
+    * *Cenário 4 — Atraso ao gestor:*
+      * **Dado** que sou gestor do setor ou da unidade de pessoas atrasadas
+      * **Quando** a rotina diária roda
+      * **Então** recebo um aviso por documento e prazo, com quantas estão atrasadas e os nomes e setores delas; gestor de outro setor, de outra unidade, e quem já confirmou não entram.
+
 ## 5. Requisitos Funcionais
 
 1. Autenticação por usuário e senha; contas criadas exclusivamente pela área administrativa, sem autocadastro.

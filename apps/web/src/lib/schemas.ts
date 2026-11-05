@@ -19,6 +19,8 @@ import type {
   MyProfileResponse,
   NotificationListResponse,
   NotificationResponse,
+  ReadingNotificationPayload,
+  ReadingTeamOverdueNotificationPayload,
   PersonResponse,
   SectorResponse,
   PublicConfigResponse,
@@ -561,6 +563,28 @@ export const registrationPendingNotificationPayloadSchema = z.object({
   fileName: z.string(),
 });
 
+/** Espelha `ReadingNotificationPayload` (change `avisos-e-atrasos`, design.md D1). */
+export const readingNotificationPayloadSchema: z.ZodType<ReadingNotificationPayload> = z.object({
+  assignmentId: z.string(),
+  campaignId: z.string(),
+  documentCode: z.string(),
+  documentTitle: z.string(),
+  documentRevision: z.number(),
+  dueDate: z.string(),
+});
+
+/** Espelha `ReadingTeamOverdueNotificationPayload` (design.md D3). */
+export const readingTeamOverdueNotificationPayloadSchema: z.ZodType<ReadingTeamOverdueNotificationPayload> =
+  z.object({
+    campaignId: z.string(),
+    documentCode: z.string(),
+    documentTitle: z.string(),
+    documentRevision: z.number(),
+    dueDate: z.string(),
+    lateCount: z.number(),
+    people: z.array(z.object({ name: z.string(), sectorName: z.string().nullable() })),
+  });
+
 /**
  * Espelha `NotificationResponse` (design.md D4, capability `notificacoes`).
  *
@@ -577,8 +601,19 @@ export const notificationResponseSchema: z.ZodType<NotificationResponse> = z.obj
     NotificationKind.GRANT_EXPIRING,
     NotificationKind.GRANT_EXPIRED,
     NotificationKind.REGISTRATION_PENDING,
+    NotificationKind.READING_ASSIGNED,
+    NotificationKind.READING_OVERDUE,
+    NotificationKind.READING_OVERDUE_TEAM,
   ]),
-  payload: z.union([grantNotificationPayloadSchema, registrationPendingNotificationPayloadSchema]),
+  // A união tenta na ordem, e `z.object` descarta campos a mais: o payload do
+  // gestor vem **antes** do do leitor, ou seria aceito por ele e perderia a
+  // lista de pessoas (change `avisos-e-atrasos`, design.md D5).
+  payload: z.union([
+    grantNotificationPayloadSchema,
+    readingTeamOverdueNotificationPayloadSchema,
+    readingNotificationPayloadSchema,
+    registrationPendingNotificationPayloadSchema,
+  ]),
   createdAt: z.string(),
   readAt: z.string().nullable(),
 });

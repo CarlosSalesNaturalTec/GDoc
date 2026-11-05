@@ -1,4 +1,3 @@
-import type { ReactNode } from 'react';
 import { Card, Col, Empty, Result, Row, Space, Spin, Typography } from 'antd';
 import { Link } from 'react-router-dom';
 import { IconePasta } from '../app/icons';
@@ -12,6 +11,7 @@ import { textoDeNovos, useNewDocumentsCount } from './queries';
 import { TabelaDeRecentes } from './TabelaDeRecentes';
 import { TourGuiado } from '../tour/TourGuiado';
 import { CartaoDeLeituras } from '../leitura/CartaoDeLeituras';
+import { CartaoDeAvisos } from '../leitura/CartaoDeAvisos';
 import { DESTINO_PEDIDO_DE_TOUR } from '../tour/pedido-de-tour';
 
 /**
@@ -103,21 +103,6 @@ function CartaoDeAtalho({ atalho }: { atalho: Atalho }) {
     <Link to={atalho.destino} aria-label={atalho.rotulo} style={ESTILO_DO_LINK_DE_CARTAO}>
       {conteudo}
     </Link>
-  );
-}
-
-/**
- * Cartão reservado da coluna direita (design.md D8): diz por escrito o que vai
- * apresentar, e **não** afirma ausência — "nenhum aviso" seria verdadeiro só
- * por vacuidade. Resta só o de Avisos, cujo conteúdo chega com a fatia C3; o
- * de Leitura obrigatória virou `CartaoDeLeituras` (change
- * `superficies-de-pendencia`).
- */
-function CartaoReservado({ titulo, children }: { titulo: string; children: ReactNode }) {
-  return (
-    <Card title={titulo} size="small">
-      <Typography.Text type="secondary">{children}</Typography.Text>
-    </Card>
   );
 }
 
@@ -264,10 +249,7 @@ export function InicioPage() {
       >
         <Space direction="vertical" size="large" style={{ display: 'flex' }}>
           <CartaoDeLeituras />
-          <CartaoReservado titulo="Avisos">
-            Aqui vão aparecer os avisos sobre leituras obrigatórias. Os demais avisos continuam no
-            sino, no topo da tela.
-          </CartaoReservado>
+          <CartaoDeAvisos />
         </Space>
       </aside>
       <TourGuiado />

@@ -110,37 +110,69 @@ export async function countAudience(
   return Number(rows[0]!.n);
 }
 
-/** Cria as atribuições do público **da marcação**, com o prazo dela. */
-export async function materializeCampaign(client: PoolClient, campaignId: string): Promise<number> {
-  const { rowCount } = await client.query(
+/**
+ * Cria as atribuições do público **da marcação**, com o prazo dela. Devolve as
+ * criadas, que a rota avisa (`avisos-e-atrasos`, design.md D2).
+ */
+export async function materializeCampaign(
+  client: PoolClient,
+  campaignId: string,
+): Promise<string[]> {
+  const { rows } = await client.query<{ id: string }>(
     `INSERT INTO reading_assignments (unit_id, campaign_id, user_id, due_date)
      SELECT c.unit_id, c.id, u.id, c.due_date
      FROM reading_campaigns c
      JOIN users u ON ${audienceMatchClause('c.unit_id', 'c.audience')}
      WHERE c.id = $1
-     ON CONFLICT (campaign_id, user_id) DO NOTHING`,
+     ON CONFLICT (campaign_id, user_id) DO NOTHING
+     RETURNING id`,
     [campaignId],
   );
-  return rowCount ?? 0;
+  return rows.map((r) => r.id);
 }
 
 /**
- * Pendência de quem entrou no público **depois** da marcação (demanda 3.3;
- * design.md D2): prazo de 15 dias a partir de agora, só em campanhas da revisão
- * vigente de documento em circulação. Idempotente.
+ * Atribuições que faltam para quem casa **hoje** com o público de uma marcação
+ * em curso — revisão vigente de documento em circulação (demanda 3.3; design.md
+ * D2 de `leitura-obrigatoria`). Prazo de 15 dias a partir de agora. Uma
+ * expressão só para a consulta da pessoa e para a rotina diária
+ * (`avisos-e-atrasos`, design.md D4); `filtro` recorta por pessoa e unidade.
  */
-export async function reconcileForUser(client: PoolClient, ctx: TenantContext): Promise<void> {
-  await client.query(
-    `INSERT INTO reading_assignments (unit_id, campaign_id, user_id, due_date)
-     SELECT c.unit_id, c.id, u.id, current_date + $3::int
+function reconcileSql(filtro: string): string {
+  return `INSERT INTO reading_assignments (unit_id, campaign_id, user_id, due_date)
+     SELECT c.unit_id, c.id, u.id, current_date + $1::int
      FROM reading_campaigns c
      JOIN files f ON f.id = c.file_id
        AND f.deleted_at IS NULL
        AND f.lifecycle_state IS DISTINCT FROM 'obsolete'
        AND f.document_revision = c.document_revision
-     JOIN users u ON u.id = $1 AND ${audienceMatchClause('c.unit_id', 'c.audience')}
-     WHERE c.unit_id = $2
-     ON CONFLICT (campaign_id, user_id) DO NOTHING`,
-    [ctx.userId, ctx.unitId, READING_DEFAULT_DUE_DAYS],
+     JOIN users u ON ${audienceMatchClause('c.unit_id', 'c.audience')}
+     WHERE ${filtro}
+     ON CONFLICT (campaign_id, user_id) DO NOTHING
+     RETURNING id`;
+}
+
+/**
+ * Pendência de quem entrou no público **depois** da marcação, na consulta às
+ * próprias leituras. Idempotente. Devolve as atribuições **criadas agora** —
+ * quem chama as avisa (`avisos-e-atrasos`, design.md D2).
+ */
+export async function reconcileForUser(client: PoolClient, ctx: TenantContext): Promise<string[]> {
+  const { rows } = await client.query<{ id: string }>(
+    reconcileSql('u.id = $2 AND c.unit_id = $3'),
+    [READING_DEFAULT_DUE_DAYS, ctx.userId, ctx.unitId],
   );
+  return rows.map((r) => r.id);
+}
+
+/**
+ * A mesma reconciliação para **todas** as marcações em curso, de todas as
+ * unidades — só a rotina diária a chama, com o contexto de sistema
+ * (`jobs/notify-readings.ts`). Cada atribuição herda a unidade da marcação.
+ */
+export async function reconcileAll(client: PoolClient): Promise<string[]> {
+  const { rows } = await client.query<{ id: string }>(reconcileSql('TRUE'), [
+    READING_DEFAULT_DUE_DAYS,
+  ]);
+  return rows.map((r) => r.id);
 }
