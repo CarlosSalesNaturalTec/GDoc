@@ -272,4 +272,25 @@ describe('Busca de arquivos (web-busca)', () => {
     await userEvent.click(botaoBuscar());
     await screen.findByText('Nenhum resultado');
   });
+
+  describe('chegada à tela de busca (change conteudo-da-tela-inicio, design.md D6)', () => {
+    it('sem termo no endereço, o campo de termo chega focado', async () => {
+      mockFetch({ 'GET /auth/me': { status: 200, body: COLLABORATOR } });
+      renderApp(['/busca']);
+
+      expect(await screen.findByPlaceholderText('Buscar por nome')).toHaveFocus();
+    });
+
+    it('com termo no endereço, a busca executa e o foco não vai para o campo', async () => {
+      mockFetch({
+        'GET /auth/me': { status: 200, body: COLLABORATOR },
+        'GET /files/search': { status: 200, body: results([]) },
+      });
+      renderApp(['/busca?q=protocolo']);
+
+      const campo = await screen.findByPlaceholderText('Buscar por nome');
+      await waitFor(() => expect(campo).toHaveValue('protocolo'));
+      expect(campo).not.toHaveFocus();
+    });
+  });
 });

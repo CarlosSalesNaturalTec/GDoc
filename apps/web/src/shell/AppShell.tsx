@@ -25,6 +25,7 @@ import { MarcaDoProduto } from './MarcaDoProduto';
 import { CartaoDoUsuario } from './CartaoDoUsuario';
 import { NotificationCenter } from './NotificationCenter';
 import { BuscaNoCabecalho } from './BuscaNoCabecalho';
+import { NOME_ACESSIVEL_MANUAL } from './manual';
 
 const { Header, Sider, Content } = Layout;
 
@@ -33,9 +34,6 @@ const MANUAL_KEY = 'manual-do-usuario';
 
 /** Altura do gatilho de recolher do design system, reservada no rodapé da coluna. */
 const ALTURA_GATILHO_RECOLHER = 64;
-
-/** Nome acessível único do acesso ao manual, usado no menu e na barra superior. */
-const NOME_ACESSIVEL_MANUAL = 'Manual do usuário (abre em nova aba, fora da aplicação)';
 
 /** Shell de layout (design.md D6): itens de administração só aparecem para `unit_admin`/`global_admin`. */
 export function AppShell() {

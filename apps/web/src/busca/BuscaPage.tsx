@@ -163,6 +163,12 @@ export function BuscaPage() {
           do `Space wrap`, que já degrada sem quebrar. */}
       <Space wrap style={{ marginBottom: 16 }}>
         <Input.Search
+          // Quem chega **sem** termo veio buscar — o atalho "Buscar documento"
+          // da tela inicial conduz ao campo, não a uma tela onde ele ainda
+          // precise ser localizado (change `conteudo-da-tela-inicio`,
+          // design.md D6). Com termo no endereço a busca já executou, e o foco
+          // no campo atrapalharia quem vai ler os resultados.
+          autoFocus={termoDaUrl === ''}
           allowClear
           placeholder="Buscar por nome"
           style={{ width: isNarrow ? '100%' : 240 }}

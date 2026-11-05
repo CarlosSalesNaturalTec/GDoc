@@ -41,7 +41,7 @@ describe('Acesso ao manual no grupo AJUDA da navegação (responsividade-mobile-
         body: { appName: 'PapelHub', clientName: '', manualUrl: MANUAL_URL },
       },
     });
-    renderApp(['/']);
+    renderApp(['/recentes']);
 
     const link = await screen.findByRole('link', {
       name: 'Manual do usuário (abre em nova aba, fora da aplicação)',
@@ -63,7 +63,7 @@ describe('Acesso ao manual no grupo AJUDA da navegação (responsividade-mobile-
         body: { appName: 'PapelHub', clientName: '', manualUrl: '' },
       },
     });
-    renderApp(['/']);
+    renderApp(['/recentes']);
 
     await screen.findByText('PapelHub');
     expect(screen.queryByRole('link', { name: /Manual do usuário/ })).not.toBeInTheDocument();
@@ -78,7 +78,7 @@ describe('Acesso ao manual no grupo AJUDA da navegação (responsividade-mobile-
       },
       'GET /auth/public-config': { status: 500 },
     });
-    renderApp(['/']);
+    renderApp(['/recentes']);
 
     await screen.findByText('PapelHub');
     expect(screen.queryByRole('link', { name: /Manual do usuário/ })).not.toBeInTheDocument();
@@ -96,7 +96,7 @@ describe('Acesso ao manual no grupo AJUDA da navegação (responsividade-mobile-
         body: { appName: 'PapelHub', clientName: '', manualUrl: MANUAL_URL },
       },
     });
-    renderApp(['/']);
+    renderApp(['/recentes']);
 
     expect(
       await screen.findByRole('link', {
@@ -138,7 +138,7 @@ describe('Acesso ao manual no grupo AJUDA da navegação (responsividade-mobile-
         body: { appName: 'PapelHub', clientName: '', manualUrl: MANUAL_URL },
       },
     });
-    renderApp(['/']);
+    renderApp(['/recentes']);
 
     await screen.findByRole('link', {
       name: 'Manual do usuário (abre em nova aba, fora da aplicação)',

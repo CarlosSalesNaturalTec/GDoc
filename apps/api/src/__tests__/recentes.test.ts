@@ -9,7 +9,8 @@ import { Argon2AuthPort } from '../adapters/argon2-auth-port.js';
 import { InMemoryStoragePort } from './in-memory-storage-port.js';
 import { setupTestDatabase, seedTwoUnits, withSystemBypass, sessionCookieFor } from './test-db.js';
 import type { Ports } from '../ports/index.js';
-import type { RecentDocumentsResponse } from '@gdoc/shared';
+import type { NewDocumentsCountResponse, RecentDocumentsResponse } from '@gdoc/shared';
+import { config } from '../config.js';
 import { AuditAction, DocumentLifecycleState } from '@gdoc/shared';
 
 /**
@@ -420,6 +421,108 @@ describe('Documentos recentes (routes/recent.ts, GET /files/recent, US 11.2)', (
 
     const body = await consultar(ids.userA);
     expect(body.documents).toEqual([]);
+  });
+
+  async function contarNovos(userId: string): Promise<NewDocumentsCountResponse> {
+    const app = createApp(ports);
+    const res = await request(app)
+      .get('/files/recent/new-count')
+      .set('Cookie', await sessionCookieFor(ports, userId));
+    expect(res.status).toBe(200);
+    return res.body as NewDocumentsCountResponse;
+  }
+
+  const diasAtras = (dias: number) => new Date(Date.now() - dias * 86_400_000).toISOString();
+
+  describe('contagem de documentos novos (GET /files/recent/new-count, change conteudo-da-tela-inicio)', () => {
+    it('conta só o que a pessoa alcança, publicado na janela de 7 dias (design.md D1/D3)', async () => {
+      await limparAcervo();
+      await inserirArquivo({ unitId: ids.unitA, ownerId: ids.userA, fileName: 'meu.pdf' });
+      const liberado = await inserirArquivo({
+        unitId: ids.unitA,
+        ownerId: outroColaboradorAId,
+        fileName: 'liberado.pdf',
+        createdAt: diasAtras(2),
+      });
+      await conceder({
+        unitId: ids.unitA,
+        subjectUserId: ids.userA,
+        fileId: liberado,
+        grantedBy: unitAdminAId,
+      });
+      // Sem concessão: existe, é novo, e não pode entrar na contagem.
+      await inserirArquivo({
+        unitId: ids.unitA,
+        ownerId: outroColaboradorAId,
+        fileName: 'reservado.pdf',
+      });
+
+      expect(await contarNovos(ids.userA)).toEqual({ days: 7, count: 2, capped: false });
+      // O administrador da unidade alcança os três.
+      expect((await contarNovos(unitAdminAId)).count).toBe(3);
+    });
+
+    it('publicado antes da janela e alterado depois aparece nos recentes, mas não é novo', async () => {
+      await limparAcervo();
+      const antigo = await inserirArquivo({
+        unitId: ids.unitA,
+        ownerId: ids.userA,
+        fileName: 'antigo.pdf',
+        createdAt: diasAtras(20),
+      });
+      await registrarEvento({
+        unitId: ids.unitA,
+        userId: ids.userA,
+        fileId: antigo,
+        action: AuditAction.RENAME,
+        createdAt: diasAtras(1),
+      });
+
+      expect((await consultar(ids.userA)).documents.map((d) => d.id)).toEqual([antigo]);
+      expect((await contarNovos(ids.userA)).count).toBe(0);
+    });
+
+    it('não atravessa unidades, inclusive para o administrador global (trava do bypass)', async () => {
+      await limparAcervo();
+      await inserirArquivo({ unitId: ids.unitB, ownerId: ids.userB, fileName: 'b.pdf' });
+      await inserirArquivo({ unitId: ids.unitA, ownerId: ids.globalAdmin, fileName: 'a.pdf' });
+
+      expect((await contarNovos(ids.globalAdmin)).count).toBe(1);
+      expect((await contarNovos(ids.userB)).count).toBe(1);
+    });
+
+    it('documento obsoleto não conta para quem não administra a unidade (herdado de hasAccess)', async () => {
+      await limparAcervo();
+      await inserirArquivo({
+        unitId: ids.unitA,
+        ownerId: ids.userA,
+        fileName: 'obsoleto.pdf',
+        lifecycleState: DocumentLifecycleState.OBSOLETE,
+      });
+
+      expect((await contarNovos(ids.userA)).count).toBe(0);
+      expect((await contarNovos(unitAdminAId)).count).toBe(1);
+    });
+
+    it('acima do teto de candidatos responde capped, sem apresentar o teto como exato (design.md D3)', async () => {
+      await limparAcervo();
+      const tetoOriginal = config.recentDocuments.candidateLimit;
+      config.recentDocuments.candidateLimit = 2;
+      try {
+        for (const nome of ['um.pdf', 'dois.pdf', 'tres.pdf']) {
+          await inserirArquivo({ unitId: ids.unitA, ownerId: ids.userA, fileName: nome });
+        }
+        expect(await contarNovos(ids.userA)).toEqual({ days: 7, count: 2, capped: true });
+      } finally {
+        config.recentDocuments.candidateLimit = tetoOriginal;
+      }
+    });
+
+    it('sem sessão retorna 401', async () => {
+      const app = createApp(ports);
+      const res = await request(app).get('/files/recent/new-count');
+      expect(res.status).toBe(401);
+    });
   });
 
   it('sem sessão retorna 401', async () => {

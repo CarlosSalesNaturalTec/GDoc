@@ -24,3 +24,18 @@ export interface RecentDocumentResponse extends FileSummaryResponse {
 export interface RecentDocumentsResponse {
   documents: RecentDocumentResponse[];
 }
+
+/**
+ * `GET /files/recent/new-count` — documentos **publicados** na janela (padrão:
+ * 7 dias) ao alcance de quem consulta (change `conteudo-da-tela-inicio`,
+ * design.md D1–D3).
+ *
+ * `capped` = a apuração parou no teto de candidatos: `count` é então um piso,
+ * e a interface escreve "mais de N" — nunca apresenta o teto como contagem
+ * exata.
+ */
+export interface NewDocumentsCountResponse {
+  days: number;
+  count: number;
+  capped: boolean;
+}

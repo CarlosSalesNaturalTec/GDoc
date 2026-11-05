@@ -184,6 +184,12 @@ export const config = {
     maxItems: Number(optional('RECENT_DOCUMENTS_MAX_ITEMS', '10')),
     windowDays: Number(optional('RECENT_DOCUMENTS_WINDOW_DAYS', '90')),
     candidateLimit: Number(optional('RECENT_DOCUMENTS_CANDIDATE_LIMIT', '300')),
+    // Janela da contagem de "documentos novos" da tela Início (change
+    // `conteudo-da-tela-inicio`, design.md D1; resposta 3b do cliente em
+    // `docs/respostas_d1_d3_d5_decisoes_estruturais.txt`). "Novo" é
+    // **publicado** na janela, não alterado. O teto de candidatos é o mesmo
+    // `candidateLimit` acima (design.md D3).
+    newWindowDays: Number(optional('RECENT_DOCUMENTS_NEW_WINDOW_DAYS', '7')),
   },
 
   // Teto de corpo aceito pelo parser de JSON (change

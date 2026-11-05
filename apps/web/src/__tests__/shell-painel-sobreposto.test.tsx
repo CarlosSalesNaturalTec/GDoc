@@ -102,7 +102,7 @@ describe('Painel sobreposto de navegação (responsividade-mobile-tablet)', () =
     });
 
     renderApp(['/']);
-    await screen.findByText('O que você pode fazer');
+    await screen.findByText('Pastas da unidade');
 
     await userEvent.click(await screen.findByRole('button', { name: 'Abrir navegação' }));
     const drawerLink = await screen.findByRole('link', { name: 'Documentos' });
@@ -123,8 +123,10 @@ describe('Painel sobreposto de navegação (responsividade-mobile-tablet)', () =
       ...ROTAS_DA_TELA_INICIAL,
     });
 
-    renderApp(['/']);
-    await screen.findByText('O que você pode fazer');
+    // Fora da Início de propósito: ali o atalho "Manual do usuário" da tela
+    // (change `conteudo-da-tela-inicio`) seria um segundo link de mesmo nome.
+    renderApp(['/recentes']);
+    await screen.findByRole('heading', { name: 'Documentos recentes' });
 
     await userEvent.click(await screen.findByRole('button', { name: 'Abrir navegação' }));
     const manualLink = await screen.findByRole('link', {
@@ -132,10 +134,10 @@ describe('Painel sobreposto de navegação (responsividade-mobile-tablet)', () =
     });
     await userEvent.click(manualLink);
 
-    // Não há navegação interna a refletir — a aplicação permanece na Início,
-    // e o painel continua aberto.
+    // Não há navegação interna a refletir — a aplicação permanece onde
+    // estava, e o painel continua aberto.
     expect(document.querySelector('.ant-drawer-open')).toBeInTheDocument();
-    expect(screen.getByText('O que você pode fazer')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Documentos recentes' })).toBeInTheDocument();
   });
 
   it('a largura da navegação vem de uma origem única, igual nos dois modos (design.md D1)', async () => {

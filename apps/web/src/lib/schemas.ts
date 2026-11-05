@@ -24,6 +24,7 @@ import type {
   PublicConfigResponse,
   RecentDocumentResponse,
   RecentDocumentsResponse,
+  NewDocumentsCountResponse,
   ResetPasswordResponse,
   SearchFilesResponse,
   SharedPermissionResponse,
@@ -266,6 +267,13 @@ export const recentDocumentResponseSchema: z.ZodType<RecentDocumentResponse> =
 
 export const recentDocumentsResponseSchema: z.ZodType<RecentDocumentsResponse> = z.object({
   documents: z.array(recentDocumentResponseSchema),
+});
+
+/** `GET /files/recent/new-count` (change `conteudo-da-tela-inicio`, design.md D2/D3). */
+export const newDocumentsCountResponseSchema: z.ZodType<NewDocumentsCountResponse> = z.object({
+  days: z.number().int().nonnegative(),
+  count: z.number().int().nonnegative(),
+  capped: z.boolean(),
 });
 
 /**

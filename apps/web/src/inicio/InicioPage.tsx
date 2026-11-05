@@ -1,11 +1,14 @@
+import type { ReactNode } from 'react';
 import { Card, Col, Empty, Result, Row, Space, Spin, Typography } from 'antd';
 import { Link } from 'react-router-dom';
 import { IconePasta } from '../app/icons';
 import { paleta } from '../app/theme';
 import { useSession } from '../auth/session-context';
 import { funcaoExibida, nomeExibido, saudacao, setorExibido } from '../shell/identidade';
+import { NOME_ACESSIVEL_MANUAL } from '../shell/manual';
 import { useFolderContents } from '../navegacao/queries';
-import { atalhosDoPapel } from './atalhos';
+import { atalhosDoPapel, type Atalho } from './atalhos';
+import { textoDeNovos, useNewDocumentsCount } from './queries';
 import { TabelaDeRecentes } from './TabelaDeRecentes';
 
 /**
@@ -17,146 +20,233 @@ import { TabelaDeRecentes } from './TabelaDeRecentes';
  * acionável. `color: inherit` e `textDecoration: none` porque, envolvendo o
  * cartão, o link herdaria cor e sublinhado para **todo** o conteúdo, pintando
  * de azul também a descrição secundária; a aparência de link fica no rótulo,
- * onde a informação está, e a cor vem do token.
+ * onde a informação está, e a cor vem do token. `height: 100%` para os
+ * cartões de uma mesma linha terem a mesma altura.
  */
 const ESTILO_DO_LINK_DE_CARTAO = {
   display: 'block',
+  height: '100%',
   color: 'inherit',
   textDecoration: 'none',
 } as const;
 
 /**
- * Tela inicial (Épico 11, US 11.1/11.2, capability `tela-inicial`).
+ * Título de cartão que quebra linha em vez de truncar: em 375 px o link à
+ * direita ("Ver histórico completo") deixa pouco espaço, e o padrão do design
+ * system corta o título com reticências — título cortado foi exatamente o que
+ * a fatia A2 eliminou do menu.
+ */
+const ESTILOS_DE_CARTAO_COM_LINK = { title: { whiteSpace: 'normal' } } as const;
+
+/** Linhas de recentes na tela inicial (demanda nº 2, seção 1.3). */
+const LINHAS_DE_RECENTES_NO_INICIO = 5;
+
+/**
+ * Cartão de atalho: ícone colorido, título e descrição (demanda nº 2, seção
+ * 1.3). O cartão **inteiro** é o link (design.md D1 de
+ * `cartoes-de-atalho-acionaveis`), e o nome acessível é o rótulo (D2) — a
+ * descrição segue sendo texto do cartão, não parte do nome do destino. O do
+ * manual sai da aplicação, e o nome acessível anuncia isso com o mesmo texto
+ * do menu (change `conteudo-da-tela-inicio`, design.md D4).
+ */
+function CartaoDeAtalho({ atalho }: { atalho: Atalho }) {
+  const Icone = atalho.icone;
+  const conteudo = (
+    <Card size="small" hoverable style={{ height: '100%' }}>
+      <Space align="start" size="middle">
+        <span
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: 40,
+            height: 40,
+            borderRadius: 8,
+            // Fundo translúcido do próprio tom do ícone — decorativo; o
+            // ícone é `aria-hidden` e a informação está no rótulo.
+            background: `${atalho.cor}1A`,
+            color: atalho.cor,
+            flex: 'none',
+          }}
+        >
+          <Icone style={{ fontSize: 20 }} />
+        </span>
+        <div>
+          <Typography.Text strong style={{ color: paleta.azulLink }}>
+            {atalho.rotulo}
+          </Typography.Text>
+          <div>
+            <Typography.Text type="secondary">{atalho.descricao}</Typography.Text>
+          </div>
+        </div>
+      </Space>
+    </Card>
+  );
+
+  if (atalho.externo) {
+    return (
+      <a
+        href={atalho.destino}
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label={NOME_ACESSIVEL_MANUAL}
+        style={ESTILO_DO_LINK_DE_CARTAO}
+      >
+        {conteudo}
+      </a>
+    );
+  }
+  return (
+    <Link to={atalho.destino} aria-label={atalho.rotulo} style={ESTILO_DO_LINK_DE_CARTAO}>
+      {conteudo}
+    </Link>
+  );
+}
+
+/**
+ * Cartão reservado da coluna direita (design.md D8): diz por escrito o que vai
+ * apresentar, e **não** afirma ausência de pendências — a leitura obrigatória
+ * ainda não existe, e "nenhuma pendência" seria verdadeiro só por vacuidade.
+ * O conteúdo chega com a fatia C2.
+ */
+function CartaoReservado({ titulo, children }: { titulo: string; children: ReactNode }) {
+  return (
+    <Card title={titulo} size="small">
+      <Typography.Text type="secondary">{children}</Typography.Text>
+    </Card>
+  );
+}
+
+/**
+ * Tela inicial (Épico 11, US 11.1/11.2, capability `tela-inicial`), na
+ * composição da demanda nº 2, seção 1.3 (change `conteudo-da-tela-inicio`).
  *
  * Responde, sem clique, a "quem sou, onde estou, o que posso fazer e o que
- * mudou". Antes desta change a rota `/` era um `Result` com o favicon e a
- * frase "Bem-vindo ao PapelHub" — quem entrava precisava procurar no menu o
- * que veio fazer.
- *
- * As três consultas da tela são **independentes e paralelas** (design.md,
- * Risks): identidade já resolvida na sessão, pastas de primeiro nível e
- * alterações recentes. Cada área tem o seu próprio estado de carregamento e
- * aparece assim que a sua resposta chega — uma consulta lenta não bloqueia as
+ * mudou". As consultas da tela são **independentes e paralelas**: identidade
+ * já resolvida na sessão, contagem de novos, pastas de primeiro nível e
+ * alterações recentes. Cada área tem o seu próprio estado e aparece assim que
+ * a sua resposta chega — uma consulta lenta ou com falha não bloqueia as
  * demais.
  *
- * Nada aqui decide permissão: os atalhos são filtrados pelo papel só para não
- * oferecer o que o servidor recusaria, e as pastas e os documentos são
+ * Nada aqui decide permissão: as pastas, os documentos e a contagem são
  * exatamente os que a API devolveu.
  */
 export function InicioPage() {
-  const { identity } = useSession();
+  const { identity, publicConfig } = useSession();
   // Pastas de **primeiro nível** da unidade: a raiz devolve só o que a
-  // resolução de acesso do servidor liberou (design.md D4 — são pastas da
-  // própria unidade, não as unidades do desenho do cliente, consequência de
-  // manter o isolamento por unidade).
+  // resolução de acesso do servidor liberou. São pastas, não unidades — cada
+  // pessoa pertence a uma unidade só (resposta 1a do cliente,
+  // `docs/respostas_d1_d3_d5_decisoes_estruturais.txt`).
   const pastas = useFolderContents(null);
+  const novos = useNewDocumentsCount();
 
   if (!identity) return null;
 
-  const nome = nomeExibido(identity);
-  const atalhos = atalhosDoPapel(identity.role);
+  const atalhos = atalhosDoPapel(identity.role, publicConfig.manualUrl);
+
+  // Função, setor e unidade sempre presentes, com ou sem nome cadastrado (US
+  // 11.1 cenário 1): o identificador interno nunca aparece. A função do
+  // cadastro no lugar do papel (change `funcao-e-setor-na-identidade`); setor
+  // omitido quando não existe. A contagem de novos entra depois, só quando
+  // chegou — carregando ou com falha, a linha continua inteira sem ela.
+  const contexto = [funcaoExibida(identity), setorExibido(identity), identity.unitName]
+    .filter((parte): parte is string => parte !== null)
+    .join(' · ');
 
   return (
-    <Space direction="vertical" size="large" style={{ display: 'flex' }}>
-      <div>
-        <Typography.Title level={3} style={{ marginBottom: 4 }}>
-          {saudacao(nome)}
-        </Typography.Title>
-        {/* Função, setor e unidade sempre presentes, com ou sem nome cadastrado
-            (US 11.1 cenário 1): o identificador interno nunca aparece.
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 24, alignItems: 'flex-start' }}>
+      {/* Conteúdo principal e coluna direita sem media query (design.md D8):
+          lado a lado o espaço livre vai quase todo para o principal (999:1) e
+          a coluna fica em ~340px; quando os dois não cabem, a coluna desce e
+          ocupa a largura inteira. `minWidth: 0` deixa a tabela rolar dentro
+          do próprio contêiner em vez de alargar a página. */}
+      <div style={{ flex: '999 1 480px', minWidth: 0 }}>
+        <Space direction="vertical" size="large" style={{ display: 'flex' }}>
+          <div>
+            <Typography.Title level={3} style={{ marginBottom: 4 }}>
+              {saudacao(nomeExibido(identity))}
+            </Typography.Title>
+            <Typography.Text type="secondary">
+              {contexto}
+              {novos.data && ` — ${textoDeNovos(novos.data)}`}
+            </Typography.Text>
+          </div>
 
-            A **função do cadastro** no lugar do papel de acesso (change
-            `funcao-e-setor-na-identidade`, resposta 1a do cliente) — era esta
-            a queixa de "para a gerente de Governança aparece Colaborador".
-            Sem função preenchida, `funcaoExibida` recai no rótulo do papel,
-            pela mesma origem única das outras telas.
+          {/* Cartões soltos, sem título de seção (demanda nº 2, seção 1.3). */}
+          <Row gutter={[16, 16]}>
+            {atalhos.map((atalho) => (
+              <Col key={atalho.chave} xs={24} sm={12} xxl={6}>
+                <CartaoDeAtalho atalho={atalho} />
+              </Col>
+            ))}
+          </Row>
 
-            O setor entra entre função e unidade, e é **omitido** quando a
-            pessoa não tem — sem separador solto nem espaço reservado. */}
-        <Typography.Text type="secondary">
-          {[funcaoExibida(identity), setorExibido(identity), identity.unitName]
-            .filter((parte): parte is string => parte !== null)
-            .join(' · ')}
-        </Typography.Text>
+          <Card
+            title="Pastas da unidade"
+            extra={<Link to="/pastas">Ver todas as pastas</Link>}
+            styles={ESTILOS_DE_CARTAO_COM_LINK}
+          >
+            {pastas.isLoading && <Spin style={{ display: 'block', margin: '24px auto' }} />}
+            {pastas.isError && (
+              <Result
+                status="error"
+                title="Não foi possível carregar as pastas"
+                subTitle="Verifique sua conexão e tente novamente."
+              />
+            )}
+            {!pastas.isLoading && !pastas.isError && pastas.data && (
+              <>
+                {pastas.data.folders.length === 0 ? (
+                  // Ausência orientada, nunca área vazia sem explicação.
+                  <Empty description="Nenhuma pasta disponível para você no momento" />
+                ) : (
+                  <Row gutter={[16, 16]}>
+                    {pastas.data.folders.map((pasta) => (
+                      <Col key={pasta.id} xs={24} sm={12} lg={8}>
+                        {/* Mesma forma dos atalhos: as áreas de cartão da tela
+                            têm uma única regra de clique. Sem `aria-label` — o
+                            ícone é decorativo e o nome acessível do link é o
+                            nome da pasta. */}
+                        <Link to={`/pastas/${pasta.id}`} style={ESTILO_DO_LINK_DE_CARTAO}>
+                          <Card size="small" hoverable style={{ height: '100%' }}>
+                            <Space>
+                              <IconePasta style={{ color: paleta.azulLink }} />
+                              <Typography.Text style={{ color: paleta.azulLink }}>
+                                {pasta.name}
+                              </Typography.Text>
+                            </Space>
+                          </Card>
+                        </Link>
+                      </Col>
+                    ))}
+                  </Row>
+                )}
+              </>
+            )}
+          </Card>
+
+          <Card
+            title="Documentos recentes"
+            extra={<Link to="/recentes">Ver histórico completo</Link>}
+            styles={ESTILOS_DE_CARTAO_COM_LINK}
+          >
+            <TabelaDeRecentes limite={LINHAS_DE_RECENTES_NO_INICIO} />
+          </Card>
+        </Space>
       </div>
 
-      <Card title="O que você pode fazer">
-        <Row gutter={[16, 16]}>
-          {atalhos.map((atalho) => (
-            <Col key={atalho.chave} xs={24} sm={12} lg={8}>
-              {/* O cartão **inteiro** é o link (design.md D1): `hoverable` dá
-                  cursor de mão e sombra à superfície toda, e até esta change
-                  só o texto do rótulo navegava — ~22px de alvo num cartão que
-                  se apresentava inteiro como acionável, abaixo do piso de
-                  acionamento do sistema de design. Envolver o cartão também
-                  atende esse piso pela própria altura dele, sem estilo criado
-                  para isso.
-
-                  `aria-label` com o rótulo (design.md D2): sem ele o nome
-                  acessível passaria a ser rótulo + descrição concatenados —
-                  anúncio verboso em leitor de tela, e o nome curto é contrato
-                  da spec. A descrição segue sendo texto do cartão, não parte
-                  do nome do destino. */}
-              <Link to={atalho.destino} aria-label={atalho.rotulo} style={ESTILO_DO_LINK_DE_CARTAO}>
-                <Card size="small" hoverable>
-                  <Typography.Text style={{ color: paleta.azulLink }}>
-                    {atalho.rotulo}
-                  </Typography.Text>
-                  <div>
-                    <Typography.Text type="secondary">{atalho.descricao}</Typography.Text>
-                  </div>
-                </Card>
-              </Link>
-            </Col>
-          ))}
-        </Row>
-      </Card>
-
-      <Card title="Suas pastas">
-        {pastas.isLoading && <Spin style={{ display: 'block', margin: '24px auto' }} />}
-        {pastas.isError && (
-          <Result
-            status="error"
-            title="Não foi possível carregar suas pastas"
-            subTitle="Verifique sua conexão e tente novamente."
-          />
-        )}
-        {!pastas.isLoading && !pastas.isError && pastas.data && (
-          <>
-            {pastas.data.folders.length === 0 ? (
-              // Ausência orientada, nunca área vazia sem explicação
-              // (requisito "Sem pastas acessíveis a área orienta").
-              <Empty description="Nenhuma pasta disponível para você no momento" />
-            ) : (
-              <Row gutter={[16, 16]}>
-                {pastas.data.folders.map((pasta) => (
-                  <Col key={pasta.id} xs={24} sm={12} lg={8}>
-                    {/* Mesma forma dos atalhos (design.md D1): as duas áreas de
-                        cartão da tela têm uma única regra de clique. Aqui não
-                        há `aria-label` (D2) — o ícone é decorativo
-                        (`aria-hidden` por `criarIcone`) e o nome acessível do
-                        link segue sendo o nome da pasta, por consequência. */}
-                    <Link to={`/pastas/${pasta.id}`} style={ESTILO_DO_LINK_DE_CARTAO}>
-                      <Card size="small" hoverable>
-                        <Space>
-                          <IconePasta style={{ color: paleta.azulLink }} />
-                          <Typography.Text style={{ color: paleta.azulLink }}>
-                            {pasta.name}
-                          </Typography.Text>
-                        </Space>
-                      </Card>
-                    </Link>
-                  </Col>
-                ))}
-              </Row>
-            )}
-          </>
-        )}
-      </Card>
-
-      <Card title="Alterados recentemente" extra={<Link to="/recentes">Ver todos</Link>}>
-        <TabelaDeRecentes />
-      </Card>
-    </Space>
+      <aside aria-label="Leitura obrigatória e avisos" style={{ flex: '1 1 340px', minWidth: 0 }}>
+        <Space direction="vertical" size="large" style={{ display: 'flex' }}>
+          <CartaoReservado titulo="Leitura obrigatória">
+            Aqui vão aparecer os documentos que você precisa ler, com o prazo de cada um e o botão
+            para confirmar a leitura.
+          </CartaoReservado>
+          <CartaoReservado titulo="Avisos">
+            Aqui vão aparecer os avisos sobre leituras obrigatórias. Os demais avisos continuam no
+            sino, no topo da tela.
+          </CartaoReservado>
+        </Space>
+      </aside>
+    </div>
   );
 }

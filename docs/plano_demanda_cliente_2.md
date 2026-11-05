@@ -53,19 +53,22 @@ Legenda: `pendente` · `bloqueada` (ver coluna Bloqueio) · `em andamento` ·
 | :-- | :--- | :--- | :--- | :--- | :--- |
 | A1 | Função e setor na identidade | 1.3 (Atenção: Perfil), 3.1 | **entregue** | — | `funcao-e-setor-na-identidade` |
 | A2 | Menu lateral e barra superior | 1.1, 1.2 | **entregue** | E1 (parcial) | `menu-lateral-e-barra-superior` |
-| A3 | Conteúdo da tela Início | 1.3 | pendente | D1, D4 | — |
+| A3 | Conteúdo da tela Início | 1.3 | **entregue** | E1 (marca d'água) | `conteudo-da-tela-inicio` |
 | A4 | Favoritos | 1.1 (menu) | pendente | — | — |
 | A5 | Compartilhados comigo | 1.1 (menu) | **entregue** | — | `compartilhados-comigo` |
 | A6 | Tour guiado | 1.1, 1.3 | pendente | — | — |
+| A7 | Rótulo "Administrador da unidade" | — (resposta 5 de D3) | pendente | — | — |
 | B1 | Arquivo geral e pendente de cadastro | 2.3, 2.4 | **entregue** | — | `arquivo-geral-e-pendente-de-cadastro` |
 | B2 | Tabela de cadastro no envio em lote | 2.1, 2.2 | **entregue** | — | `tabela-de-cadastro-no-envio-em-lote` |
-| C1 | Núcleo da leitura obrigatória (marcar e dar ciência) | 3.1, 3.2 (etapas 1 e 3), 3.3, 3.4 | pendente | D3, D5 | — |
+| C0 | Gestor de acompanhamento no cadastro | 3.1 | pendente | A7 | — |
+| C1 | Núcleo da leitura obrigatória (marcar e dar ciência) | 3.1, 3.2 (etapas 1 e 3), 3.3, 3.4 | pendente | A7 | — |
 | C2 | Superfícies de pendência (menu, contador, cartão, abas) | 3.2 (etapa 2), 3.5 | pendente | C1, A2, A3 | — |
-| C3 | Avisos e atrasos | 3.2 (etapas 2 e 4), 3.3 | pendente | C1, D3 | — |
-| C4 | Acompanhamento e relatório exportável | 3.5 | pendente | C1, D5 | — |
+| C3 | Avisos e atrasos | 3.2 (etapas 2 e 4), 3.3 | pendente | C0, C1 | — |
+| C4 | Acompanhamento e relatório exportável | 3.5 | pendente | C0, C1, D6 | — |
 
 Ordem sugerida: **A1 → A2 → A3 → (A4, A5, A6 em qualquer ordem) → B1 → B2 →
-C1 → C2 → C3 → C4**. Na prática o bloco B foi antecipado e, entre A4 e A5, a
+A7 → C0 → C1 → C2 → C3 → C4** (C0 e C1 são independentes entre si; ambas só
+esperam a A7). Na prática o bloco B foi antecipado e, entre A4 e A5, a
 **A5 veio primeiro** — não exigia migração e fixou a forma de listagem plana
 que a A4 consome.
 
@@ -97,7 +100,40 @@ decisões de produto, e duas delas mexem no núcleo de segurança do sistema.
 > de propósito — é estrutural e vai com as alternativas e o custo de cada uma;
 > o cliente confirmou que quer tratá-la separado.
 
-### D1 — "Minhas unidades": acesso a mais de uma unidade  🔴 estrutural
+> ✅ **D1, D3 (colisão de nome) e D5 foram perguntadas e respondidas.** O
+> questionário está em `docs/questionario_d1_d3_d5_decisoes_estruturais.txt` e
+> as respostas, transcritas, em
+> **`docs/respostas_d1_d3_d5_decisoes_estruturais.txt`** (2026-11-05). As três
+> foram para o caminho que **não reabre o isolamento** nesta demanda:
+>
+> - **D1** → tenancy mantida; a grade do Início lista pastas, com o título
+>   **"Pastas da unidade"** (diferença do Anexo A aceita por escrito), contagem
+>   de **"documentos novos nos últimos 7 dias"** e cartão clicável. Libera a
+>   **A3** (e, por consequência, a A6).
+> - **D3** → `unit_admin` passa a ser exibido como **"Administrador da
+>   unidade"** em todas as telas, e **"Gestor"** fica para quem acompanha
+>   leituras, marcado **explicitamente no cadastro** (setor ou unidade inteira).
+>   Vira duas fatias novas, **A7** (o rótulo) e **C0** (a marcação), e libera o
+>   **bloco C**.
+> - **D5** → exceção estreita, **só para a Fase 2**: situação nominal de leitura
+>   das outras unidades, sem bytes e sem auditoria, concedida pessoa a pessoa
+>   (Mariana Bispo e Ana Morais, da Sede). Cabe na **C4**.
+>
+> Vieram também **dois pedidos que não são desta demanda** e ficam registrados
+> sem travar nada: a Governança **abrir e baixar** documentos das outras
+> unidades (resposta 7, "mais para frente") e uma área única de **Documentos
+> Institucionais** lida por todas as unidades. Ver **D7**.
+
+### D1 — "Minhas unidades": acesso a mais de uma unidade  ✅ respondida
+
+> **Resposta 1 (a):** ninguém precisa trabalhar em mais de uma unidade — a
+> tenancy fica como está. A grade lista as **pastas de primeiro nível da
+> unidade da pessoa**, com o título **"Pastas da unidade"**; o cliente
+> **aceitou por escrito** a diferença em relação ao Anexo A. **Resposta 3
+> (b):** a frase conta **"documentos novos nos últimos 7 dias"** — não há
+> coluna de último acesso a criar. **Resposta 4 (a):** o cartão abre a pasta.
+> O caso da Governança foi respondido em **D5**. Ver
+> `docs/respostas_d1_d3_d5_decisoes_estruturais.txt`.
 
 A demanda (1.3) pede uma grade de unidades e a frase *"você tem acesso a X
 unidades"*. O sistema de hoje é o oposto: **`users.unit_id` é `NOT NULL` e
@@ -153,7 +189,15 @@ do cliente para saber qual é o caso de cada pessoa.
 > `AuthenticatedIdentity`** (`packages/shared/src/auth.ts`: só `id`, `unitId`,
 > `role`, `fullName`, `unitName`). É esse o acréscimo da A1.
 
-### D3 — "Gestor" e "equipe": hierarquia nova  🔴 estrutural · ⚠️ parcial
+### D3 — "Gestor" e "equipe": hierarquia nova  ✅ respondida
+
+> **Resposta 5 (a) (2026-11-05) — fecha a colisão de nome:** `unit_admin`
+> passa a ser exibido como **"Administrador da unidade"** em todas as telas, e
+> **"Gestor"** fica para quem acompanha leituras ("nos hospitais, gestor já é
+> como as pessoas chamam coordenador, gerente e diretor"). É a **A7**.
+> **Resposta 6 (a):** o sistema sabe quem é gestor por **marcação explícita no
+> cadastro** — "acompanha as leituras do setor" ou "da unidade inteira" —,
+> nunca deduzida do texto livre do cargo. É a **C0**.
 
 > **Respostas 3 (b) e 4 (b):** opção (ii) — coordenador e gerente acompanham
 > o **próprio setor**, diretor acompanha a **unidade inteira**; é papel
@@ -203,7 +247,29 @@ apontando para ela), com migração dos valores livres existentes.
 Se o cliente aceitar adiar o público por setor, D4 cai para "só exibição" e fica
 barata.
 
-### D5 — Alcance do relatório de acompanhamento
+### D5 — Alcance do relatório de acompanhamento  ✅ respondida (Fase 2)
+
+> **Resposta 7 (a):** opção (ii) abaixo. A Governança acompanha **quem leu e
+> quem não leu em cada unidade** — nomes, setores, datas e percentual — **sem
+> abrir arquivo e sem ver auditoria de acesso**. **Resposta 8:** o alcance é
+> concedido **pessoa a pessoa**: **Mariana Bispo** (Sede — Gerência de
+> Governança e Performance Corporativa) e **Ana Morais** (Sede — Diretoria de
+> Serviços Compartilhados).
+>
+> Consequências para a C4: (1) é a **exceção estreita e explícita** à trava do
+> bypass de `global_admin` que o invariante 3 exige registrar em `design.md`;
+> ela alcança **só as tabelas de leitura obrigatória e os campos de pessoa
+> necessários ao relatório** (nome, unidade, setor) — nunca `files`,
+> `folders`, URL assinada ou `audit_events`; (2) a concessão é um atributo
+> **nominal e auditável** da pessoa, não um papel que "liga para todo mundo" —
+> cabe na mesma marcação da C0, como terceiro alcance ("todas as unidades"),
+> atribuível só por `global_admin`; (3) precisa de teste de isolamento
+> próprio provando que a mesma pessoa **continua recebendo `403`** em bytes e
+> auditoria de outra unidade.
+>
+> A resposta 7 também registra que, "mais para frente", a Governança precisará
+> **abrir e baixar** os documentos das unidades (opção b). **Não é desta
+> demanda** — ver **D7**.
 
 Ligada a **D1**. A seção 3.5 quer Governança vendo todos os documentos,
 publicador vendo os que marcou e gestor vendo só a própria equipe. As duas
@@ -216,6 +282,38 @@ Governança local; (ii) papel novo de auditor cross-unit, restrito a
 — exceção estreita e explícita à trava do bypass, documentada em `design.md`;
 (iii) resolver junto com D1(b).
 
+### D7 — Pedidos estruturais registrados para depois  🔴 estrutural · fora da demanda nº 2
+
+Vieram no retorno de 2026-11-05 e **não travam nenhuma fatia**. Os dois
+reabrem o isolamento entre unidades e, por isso, cada um vira **change
+própria, com prazo próprio e revisão de segurança antes do código** — o
+cliente concordou explicitamente com isso no item (i).
+
+- **(i) Governança abre e baixa documentos das outras unidades** (resposta 7,
+  opção b). Mesmo caminho de D1(b)/D5(iii): para um perfil nominal, o
+  `access.ts` deixa de ser *fail-closed* em outra unidade para os verbos
+  `view` e `download`, e toda rota de conteúdo que hoje compara
+  `resource.unit_id === ctx.unitId` precisa ser revista. Pergunta a fazer
+  quando for planejado: a auditoria de acesso (opção c) continua fora?
+- **(ii) Área única de "Documentos Institucionais"** (observação final). Uma
+  área lida e baixada por **todas** as unidades, em que **só a Governança
+  publica e revisa** — uma versão de cada documento, sem cópias por unidade.
+  Só políticas, normas, protocolos, POPs e formulários institucionais
+  aprovados. É leitura de conteúdo atravessando unidades, ainda que num
+  formato mais estreito que (i): **um** acervo com leitura ampla, não acesso
+  de uma pessoa ao acervo de outra unidade. Questões a resolver na proposta:
+  onde mora no modelo (`unit_id` da Sede com regra de leitura global, ou
+  dono próprio fora da tenancy), como RLS e `access.ts` passam a admitir essa
+  leitura sem abrir as demais pastas da Sede, quem conta como "Governança"
+  para publicar, e como fica a **leitura obrigatória** de um documento
+  institucional para todas as unidades — hoje a C1 limita o público à
+  unidade do documento.
+
+> Enquanto não houver change própria, nenhuma fatia antecipa (i) ou (ii) "de
+> passagem". Em especial, a C1 **mantém** "unidades no público = a unidade do
+> documento" escrito na spec; a extensão para documento institucional entra
+> com (ii), não antes.
+
 ### D6 — Formato e prazo (menores)
 
 - **Exportação Excel e PDF** (3.5): não há precedente no repositório — a
@@ -223,8 +321,50 @@ Governança local; (ii) papel novo de auditor cross-unit, restrito a
   geração no cliente (sem dependência nova no servidor, tetos de volume) ou
   biblioteca no servidor. Recomendação: cliente, como já se faz no `.zip` de
   pasta (`client-zip`), mantendo a regra de que a API não monta artefato.
-- **Prazo da Fase 2** (seção 5): o cliente pede o prazo da leitura obrigatória.
-  Só estimável depois de D3 e D5 — são elas que definem o tamanho de C1 e C4.
+- **Prazo da Fase 2** (seção 5): **estimado em 2026-11-05** — ver
+  [Estimativa da Fase 2](#estimativa-da-fase-2). Formato de exportação segue
+  com a recomendação acima; decide-se na proposta da C4 sem voltar ao cliente,
+  salvo se ele pedir o contrário.
+
+### Estimativa da Fase 2
+
+Feita depois de D3 e D5 respondidas, quando o tamanho do bloco C ficou
+conhecido. **Base**: o ritmo medido nas seis fatias já entregues desta demanda
+(proposta → implementação → arquivamento de cada uma coube num dia útil,
+inclusive a B1, a maior delas, com duas migrações e reversão de requisito) e o
+tamanho relativo de cada fatia do bloco C contra essas.
+
+| Fatia | Tamanho relativo | Dias úteis |
+| :-- | :--- | --: |
+| A7 — rótulo "Administrador da unidade" | menor que a A5 (só texto, manual e PRD) | 0,5 |
+| C0 — gestor de acompanhamento no cadastro | ≈ A1 (migração, cadastro, identidade) | 1 |
+| C1 — marcar e dar ciência | ≈ B1 + B2 (duas tabelas com RLS, público reavaliado, regra por revisão) | 3 |
+| C2 — superfícies de pendência | ≈ A2 (só apresentação, sobre espaços que a A3 cria) | 1,5 |
+| C3 — avisos e atrasos | job + scheduler no Terraform + deploy | 1,5 |
+| C4 — acompanhamento e exportação | a maior em risco: exceção de D5, três recortes de alcance, exportação | 3 |
+| **Subtotal** | | **10,5** |
+| Folga de 20% (retrabalho de homologação, revisão de segurança da C4) | | 2 |
+| **Total de desenvolvimento** | | **≈ 13** |
+
+**Calendário**, contando que a Fase 2 começa depois de fechar o que resta da
+Fase 1 (A3, A4 e A6, ≈ 3 dias úteis, a partir de 2026-11-05) e descontando o
+feriado de 20/11:
+
+- **início da Fase 2**: 10/11/2026;
+- **entrega completa em homologação**: até **27/11/2026**;
+- **produção**: depois de uma semana de homologação pelo cliente — previsão
+  **semana de 07/12/2026**.
+
+Entregas intermediárias, para o cliente homologar por partes: **A7 + C0 + C1**
+(marcar e dar ciência funcionando) por volta de 17/11; **C2 + C3** por volta de
+23/11; **C4** em 27/11.
+
+**Condições** — o prazo vale se: (1) o ambiente de homologação e o contato de
+TI (**E3**) estiverem definidos até o início de C1; (2) a marcação de quem é
+gestor (C0) for **feita pelo cliente** no cadastro antes de homologar C3 e C4 —
+é dado dele, não do sistema; (3) **D7 não entrar** na Fase 2. Qualquer pedido
+de D7 dentro da Fase 2 reabre a estimativa: é trabalho de isolamento, com
+revisão de segurança antes do código.
 
 ---
 
@@ -332,7 +472,52 @@ Governança local; (ii) papel novo de auditor cross-unit, restrito a
 - **Risco**: o contador do sino consome a contagem de não lidas que
   `notificacoes` já expõe — conferir antes de criar rota nova.
 
-### A3 — Conteúdo da tela Início
+### A3 — Conteúdo da tela Início  ✅ entregue
+
+> Change `conteudo-da-tela-inicio`. **Desvios do previsto aqui, decididos
+> durante a especificação e a implementação:**
+>
+> - **"Novo" é publicado, não alterado** (design.md D1). A tabela de recentes
+>   logo abaixo já mostra as alterações; contá-las de novo repetiria a tabela
+>   com outro número e faria um documento renomeado parecer novo.
+> - **Rota própria, `GET /files/recent/new-count`**, sob `/files` — nenhum
+>   prefixo de topo novo, o invariante 7 não foi tocado. A contagem passa pela
+>   mesma `hasAccess(view)` da lista, item a item, com o teto
+>   `candidateLimit`; acima dele a tela diz **"pelo menos N"**, nunca o teto
+>   como número exato.
+> - **Os atalhos de administração saíram da tela.** O conjunto agora é o da
+>   demanda (Enviar documento, Nova pasta, Buscar documento, Manual do
+>   usuário), os quatro alcançáveis por qualquer papel. O filtro por papel
+>   continua no código para o atalho que vier a exigir papel.
+> - **"Nova pasta" e "Buscar documento" conduzem à ação, não à tela**, pela
+>   regra já vigente em `tela-inicial`: o explorador atende um pedido de nova
+>   pasta no endereço (`/pastas?nova-pasta=1`, **só na raiz**, onde criar é
+>   livre a qualquer pessoa autenticada; numa subpasta o pedido é descartado),
+>   e a busca recebe quem chega sem termo com o campo focado.
+> - **A coluna Pasta saiu dos recentes**, por não estar na lista da demanda; a
+>   coluna **Unidade é constante** (D1) e vem da identidade, não do DTO. O
+>   destino Recentes usa a mesma tabela — uma origem só — e passou a se chamar
+>   "Documentos recentes".
+> - **A coluna direita foi feita sem media query** (`flex-wrap`, 999:1), para
+>   não criar um segundo limiar de largura além do `lg` da aplicação. Os dois
+>   cartões dizem o que vão apresentar, e **não** "nenhuma pendência" — a frase
+>   seria verdadeira só por vacuidade.
+> - **Títulos de cartão quebram linha em vez de truncar**: em 375 px o link
+>   "Ver histórico completo" cortava "Documentos recentes" com reticências.
+>   Medido na app: sem rolagem horizontal em 375 px, coluna direita com 340 px
+>   em 1440 px.
+>
+> **Lacunas conhecidas, aceitas:**
+>
+> - **Link do tour** fora — o destino é a A6, e atalho sem destino é
+>   regressão. Entra com a A6.
+> - **Marca d'água** fora — **E1**: o ativo atual é JPEG opaco.
+> - "Ver histórico completo" leva ao **recorte** do servidor (até 10
+>   documentos em 90 dias, `config.recentDocuments`), não a um histórico sem
+>   limite; a frase de apoio do destino diz isso por escrito.
+> - Redação da linha de contagem a confirmar na homologação.
+> - O manual (`a-tela.md`) ainda chama `unit_admin` de "Gestor" — é a A7 que
+>   troca o rótulo em todo lugar.
 
 - **Capabilities**: `tela-inicial` (modificada), `controle-documental`
   (consumida na tabela de recentes)
@@ -341,18 +526,19 @@ Governança local; (ii) papel novo de auditor cross-unit, restrito a
 - **Entrega**: saudação por horário ("Bom dia/Boa tarde/Boa noite, [primeiro
   nome]"); linha de contexto com setor, unidade escrita como no cadastro e as
   contagens; link do tour à direita da saudação (destino em A6); quatro cartões
-  soltos, sem título de seção, com ícone colorido, título e descrição;
-  "Minhas unidades" conforme **D1**; "Documentos recentes" com as colunas
+  soltos, sem título de seção, com ícone colorido, título e descrição; grade
+  **"Pastas da unidade"** (D1: pastas de primeiro nível da própria unidade,
+  cartão clicável abrindo a pasta — diferença do Anexo A aceita por escrito); "Documentos recentes" com as colunas
   pedidas (Tipo como etiqueta, Documento com código abaixo, Unidade, Revisão,
   Situação, Atualizado) em 5 linhas, com link para o histórico completo; coluna
   direita de 340 px com os espaços de "Leitura obrigatória" e "Avisos" — **o
   layout nesta fatia, as funções em C2**; marca d'água à direita (420 px, 6%,
   não clicável).
 - **Depende de**: A1 (setor e função na saudação), A2 (chrome)
-- **Requisito escondido**: *"Y documentos novos desde o último acesso"* exige
-  registrar o último acesso de cada pessoa — **não existe hoje** (não há
-  `last_login_at` nem tabela de sessões). É coluna nova em `users`, gravada no
-  login. Se o cliente aceitar, a alternativa barata é "nos últimos 7 dias".
+- **Contagem de novos (D1, resposta 3b)**: *"documentos novos nos últimos 7
+  dias"*, apurada pelo relógio do Postgres — **sem** `last_login_at` e sem
+  migração. A frase deixa de falar em "X unidades" (cada pessoa tem uma só); a
+  redação exata da linha fica para a proposta, fiel ao que a tela mostra.
 - **Risco**: a contagem de documentos novos não pode ampliar alcance — tem de
   passar pela mesma resolução de acesso da listagem, como já exige a capability
   `tela-inicial` ("a lista de recentes não amplia alcance").
@@ -453,6 +639,29 @@ Governança local; (ii) papel novo de auditor cross-unit, restrito a
 - **Depende de**: A2, A3 (os pontos que o tour aponta precisam existir)
 - **Nota**: o tour só percorre o que a pessoa pode ver — passo apontando para
   item fora do perfil é bug de alcance, não de layout.
+
+### A7 — Rótulo "Administrador da unidade"
+
+- **Capabilities**: `nomenclatura-interface` (modificada), `web-shell-e-auth`
+  e `web-pessoas` (conferidas — consomem o rótulo)
+- **Demanda**: nenhuma seção — nasce da resposta 5 (a) de D3
+- **PRD**: onde o PRD usar "Gestor" como nome de `unit_admin`, passa a
+  "Administrador da unidade"
+- **Entrega**: `ROLE_LABEL[UNIT_ADMIN]` (`apps/web/src/shell/role-label.ts`,
+  origem única do rótulo) passa de "Gestor" a **"Administrador da unidade"**;
+  as páginas do manual que nomeiam o papel (`index.md`, `a-tela.md`,
+  `administrador/pessoas.md`) e os testes que fixam o texto acompanham. Só
+  texto exibido: `unit_admin`, banco e contratos não mudam.
+- **Depende de**: —
+- **Por que antes do bloco C**: enquanto "Gestor" significar `unit_admin`, a
+  C0 não tem como nomear o gestor de acompanhamento sem a colisão que
+  `nomenclatura-interface` proíbe. Fatia pequena de propósito — trocar o
+  rótulo no mesmo change que cria o papel novo misturaria uma renomeação
+  global com uma regra de alcance.
+- **Risco**: rótulo longo no cartão do usuário do menu (264 px) e na tabela de
+  pessoas — medir no navegador, como na A2. E um "Gestor" esquecido em
+  qualquer tela passa a mentir **depois** da C0; procurar a palavra no
+  repositório inteiro (código, manual, PRD, specs), não só no mapa.
 
 ### B1 — Arquivo geral e pendente de cadastro  ✅ entregue
 
@@ -575,6 +784,30 @@ Governança local; (ii) papel novo de auditor cross-unit, restrito a
   tetos — e a publicação parcial ("só os completos") tem de conviver com a
   reserva de cota sem vazar reserva dos itens não publicados.
 
+### C0 — Gestor de acompanhamento no cadastro
+
+- **Capabilities**: `gestao-pessoas` (modificada), `web-pessoas` (modificada),
+  `autenticacao` (modificada, se o alcance entrar na identidade)
+- **Demanda**: 3.1 (perfil Gestor); respostas 3, 4 e 6 de D3; resposta 8 de D5
+- **PRD**: Épico 12 — US de cadastro do gestor de acompanhamento
+- **Entrega**: no cadastro de pessoa, a marcação **"acompanha as leituras"**
+  com alcance **do setor** ou **da unidade inteira** (resposta 6a). Atributo
+  da pessoa, **ortogonal ao papel de acesso**: não concede cadastrar pessoas
+  nem liberar permissão (resposta 4b), e não dá acesso a arquivo nenhum.
+  Proposta a validar no design: um terceiro alcance, **"todas as unidades"**,
+  para a Governança de D5 — atribuível só por `global_admin`, concedido
+  pessoa a pessoa e auditado.
+- **Depende de**: **A7** (o nome "Gestor" precisa estar livre)
+- **Regras a fixar na spec**: alcance "do setor" exige setor preenchido
+  (sem setor a marcação é recusada, não vira "unidade" em silêncio); mudar o
+  setor da pessoa muda a equipe que ela acompanha na requisição seguinte; o
+  alcance é relido a cada requisição, como papel e status
+  (`attachTenantContext`) — tirar a marcação corta a visão na hora.
+- **Risco**: é a primeira vez que um atributo de pessoa amplia o que ela vê
+  além do próprio acervo. O que a marcação libera é **só** a visão de
+  acompanhamento da C4 e o aviso da C3 — escrever isso como limite na spec, e
+  testar que a marcação não muda nenhuma resposta de `access.ts`.
+
 ### C1 — Núcleo da leitura obrigatória (marcar e dar ciência)
 
 - **Capabilities**: `leitura-obrigatoria` (nova), `controle-documental`
@@ -598,12 +831,13 @@ Governança local; (ii) papel novo de auditor cross-unit, restrito a
     publicador se pede nova ciência, preservando o histórico; pendências de
     revisão que virou Obsoleto são encerradas automaticamente; pendências de
     pessoa desligada saem do cálculo de adesão.
-- **Depende de**: — (travada por **D3** e **D5**; **D4** se o público por setor
-  entrar nesta fatia)
+- **Depende de**: **A7** (a tela não pode usar "Gestor" para dois papéis).
+  D3, D4 e D5 estão respondidas.
 - **Risco**: as duas tabelas novas precisam de `unit_id` + policy RLS. Público
-  que atravessa unidades é a mesma questão de D1 — se a tenancy continuar como
-  está, "unidades" no público significa **a unidade do documento**, e isso tem
-  de estar escrito na spec, não implícito.
+  que atravessa unidades é a mesma questão de D1 — **a tenancy continua como
+  está** (D1 respondida), então "unidades" no público significa **a unidade do
+  documento**, e isso tem de estar escrito na spec, não implícito. Documento
+  institucional lido por todas as unidades é **D7(ii)**, não esta fatia.
 - **Risco 2**: "pessoa nova no público recebe a pendência com prazo de 15 dias a
   partir da entrada" (3.3) significa que o público é **resolvido na consulta**,
   não congelado na marcação. Decisão de design a fixar no `design.md`: público
@@ -638,8 +872,10 @@ Governança local; (ii) papel novo de auditor cross-unit, restrito a
 - **PRD**: Épico 12
 - **Entrega**: notificação no sino ao surgir pendência; **"Atrasada" em
   vermelho** depois do prazo, com a pendência **continuando aberta** (o prazo não
-  encerra nada); aviso de atraso ao leitor **e ao gestor dele** (conforme D3).
-- **Depende de**: **C1**, **D3**
+  encerra nada); aviso de atraso ao leitor **e ao gestor dele** — quem tem a
+  marcação da C0 cobrindo o setor ou a unidade do leitor (pode ser mais de
+  uma pessoa).
+- **Depende de**: **C0**, **C1**
 - **Risco**: a emissão é idempotente por `(recipientUserId, kind, sourceRef)` —
   a rotina de atraso roda todo dia e **não pode** reavisar a cada execução; o
   `sourceRef` tem de incluir a competência do aviso. O padrão já está resolvido
@@ -658,7 +894,9 @@ Governança local; (ii) papel novo de auditor cross-unit, restrito a
   por documento: total do público, confirmados, pendentes, atrasados e **% de
   adesão**; lista nominal com nome, unidade, setor, data e hora; filtros por
   unidade, setor e situação; exportação em **Excel e PDF**.
-- **Depende de**: **C1**, **D5** (alcance), **D6** (formato de exportação)
+- **Depende de**: **C0** (quem é gestor e de quem; quem é Governança), **C1**,
+  **D6** (formato de exportação). D5 está respondida: a visão da Governança é
+  a exceção estreita descrita lá — leitura nominal, sem bytes, sem auditoria.
 - **Risco**: é a fatia que mais pressiona o isolamento — lista **nominal** com
   unidade e setor. Três visões distintas (Governança / publicador / gestor) são
   três recortes de alcance, e cada um precisa de teste próprio. O cálculo de
@@ -679,13 +917,17 @@ Governança local; (ii) papel novo de auditor cross-unit, restrito a
 
   B1 (arquivo geral + pendente) ──▶ B2 (tabela de cadastro no lote)
 
-  C1 (marcar + ciência) ──┬──▶ C2 (superfícies) ◀── A2, A3
-                          ├──▶ C3 (avisos e atrasos)
-                          └──▶ C4 (acompanhamento e relatório)
+  A7 (rótulo "Administrador da unidade") ──┬──▶ C0 (gestor no cadastro)
+                                           └──▶ C1 (marcar + ciência)
+
+  C1 ──┬──▶ C2 (superfícies) ◀── A2, A3
+       ├──▶ C3 (avisos e atrasos) ◀── C0
+       └──▶ C4 (acompanhamento e relatório) ◀── C0
 ```
 
-Blocos A, B e C são independentes; o único laço entre eles é **C2 → A2/A3**
-(a coluna direita e o item de menu têm de existir antes de receberem função).
+Blocos A, B e C são independentes; os laços entre eles são **C2 → A2/A3**
+(a coluna direita e o item de menu têm de existir antes de receberem função) e
+**A7 → C0/C1** (o nome "Gestor" tem de estar livre antes de ganhar o papel novo).
 
 ---
 
@@ -696,7 +938,8 @@ Blocos A, B e C são independentes; o único laço entre eles é **C2 → A2/A3*
 | Ajustar a tela Início (seção 1) | TI | fatias A1–A3 |
 | Enviar prints de Documentos e Login | TI | E2 — pendente |
 | Implementar envio em lote (seção 2) | TI | fatias B1–B2 |
-| Informar prazo da leitura obrigatória (Fase 2) | TI | estimável após D3 e D5 |
+| Informar prazo da leitura obrigatória (Fase 2) | TI | **estimado** em 2026-11-05: homologação até 27/11, produção na semana de 07/12 — ver D6 |
+| Planejar acesso da Governança a documentos das unidades e "Documentos Institucionais" | TI + Governança | D7 — fora da demanda nº 2, change própria |
 | Enviar logo branca e símbolo em PNG | Governança | E1 — pendente |
 | Definir ambiente de homologação e contato de TI | TI + Governança | E3 — pendente |
 
@@ -712,8 +955,10 @@ tocam em alcance de dados:
 2. **Isolamento por unidade é *fail-closed*** — recurso inexistente ou de outra
    unidade responde igual, sem distinguir os casos.
 3. **O administrador global não é olho universal** sobre bytes, listagem de
-   itens ou auditoria de outra unidade. D1 e D5 são pedidos para abrir essa
-   trava; nenhuma fatia a abre sem decisão registrada em `design.md`.
+   itens ou auditoria de outra unidade. D1 foi respondida sem abrir a trava;
+   D5 abre **uma** exceção estreita (situação nominal de leitura, na C4), que
+   tem de estar registrada no `design.md` da C4. D7 é pedido para abrir a trava
+   sobre conteúdo — nenhuma fatia desta demanda o faz.
 4. **Vigência e situação são apuradas no relógio do Postgres, na consulta** —
    nunca dependentes de rotina ter rodado. Vale para o prazo de leitura (C3).
 5. **Bytes nunca passam pela API** — o visualizador de C1 usa a URL assinada que
