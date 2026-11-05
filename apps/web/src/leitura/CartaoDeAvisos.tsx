@@ -5,6 +5,7 @@ import {
   destinoDaNotificacao,
   ehAvisoDeLeitura,
   mensagemDaNotificacao,
+  rotuloDoDestino,
 } from '../notificacoes/mensagens';
 import { useNotifications } from '../notificacoes/queries';
 
@@ -51,7 +52,7 @@ export function CartaoDeAvisos() {
                       {destino && (
                         <>
                           {' · '}
-                          <Link to={destino}>Abrir leituras</Link>
+                          <Link to={destino}>{rotuloDoDestino(aviso)}</Link>
                         </>
                       )}
                     </div>

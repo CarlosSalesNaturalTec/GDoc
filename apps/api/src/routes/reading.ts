@@ -11,6 +11,8 @@ import {
 import type {
   MyReadingResponse,
   MyReadingsResponse,
+  OversightListResponse,
+  OversightReportResponse,
   ReadingAudience,
   ReadingAudienceOptionsResponse,
   ReadingCampaignResponse,
@@ -36,6 +38,7 @@ import {
   reconcileForUser,
 } from '../lib/reading.js';
 import { notifyAssigned, readAssignedNotices } from '../lib/reading-notices.js';
+import { listOversight, readOversightReport } from '../lib/reading-oversight.js';
 
 type ReaderNotices = Awaited<ReturnType<typeof readAssignedNotices>>;
 
@@ -495,6 +498,35 @@ export function readingRouter(ports: Ports): Router {
         return;
       }
       res.status(204).end();
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  // Acompanhamento (change `acompanhamento-de-leituras`, design.md D4): o
+  // recorte — publicador, gestor, todas as unidades — é todo de
+  // `lib/reading-oversight.ts`, que concentra a única consulta entre unidades.
+  router.get('/reading/oversight', async (req, res, next) => {
+    try {
+      const body: OversightListResponse = await listOversight(ports.database, req.tenantContext!);
+      res.json(body);
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  router.get('/reading/oversight/campaigns/:id', async (req, res, next) => {
+    try {
+      const id = req.params.id!;
+      // Fora do recorte, de outra unidade ou inexistente: o mesmo 404.
+      const body: OversightReportResponse | null = UUID.test(id)
+        ? await readOversightReport(ports.database, req.tenantContext!, id)
+        : null;
+      if (!body) {
+        res.status(404).json({ error: 'not_found' });
+        return;
+      }
+      res.json(body);
     } catch (err) {
       next(err);
     }

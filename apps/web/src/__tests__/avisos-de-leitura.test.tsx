@@ -90,9 +90,12 @@ describe('Avisos de leitura obrigatória no sino (notificacoes)', () => {
       ),
     ).toBeInTheDocument();
 
-    // O do gestor não tem destino ainda (C4); o do leitor tem.
+    // O do gestor leva ao relatório da marcação (change
+    // `acompanhamento-de-leituras`, design.md D7); o do leitor, às leituras.
     const itemDe = (el: HTMLElement) => el.closest('li') as HTMLElement;
-    expect(within(itemDe(equipe)).queryByRole('link', { name: 'Abrir leituras' })).toBeNull();
+    expect(
+      within(itemDe(equipe)).getByRole('link', { name: 'Abrir acompanhamento' }),
+    ).toHaveAttribute('href', '/leituras?aba=acompanhamento&marcacao=c-1');
     const link = within(itemDe(atraso)).getByRole('link', { name: 'Abrir leituras' });
     expect(link).toHaveAttribute('href', '/leituras');
   });

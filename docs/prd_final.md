@@ -805,6 +805,25 @@ O **objetivo principal** do GDoc é entregar um repositório de arquivos corpora
       * **Quando** a rotina diária roda
       * **Então** recebo um aviso por documento e prazo, com quantas estão atrasadas e os nomes e setores delas; gestor de outro setor, de outra unidade, e quem já confirmou não entram.
 
+* **US 12.6:** Como publicador, gestor ou Governança, eu quero acompanhar quem leu cada documento e exportar o relatório para que a adesão seja cobrada e comprovada.
+  * **Critérios de Aceitação:**
+    * *Cenário 1 — Números por documento:*
+      * **Dado** que marquei um documento, ou sou gestor, ou acompanho todas as unidades
+      * **Quando** abro a aba "Acompanhamento"
+      * **Então** vejo, para cada documento ao meu alcance, o público, os confirmados, pendentes, atrasados e a % de adesão; pessoa desativada não conta.
+    * *Cenário 2 — Três recortes:*
+      * **Dado** o meu alcance
+      * **Quando** consulto o acompanhamento
+      * **Então** como publicador vejo o que marquei; como gestor do setor, só as pessoas do meu setor; como gestor da unidade, a unidade inteira; acompanhando todas as unidades, todas elas — e marcação fora do alcance é tratada como inexistente.
+    * *Cenário 3 — Relatório nominal e exportação:*
+      * **Dado** o relatório de um documento
+      * **Quando** filtro por unidade, setor ou situação e exporto em Excel ou PDF
+      * **Então** a lista e o arquivo trazem só as pessoas filtradas, com nome, unidade, setor, situação, prazo, data e hora da ciência, além do documento, da revisão, dos filtros e dos números.
+    * *Cenário 4 — Sem abrir o documento:*
+      * **Dado** que acompanho todas as unidades
+      * **Quando** tento visualizar, baixar, auditar ou consultar o estado de leitura de um arquivo de outra unidade
+      * **Então** sou recusado como se o arquivo não existisse; o acompanhamento mostra quem leu, nunca o documento.
+
 ## 5. Requisitos Funcionais
 
 1. Autenticação por usuário e senha; contas criadas exclusivamente pela área administrativa, sem autocadastro.

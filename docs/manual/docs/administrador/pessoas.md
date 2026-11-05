@@ -61,9 +61,9 @@ No campo **Acompanhamento de leituras** do cadastro, escolha:
 !!! note "O que o gestor recebe"
     A marcação define quem recebe, no sino, o **aviso de atraso da equipe** da
     leitura obrigatória — com os nomes de quem está atrasado no seu alcance (ver
-    [Leitura obrigatória](../colaborador/leitura-obrigatoria.md#avisos)). Ela
-    também vai definir quem vê o acompanhamento de quem leu, que chega numa
-    próxima entrega.
+    [Leitura obrigatória](../colaborador/leitura-obrigatoria.md#avisos)), e
+    quem vê, na aba **Acompanhamento**, quem leu cada documento (ver
+    [Acompanhar quem leu](../colaborador/leitura-obrigatoria.md#acompanhar-quem-leu-publicador-gestor-e-governanca)).
 
 ## Setores da unidade
 

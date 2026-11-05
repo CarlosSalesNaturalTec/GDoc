@@ -10,7 +10,9 @@ import {
   documentoDaLeitura,
   prazoDaLeitura,
 } from './apresentacao';
-import { estaAberta, useMyReadings, type MinhaLeitura } from './queries';
+import { estaAberta, useMyReadings, useOversight, type MinhaLeitura } from './queries';
+import { useSearchParams } from 'react-router-dom';
+import { AcompanhamentoAba } from './AcompanhamentoAba';
 
 function formatarDataHora(iso: string): string {
   return new Date(iso).toLocaleString('pt-BR', {
@@ -33,7 +35,25 @@ function formatarDataHora(iso: string): string {
  */
 export function LeiturasPage() {
   const leituras = useMyReadings();
+  const acompanhamento = useOversight();
   const [emLeitura, setEmLeitura] = useState<FileSummaryResponse | null>(null);
+  // Aba e marcação no endereço (change `acompanhamento-de-leituras`, design.md
+  // D7): o aviso ao gestor abre direto o relatório.
+  const [params, setParams] = useSearchParams();
+  const podeAcompanhar = acompanhamento.data?.available === true;
+  const pedida = params.get('aba');
+  const aba =
+    pedida === 'concluidas' || (pedida === 'acompanhamento' && podeAcompanhar)
+      ? pedida
+      : 'pendentes';
+  const marcacao = params.get('marcacao');
+
+  function irPara(chave: string, marcacaoAberta: string | null = null) {
+    const proximo = new URLSearchParams();
+    if (chave !== 'pendentes') proximo.set('aba', chave);
+    if (marcacaoAberta) proximo.set('marcacao', marcacaoAberta);
+    setParams(proximo);
+  }
 
   if (leituras.isLoading) return <Spin style={{ display: 'block', margin: '48px auto' }} />;
   if (leituras.isError) {
@@ -86,8 +106,11 @@ export function LeiturasPage() {
       <Typography.Paragraph type="secondary">
         Documentos que você precisa ler e confirmar, com o prazo de cada um, e as ciências que você
         já confirmou.
+        {podeAcompanhar && ' Em Acompanhamento, quem leu cada documento que você acompanha.'}
       </Typography.Paragraph>
       <Tabs
+        activeKey={aba}
+        onChange={(chave) => irPara(chave)}
         items={[
           {
             key: 'pendentes',
@@ -121,6 +144,22 @@ export function LeiturasPage() {
                 />
               ),
           },
+          // Só para quem tem algo a acompanhar (design.md D4): publicador,
+          // gestor ou todas as unidades — o servidor decide.
+          ...(podeAcompanhar
+            ? [
+                {
+                  key: 'acompanhamento',
+                  label: 'Acompanhamento',
+                  children: (
+                    <AcompanhamentoAba
+                      marcacao={marcacao}
+                      onAbrir={(id) => irPara('acompanhamento', id)}
+                    />
+                  ),
+                },
+              ]
+            : []),
         ]}
       />
       <PreviewModal file={emLeitura} onClose={() => setEmLeitura(null)} />
