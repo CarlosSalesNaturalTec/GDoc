@@ -128,13 +128,20 @@ export function CartaoDoUsuario({
           </span>
           <span
             style={{
-              display: 'block',
               color: paleta.textoSobreEscuro,
               fontSize: TAMANHO_MINIMO_TEXTO,
               lineHeight: '18px',
+              // Até **duas** linhas antes de cortar (change
+              // `rotulo-administrador-da-unidade`): com o rótulo
+              // "Administrador da unidade", uma linha só cortava o nome da
+              // unidade — medido: 191px de largura para o texto. Acima de duas
+              // linhas o corte volta, e o texto íntegro segue no `title` e no
+              // nome acessível.
               overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
+              display: '-webkit-box',
+              WebkitBoxOrient: 'vertical',
+              WebkitLineClamp: 2,
+              overflowWrap: 'anywhere',
             }}
           >
             {funcao} · {identity.unitName}

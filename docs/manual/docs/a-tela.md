@@ -19,7 +19,7 @@ clique, a "quem sou, onde estou, o que posso fazer e o que mudou":
   **documentos novos** foram publicados **nos últimos 7 dias** entre os que
   você pode abrir (por exemplo, "— 6 documentos novos nos últimos 7 dias").
   Se o seu cargo não estiver preenchido, aparece no lugar o nome do seu
-  **perfil de acesso** ("Colaborador", "Gestor" ou "Administrador global"); se
+  **perfil de acesso** ("Colaborador", "Administrador da unidade" ou "Administrador global"); se
   você não tem setor, ele simplesmente não aparece. Se a sua conta ainda não
   tem nome cadastrado, a saudação fica só com o horário ("Bom dia!") e essa
   linha continua aparecendo.

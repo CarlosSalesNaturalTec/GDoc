@@ -9,7 +9,7 @@ O **objetivo principal** do GDoc é entregar um repositório de arquivos corpora
 ## 2. Personas
 
 * **Administrador Global:** responsável pela plataforma como um todo. Enxerga todas as unidades e todos os arquivos, cadastra e desativa pessoas, define administradores de unidade, configura permissões e consome os registros de auditoria e o painel gerencial. Sua dor é a falta de controle centralizado e de comprovação de quem acessou o quê.
-* **Administrador de Unidade** (apresentado na interface como **Gestor**)**:** gerencia apenas a sua própria unidade — as pessoas, as pastas e as permissões daquela unidade. Não enxerga o conteúdo das demais unidades. Sua dor é depender de uma área central para tarefas cotidianas de liberação de acesso do seu time.
+* **Administrador de Unidade** (apresentado na interface como **Administrador da unidade**; até a demanda nº 2 era **Gestor** — palavra agora reservada a quem acompanha as leituras da equipe, resposta 5a de `docs/respostas_d1_d3_d5_decisoes_estruturais.txt`)**:** gerencia apenas a sua própria unidade — as pessoas, as pastas e as permissões daquela unidade. Não enxerga o conteúdo das demais unidades. Sua dor é depender de uma área central para tarefas cotidianas de liberação de acesso do seu time.
 * **Colaborador (Usuário Comum):** envia e consome arquivos no dia a dia. Só enxerga os arquivos e pastas que criou ou para os quais recebeu permissão explícita. Quando envia um arquivo, torna-se o dono dele e pode consultar quem o acessou. Sua dor é encontrar rapidamente o material certo e ter certeza de que documentos sensíveis não estão expostos a quem não deveria vê-los.
 
 ## 3. Escopo do MVP
@@ -519,7 +519,7 @@ O **objetivo principal** do GDoc é entregar um repositório de arquivos corpora
       * **Quando** o vejo na listagem
       * **Então** os campos aparecem vazios de forma explícita, sem número de revisão presumido.
 
-* **US 10.4:** Como Gestor, eu quero ver a situação de cada documento para que eu identifique o que está vencido ou prestes a vencer sem precisar conferir datas uma a uma.
+* **US 10.4:** Como Administrador da unidade, eu quero ver a situação de cada documento para que eu identifique o que está vencido ou prestes a vencer sem precisar conferir datas uma a uma.
   * **Critérios de Aceitação:**
     * *Cenário 1 — Documento dentro do prazo:*
       * **Dado** que um documento tem data de próxima revisão a mais de 60 dias
@@ -546,7 +546,7 @@ O **objetivo principal** do GDoc é entregar um repositório de arquivos corpora
       * **Quando** o consulto após esse instante, sem que nenhuma rotina programada tenha sido executada
       * **Então** sua situação já é apresentada como **Revisão vencida**, pois é apurada pelo relógio do servidor no momento da consulta.
 
-* **US 10.5:** Como Gestor, eu quero que os dados de controle sejam exigidos ao publicar um documento para que a unidade não acumule documentos sem rastreio.
+* **US 10.5:** Como Administrador da unidade, eu quero que os dados de controle sejam exigidos ao publicar um documento para que a unidade não acumule documentos sem rastreio.
   * **Critérios de Aceitação:**
     * *Cenário 1 — Envio de um documento exige os dados:*
       * **Dado** que estou enviando um único documento
@@ -561,7 +561,7 @@ O **objetivo principal** do GDoc é entregar um repositório de arquivos corpora
       * **Quando** navego por eles
       * **Então** permanecem acessíveis conforme minhas permissões, com situação **Sem controle de revisão**, sem que nenhum deles se torne inválido, inacessível ou pendente de cadastro.
 
-* **US 10.6:** Como Gestor, eu quero que substituir o arquivo avance a revisão para que a numeração acompanhe a realidade do documento.
+* **US 10.6:** Como Administrador da unidade, eu quero que substituir o arquivo avance a revisão para que a numeração acompanhe a realidade do documento.
   * **Critérios de Aceitação:**
     * *Cenário 1 — Substituição avança a revisão:*
       * **Dado** que tenho permissão de substituir um documento controlado que está na revisão 01
@@ -576,18 +576,18 @@ O **objetivo principal** do GDoc é entregar um repositório de arquivos corpora
       * **Quando** tento substituí-lo
       * **Então** a ação é recusada e a revisão permanece como estava.
 
-* **US 10.7:** Como Gestor, eu quero que documentos obsoletos saiam de circulação para que ninguém siga um procedimento substituído.
+* **US 10.7:** Como Administrador da unidade, eu quero que documentos obsoletos saiam de circulação para que ninguém siga um procedimento substituído.
   * **Critérios de Aceitação:**
     * *Cenário 1 — Colaborador não alcança documento obsoleto:*
       * **Dado** que um documento foi marcado como obsoleto
       * **Quando** um Colaborador navega pela pasta, busca pelo nome ou pelo código, ou acessa o endereço direto do documento
       * **Então** em nenhum desses caminhos o documento lhe é apresentado, nem sua pré-visualização.
-    * *Cenário 2 — Gestor continua enxergando o obsoleto:*
+    * *Cenário 2 — Administrador da unidade continua enxergando o obsoleto:*
       * **Dado** que um documento foi marcado como obsoleto
-      * **Quando** um Gestor da unidade consulta a pasta
+      * **Quando** um Administrador da unidade consulta a pasta
       * **Então** o documento aparece, claramente identificado como **Obsoleto**.
     * *Cenário 3 — Obsolescência não atravessa unidades:*
-      * **Dado** que um Gestor consulta documentos obsoletos
+      * **Dado** que um Administrador da unidade consulta documentos obsoletos
       * **Quando** faz essa consulta
       * **Então** enxerga apenas os da própria unidade, sem que a condição de obsoleto abra qualquer acesso a conteúdo de outra unidade.
 
@@ -606,7 +606,7 @@ O **objetivo principal** do GDoc é entregar um repositório de arquivos corpora
       * **Quando** informo um código, uma revisão ou uma data de próxima revisão
       * **Então** a operação é recusada, porque o tipo declara justamente não ter esses dados.
 
-* **US 10.9:** Como Gestor, eu quero que o arquivo enviado sem os dados obrigatórios fique fora de circulação até ser cadastrado para que ninguém leia como oficial um documento que ainda não foi identificado.
+* **US 10.9:** Como Administrador da unidade, eu quero que o arquivo enviado sem os dados obrigatórios fique fora de circulação até ser cadastrado para que ninguém leia como oficial um documento que ainda não foi identificado.
   * **Critérios de Aceitação:**
     * *Cenário 1 — Pendente não aparece para os leitores:*
       * **Dado** que um arquivo foi enviado em lote sem os dados obrigatórios
@@ -614,7 +614,7 @@ O **objetivo principal** do GDoc é entregar um repositório de arquivos corpora
       * **Então** em nenhum desses caminhos o arquivo lhe é apresentado, ainda que ele tenha permissão sobre o arquivo.
     * *Cenário 2 — Quem enviou e a Governança enxergam o pendente:*
       * **Dado** que um arquivo ficou pendente de cadastro
-      * **Quando** quem o enviou, ou um Gestor da unidade, consulta a pasta
+      * **Quando** quem o enviou, ou um Administrador da unidade, consulta a pasta
       * **Então** o arquivo aparece identificado como **Pendente de cadastro**.
     * *Cenário 3 — Quem enviou é avisado:*
       * **Dado** que enviei arquivos e parte deles ficou pendente de cadastro
@@ -629,7 +629,7 @@ O **objetivo principal** do GDoc é entregar um repositório de arquivos corpora
       * **Quando** informo parte dos dados obrigatórios e deixo algum em falta
       * **Então** os dados informados são gravados e o arquivo continua pendente de cadastro, sem erro.
     * *Cenário 6 — Pendência não atravessa unidades:*
-      * **Dado** que um Gestor consulta arquivos pendentes de cadastro
+      * **Dado** que um Administrador da unidade consulta arquivos pendentes de cadastro
       * **Quando** faz essa consulta
       * **Então** enxerga apenas os da própria unidade, sem que a condição de pendente abra qualquer acesso a conteúdo de outra unidade.
 

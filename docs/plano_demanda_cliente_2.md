@@ -57,11 +57,11 @@ Legenda: `pendente` · `bloqueada` (ver coluna Bloqueio) · `em andamento` ·
 | A4 | Favoritos | 1.1 (menu) | **entregue** | — | `favoritos` |
 | A5 | Compartilhados comigo | 1.1 (menu) | **entregue** | — | `compartilhados-comigo` |
 | A6 | Tour guiado | 1.1, 1.3 | **entregue** | — | `tour-guiado` |
-| A7 | Rótulo "Administrador da unidade" | — (resposta 5 de D3) | pendente | — | — |
+| A7 | Rótulo "Administrador da unidade" | — (resposta 5 de D3) | **entregue** | — | `rotulo-administrador-da-unidade` |
 | B1 | Arquivo geral e pendente de cadastro | 2.3, 2.4 | **entregue** | — | `arquivo-geral-e-pendente-de-cadastro` |
 | B2 | Tabela de cadastro no envio em lote | 2.1, 2.2 | **entregue** | — | `tabela-de-cadastro-no-envio-em-lote` |
-| C0 | Gestor de acompanhamento no cadastro | 3.1 | pendente | A7 | — |
-| C1 | Núcleo da leitura obrigatória (marcar e dar ciência) | 3.1, 3.2 (etapas 1 e 3), 3.3, 3.4 | pendente | A7 | — |
+| C0 | Gestor de acompanhamento no cadastro | 3.1 | pendente | — | — |
+| C1 | Núcleo da leitura obrigatória (marcar e dar ciência) | 3.1, 3.2 (etapas 1 e 3), 3.3, 3.4 | pendente | — | — |
 | C2 | Superfícies de pendência (menu, contador, cartão, abas) | 3.2 (etapa 2), 3.5 | pendente | C1, A2, A3 | — |
 | C3 | Avisos e atrasos | 3.2 (etapas 2 e 4), 3.3 | pendente | C0, C1 | — |
 | C4 | Acompanhamento e relatório exportável | 3.5 | pendente | C0, C1, D6 | — |
@@ -698,7 +698,27 @@ revisão de segurança antes do código.
 - **Nota**: o tour só percorre o que a pessoa pode ver — passo apontando para
   item fora do perfil é bug de alcance, não de layout.
 
-### A7 — Rótulo "Administrador da unidade"
+### A7 — Rótulo "Administrador da unidade"  ✅ entregue
+
+> Change `rotulo-administrador-da-unidade`. **Desvios do previsto aqui:**
+>
+> - **`nomenclatura-interface` foi invertida, não acrescida**: o requisito
+>   proibia o texto "Administrador da unidade" (decisão de 2026-10 do mesmo
+>   cliente); agora o exige e **reserva "Gestor"** ao papel de acompanhamento,
+>   sem uso até a C0.
+> - **"da" e não "de" unidade** — a forma que o cliente escreveu (design.md D1).
+> - **O cartão do usuário mudou de forma**: a linha "função · unidade" passou de
+>   uma linha com reticências para até duas, porque o rótulo longo cortava o
+>   nome da unidade (medido: 191 px de texto). Na tabela de colaboradores o
+>   rótulo cabe inteiro.
+> - **PRD**: a persona e as cinco US 10.x "Como Gestor" passaram a
+>   "Administrador da unidade", para "Gestor" significar uma coisa só.
+>
+> **O que ficou com "Gestor", de propósito**: citações literais do cliente em
+> comentários ("'Colaborador' ou 'Gestor' é coisa interna do sistema"), o
+> histórico do rótulo em `role-label.ts`, nomes de fixture ("Fulana Gestora") e
+> os cenários "a quem não é gestão" de `favoritos` e `compartilhados-comigo`
+> (falam de gestão, não do rótulo).
 
 - **Capabilities**: `nomenclatura-interface` (modificada), `web-shell-e-auth`
   e `web-pessoas` (conferidas — consomem o rótulo)

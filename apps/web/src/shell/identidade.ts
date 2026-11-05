@@ -75,7 +75,7 @@ export function saudacao(nome: string | null, agora: Date = new Date()): string 
  * outro nome.
  *
  * A função **não** é rótulo de papel e não altera permissão: é texto livre do
- * cadastro. Uma pessoa com função "Gestor" e papel `collaborator` continua
+ * cadastro. Uma pessoa com função "Coordenadora" e papel `collaborator` continua
  * sendo colaboradora para toda decisão de autorização — que é do servidor.
  */
 export function funcaoExibida(identity: AuthenticatedIdentity): string {
