@@ -234,7 +234,10 @@ describe('Navegação agrupada por natureza (web-shell-e-auth)', () => {
     expect(router.state.location.pathname).toBe('/');
   });
 
-  it('sem manualUrl, o grupo AJUDA não apresenta rótulo de seção vazia', async () => {
+  // Com o tour guiado (change `tour-guiado`, design.md D7) o grupo AJUDA nunca
+  // fica vazio: sem manual, ele segue com o tour. A regra "grupo sem item não
+  // apresenta rótulo" continua no código para grupos futuros.
+  it('sem manualUrl, o grupo AJUDA segue só com o tour guiado', async () => {
     mockViewportWidth(WIDE_VIEWPORT);
     mockFetch({
       ...ROTAS_DA_TELA_INICIAL,
@@ -251,7 +254,9 @@ describe('Navegação agrupada por natureza (web-shell-e-auth)', () => {
     const titulos = Array.from(navegacao().querySelectorAll('.ant-menu-item-group-title')).map(
       (el) => el.textContent?.trim(),
     );
-    expect(titulos).toEqual(['NAVEGAÇÃO']);
+    expect(titulos).toEqual(['NAVEGAÇÃO', 'AJUDA']);
+    expect(within(navegacao()).queryByRole('link', { name: /Manual do usuário/ })).toBeNull();
+    expect(within(navegacao()).getByRole('link', { name: 'Tour guiado' })).toBeInTheDocument();
   });
 });
 
@@ -335,6 +340,7 @@ describe('Busca fora da navegação e permanente na barra superior (web-busca)',
       'Favoritos',
       'Compartilhados comigo',
       'Lixeira',
+      'Tour guiado',
     ]);
     largo.unmount();
 

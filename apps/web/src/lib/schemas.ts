@@ -78,6 +78,10 @@ export const authenticatedIdentitySchema: z.ZodType<AuthenticatedIdentity> = z.o
   // no caso da função, e omitir, no caso do setor.
   jobTitle: z.string().catch(''),
   sectorName: z.string().catch(''),
+  // Change `tour-guiado`: uma API mais antiga não traz o campo nem sabe
+  // registrá-lo, e o convite apareceria para sempre — ausência conta como
+  // feito, para não insistir com quem não tem como dispensá-lo.
+  tourCompleted: z.boolean().catch(true),
 });
 
 /** Espelha `FolderResponse` (design.md D8, `web-navegacao`). */

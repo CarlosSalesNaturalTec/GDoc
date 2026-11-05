@@ -88,6 +88,7 @@ describe('Painel sobreposto de navegação (responsividade-mobile-tablet)', () =
       'Painel',
       'Unidades',
       'Manual do usuário',
+      'Tour guiado',
     ]);
   });
 

@@ -10,6 +10,8 @@ import { useFolderContents } from '../navegacao/queries';
 import { atalhosDoPapel, type Atalho } from './atalhos';
 import { textoDeNovos, useNewDocumentsCount } from './queries';
 import { TabelaDeRecentes } from './TabelaDeRecentes';
+import { TourGuiado } from '../tour/TourGuiado';
+import { DESTINO_PEDIDO_DE_TOUR } from '../tour/pedido-de-tour';
 
 /**
  * Estilo do link que **envolve** o cartão (design.md D1/D3 do change
@@ -163,9 +165,25 @@ export function InicioPage() {
       <div style={{ flex: '999 1 480px', minWidth: 0 }}>
         <Space direction="vertical" size="large" style={{ display: 'flex' }}>
           <div>
-            <Typography.Title level={3} style={{ marginBottom: 4 }}>
-              {saudacao(nomeExibido(identity))}
-            </Typography.Title>
+            {/* Convite ao tour à direita da saudação, só para quem ainda não
+                o fez (change `tour-guiado`, design.md D6) — refazer continua no
+                menu, em AJUDA. */}
+            <div
+              style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                alignItems: 'baseline',
+                justifyContent: 'space-between',
+                columnGap: 16,
+              }}
+            >
+              <Typography.Title level={3} style={{ marginBottom: 4 }}>
+                {saudacao(nomeExibido(identity))}
+              </Typography.Title>
+              {!identity.tourCompleted && (
+                <Link to={DESTINO_PEDIDO_DE_TOUR}>Primeira vez aqui? Faça o tour de 2 minutos</Link>
+              )}
+            </div>
             <Typography.Text type="secondary">
               {contexto}
               {novos.data && ` — ${textoDeNovos(novos.data)}`}
@@ -173,7 +191,7 @@ export function InicioPage() {
           </div>
 
           {/* Cartões soltos, sem título de seção (demanda nº 2, seção 1.3). */}
-          <Row gutter={[16, 16]}>
+          <Row gutter={[16, 16]} data-tour="atalhos">
             {atalhos.map((atalho) => (
               <Col key={atalho.chave} xs={24} sm={12} xxl={6}>
                 <CartaoDeAtalho atalho={atalho} />
@@ -182,6 +200,7 @@ export function InicioPage() {
           </Row>
 
           <Card
+            data-tour="pastas"
             title="Pastas da unidade"
             extra={<Link to="/pastas">Ver todas as pastas</Link>}
             styles={ESTILOS_DE_CARTAO_COM_LINK}
@@ -226,6 +245,7 @@ export function InicioPage() {
           </Card>
 
           <Card
+            data-tour="recentes"
             title="Documentos recentes"
             extra={<Link to="/recentes">Ver histórico completo</Link>}
             styles={ESTILOS_DE_CARTAO_COM_LINK}
@@ -235,7 +255,11 @@ export function InicioPage() {
         </Space>
       </div>
 
-      <aside aria-label="Leitura obrigatória e avisos" style={{ flex: '1 1 340px', minWidth: 0 }}>
+      <aside
+        aria-label="Leitura obrigatória e avisos"
+        data-tour="coluna-direita"
+        style={{ flex: '1 1 340px', minWidth: 0 }}
+      >
         <Space direction="vertical" size="large" style={{ display: 'flex' }}>
           <CartaoReservado titulo="Leitura obrigatória">
             Aqui vão aparecer os documentos que você precisa ler, com o prazo de cada um e o botão
@@ -247,6 +271,7 @@ export function InicioPage() {
           </CartaoReservado>
         </Space>
       </aside>
+      <TourGuiado />
     </div>
   );
 }

@@ -26,6 +26,12 @@ interface SessionContextValue {
   /** Lança `ApiError` (401) em credenciais inválidas — a página de login trata a mensagem genérica. */
   login: (credentials: LoginRequest) => Promise<void>;
   logout: () => Promise<void>;
+  /**
+   * Registra, na conta, que o tour guiado foi feito (change `tour-guiado`,
+   * design.md D4) e atualiza a identidade em memória — o convite da saudação
+   * some sem nova leitura de `/auth/me`.
+   */
+  markTourCompleted: () => Promise<void>;
 }
 
 const SessionContext = createContext<SessionContextValue | null>(null);
@@ -114,6 +120,10 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         await apiClient.post('/auth/logout');
         setIdentity(null);
         setStatus('anonymous');
+      },
+      async markTourCompleted() {
+        setIdentity((atual) => (atual ? { ...atual, tourCompleted: true } : atual));
+        await apiClient.post('/auth/tour-completed');
       },
     }),
     [status, identity, publicConfig],

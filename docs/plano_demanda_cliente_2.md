@@ -56,7 +56,7 @@ Legenda: `pendente` · `bloqueada` (ver coluna Bloqueio) · `em andamento` ·
 | A3 | Conteúdo da tela Início | 1.3 | **entregue** | E1 (marca d'água) | `conteudo-da-tela-inicio` |
 | A4 | Favoritos | 1.1 (menu) | **entregue** | — | `favoritos` |
 | A5 | Compartilhados comigo | 1.1 (menu) | **entregue** | — | `compartilhados-comigo` |
-| A6 | Tour guiado | 1.1, 1.3 | pendente | — | — |
+| A6 | Tour guiado | 1.1, 1.3 | **entregue** | — | `tour-guiado` |
 | A7 | Rótulo "Administrador da unidade" | — (resposta 5 de D3) | pendente | — | — |
 | B1 | Arquivo geral e pendente de cadastro | 2.3, 2.4 | **entregue** | — | `arquivo-geral-e-pendente-de-cadastro` |
 | B2 | Tabela de cadastro no envio em lote | 2.1, 2.2 | **entregue** | — | `tabela-de-cadastro-no-envio-em-lote` |
@@ -658,7 +658,36 @@ revisão de segurança antes do código.
 - **Risco**: a listagem não pode revelar recurso excluído ou de outra unidade —
   *fail-closed* igual ao `access.ts`.
 
-### A6 — Tour guiado
+### A6 — Tour guiado  ✅ entregue
+
+> Change `tour-guiado`. **Desvios do previsto aqui, decididos durante a
+> especificação e a implementação:**
+>
+> - **Memória no servidor, não no navegador** (design.md D4):
+>   `users.tour_completed_at` e `tourCompleted` na identidade, pela mesma
+>   releitura por requisição. Nos hospitais o computador é compartilhado, e
+>   `localStorage` lembraria a máquina. Conferido na app: fechado o tour num
+>   navegador, o convite não apareceu no outro.
+> - **O tour não começa sozinho** — a demanda pede convite, não interrupção —,
+>   e **fechar no meio conta como feito** (D5).
+> - **Pedido no endereço `/?tour=1`**, no idioma dos pedidos de envio e de nova
+>   pasta: os dois acionadores levam ao Início, onde estão os alvos.
+> - **"Só o que se vê" por presença do alvo** (D2): passos montados na hora de
+>   começar, a partir de `data-tour`, omitindo o ausente. Medido: 9 passos em
+>   1440 px com manual; 8 em 375 px (o passo do menu aponta o ☰ e o da ajuda
+>   sai com o botão da barra).
+> - **O grupo AJUDA ganhou um acesso interno** (D7): o requisito de navegação
+>   foi reescrito para distinguir o manual (externo, anuncia a saída) do tour
+>   (interno, fecha o painel sobreposto como um destino). Com o tour, o grupo
+>   AJUDA nunca fica sem item.
+> - **Nenhuma dependência nova**: `Tour` do Ant Design.
+>
+> **Lacunas conhecidas, aceitas:**
+>
+> - Tour só da tela Início — explorador, busca e administração não têm o seu.
+> - Texto dos passos a confirmar na homologação.
+> - Um passo cujo alvo mude de lugar numa fatia futura é omitido em silêncio;
+>   o teste que monta os passos na forma larga é a rede.
 
 - **Capabilities**: `tour-guiado` (nova)
 - **Demanda**: 1.1 (AJUDA → Tour guiado), 1.3 ("Primeira vez aqui?")

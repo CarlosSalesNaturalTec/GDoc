@@ -126,7 +126,7 @@ describe('Acesso ao manual no grupo AJUDA da navegação (responsividade-mobile-
     expect(manualMenuItem).not.toHaveClass('ant-menu-item-selected');
   });
 
-  it('ocupa a última posição da navegação, depois de todos os destinos internos (design.md D3)', async () => {
+  it('fica no grupo AJUDA, depois de todos os destinos internos e antes do tour (design.md D3)', async () => {
     mockFetch({
       ...ROTAS_DA_TELA_INICIAL,
       'GET /auth/me': {
@@ -146,6 +146,7 @@ describe('Acesso ao manual no grupo AJUDA da navegação (responsividade-mobile-
     const labels = Array.from(document.querySelectorAll('.ant-layout-sider .ant-menu-item')).map(
       (el) => el.textContent?.trim(),
     );
-    expect(labels[labels.length - 1]).toBe('Manual do usuário');
+    // O tour guiado (change `tour-guiado`) fecha o grupo AJUDA, depois do manual.
+    expect(labels.slice(-2)).toEqual(['Manual do usuário', 'Tour guiado']);
   });
 });

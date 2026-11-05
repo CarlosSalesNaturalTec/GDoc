@@ -27,6 +27,7 @@ interface UserAuthRow {
   unit_name: string;
   job_title: string | null;
   sector_name: string | null;
+  tour_completed: boolean;
 }
 
 /**
@@ -77,7 +78,8 @@ export function authRouter(ports: Ports, appManualUrl: string): Router {
             // autenticar.
             `SELECT u.id, u.unit_id, u.role, u.status, u.password_hash,
                     u.full_name, un.name AS unit_name,
-                    u.job_title, s.name AS sector_name
+                    u.job_title, s.name AS sector_name,
+                    (u.tour_completed_at IS NOT NULL) AS tour_completed
              FROM users u
              JOIN units un ON un.id = u.unit_id
              LEFT JOIN sectors s ON s.id = u.sector_id
@@ -118,6 +120,7 @@ export function authRouter(ports: Ports, appManualUrl: string): Router {
         unitName: user.unit_name,
         jobTitle: user.job_title ?? '',
         sectorName: user.sector_name ?? '',
+        tourCompleted: user.tour_completed,
       };
       res.json(identity);
     } catch (err) {
@@ -145,8 +148,28 @@ export function authRouter(ports: Ports, appManualUrl: string): Router {
       unitName: display.unitName,
       jobTitle: display.jobTitle,
       sectorName: display.sectorName,
+      tourCompleted: display.tourCompleted,
     };
     res.json(identity);
+  });
+
+  // Registro de "já fiz o tour" (change `tour-guiado`, design.md D4/D5): só a
+  // **própria** conta — sem corpo, sem identificador na URL —, gravando a
+  // **primeira** vez (`COALESCE`), idempotente. Sob `/auth`, como
+  // `/auth/password`: é estado da conta, e nenhum prefixo de topo novo entra.
+  router.post('/auth/tour-completed', attachTenantContext(ports), async (req, res, next) => {
+    try {
+      const ctx = req.tenantContext!;
+      await ports.database.withTenantTransaction(ctx, (client) =>
+        client.query(
+          'UPDATE users SET tour_completed_at = COALESCE(tour_completed_at, now()) WHERE id = $1',
+          [ctx.userId],
+        ),
+      );
+      res.status(204).end();
+    } catch (err) {
+      next(err);
+    }
   });
 
   // Alteração da própria senha (US 1.3). Qualquer papel autenticado, sem
