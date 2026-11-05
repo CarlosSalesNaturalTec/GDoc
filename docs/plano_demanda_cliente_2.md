@@ -57,7 +57,7 @@ Legenda: `pendente` · `bloqueada` (ver coluna Bloqueio) · `em andamento` ·
 | A4 | Favoritos | 1.1 (menu) | **entregue** | — | `favoritos` |
 | A5 | Compartilhados comigo | 1.1 (menu) | **entregue** | — | `compartilhados-comigo` |
 | A6 | Tour guiado | 1.1, 1.3 | **entregue** | — | `tour-guiado` |
-| A7 | Rótulo "Administrador da unidade" | — (resposta 5 de D3) | pendente | — | — |
+| A7 | Rótulo "Administrador da unidade" | — (resposta 5 de D3) | em andamento | — | `rotulo-administrador-da-unidade` (em voo) |
 | B1 | Arquivo geral e pendente de cadastro | 2.3, 2.4 | **entregue** | — | `arquivo-geral-e-pendente-de-cadastro` |
 | B2 | Tabela de cadastro no envio em lote | 2.1, 2.2 | **entregue** | — | `tabela-de-cadastro-no-envio-em-lote` |
 | C0 | Gestor de acompanhamento no cadastro | 3.1 | pendente | A7 | — |
