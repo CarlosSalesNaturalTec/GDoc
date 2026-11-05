@@ -729,6 +729,40 @@ O **objetivo principal** do GDoc é entregar um repositório de arquivos corpora
       * **Quando** ela tenta abrir arquivo sem permissão ou a gestão de pessoas
       * **Então** é recusada como antes; a marcação libera apenas o acompanhamento da leitura obrigatória, e ninguém marca a si mesmo.
 
+* **US 12.2:** Como publicador, eu quero marcar um documento em vigor como leitura obrigatória, com público, prazo e mensagem, para que as pessoas certas leiam a revisão vigente.
+  * **Critérios de Aceitação:**
+    * *Cenário 1 — Marcar:*
+      * **Dado** que posso editar os dados de controle de um documento controlado, em vigor e que abre no visualizador
+      * **Quando** escolho o público (toda a unidade, setores, perfis ou pessoas, combináveis), o prazo (padrão de 15 dias) e, se quiser, uma mensagem
+      * **Então** vejo quantas pessoas serão incluídas antes de confirmar, e a marcação fica registrada para a revisão vigente, com quem marcou e quando.
+    * *Cenário 2 — Documento não elegível:*
+      * **Dado** um Arquivo geral, um arquivo pendente de cadastro, ou um documento em revisão, vencido, obsoleto ou sem pré-visualização
+      * **Quando** tento marcá-lo
+      * **Então** a marcação é recusada com o motivo.
+    * *Cenário 3 — Público na unidade:*
+      * **Dado** que o documento é da minha unidade
+      * **Quando** defino o público
+      * **Então** só entram pessoas ativas da unidade do documento; quem entrar depois no público recebe a leitura com 15 dias de prazo a partir de então.
+    * *Cenário 4 — Nova revisão:*
+      * **Dado** que a revisão anterior foi marcada e o documento foi substituído
+      * **Quando** abro a leitura obrigatória do documento
+      * **Então** o formulário vem preenchido com o público anterior, para eu pedir nova ciência da revisão vigente.
+
+* **US 12.3:** Como leitor, eu quero ler o documento e confirmar a ciência no próprio visualizador para que fique registrado que li a revisão vigente.
+  * **Critérios de Aceitação:**
+    * *Cenário 1 — Confirmar:*
+      * **Dado** que tenho leitura obrigatória aberta de um documento
+      * **Quando** o documento termina de abrir no visualizador e aciono "Confirmar ciência"
+      * **Então** vejo "Declaro que li e compreendi o documento [código] - [título], Rev. [nº]." e, ao confirmar, a ciência fica registrada com data, hora, minha unidade e meu setor naquele momento; não pode ser desfeita.
+    * *Cenário 2 — Visualizar sem outra permissão:*
+      * **Dado** que sou do público de um documento de outra pessoa
+      * **Quando** abro o documento
+      * **Então** consigo visualizá-lo, mas não baixá-lo nem alterá-lo, e ele não aparece na navegação de pastas nem na busca.
+    * *Cenário 3 — Atraso e encerramento:*
+      * **Dado** uma leitura minha aberta
+      * **Quando** o prazo passa, ou o documento ganha nova revisão, ou é declarado obsoleto
+      * **Então** ela aparece como Atrasada e continua aberta, no primeiro caso; é encerrada, nos dois outros — sem depender de rotina.
+
 ## 5. Requisitos Funcionais
 
 1. Autenticação por usuário e senha; contas criadas exclusivamente pela área administrativa, sem autocadastro.

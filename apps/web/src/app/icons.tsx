@@ -2,6 +2,7 @@ import type { ComponentProps } from 'react';
 import {
   ArrowRightLeft,
   Bell,
+  BookCheck,
   BookOpen,
   Building2,
   CircleHelp,
@@ -92,6 +93,7 @@ export const IconeColaboradores = criarIcone(Users, 'IconeColaboradores');
 export const IconePainel = criarIcone(LayoutDashboard, 'IconePainel');
 export const IconeUnidades = criarIcone(Building2, 'IconeUnidades');
 export const IconeManual = criarIcone(BookOpen, 'IconeManual');
+export const IconeLeituraObrigatoria = criarIcone(BookCheck, 'IconeLeituraObrigatoria');
 export const IconeMenu = criarIcone(Menu, 'IconeMenu');
 export const IconeConta = criarIcone(User, 'IconeConta');
 export const IconeSair = criarIcone(LogOut, 'IconeSair');

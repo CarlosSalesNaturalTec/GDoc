@@ -48,6 +48,7 @@ locals {
     "/search",
     "/notifications",
     "/favorites",
+    "/reading",
     "/health",
   ]
 }

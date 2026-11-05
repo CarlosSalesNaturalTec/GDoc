@@ -24,6 +24,7 @@ import {
   IconeControleDocumental,
   IconeExcluir,
   IconeFavorito,
+  IconeLeituraObrigatoria,
   IconeMaisAcoes,
   IconeMover,
   IconeNovaPasta,
@@ -52,6 +53,7 @@ import { PARAM_PEDIDO_DE_ENVIO } from './pedido-de-envio';
 import { PARAM_PEDIDO_DE_NOVA_PASTA } from './pedido-de-nova-pasta';
 import { paleta } from '../app/theme';
 import { useToggleFavorite } from '../favoritos/queries';
+import { MarcarLeituraModal } from '../leitura/MarcarLeituraModal';
 import { mensagemDeFalhaAoFavoritar } from '../favoritos/acao-de-favorito';
 import { DownloadFolderModal } from './DownloadFolderModal';
 import {
@@ -217,6 +219,9 @@ export function ExplorerPage() {
   const [managingResource, setManagingResource] = useState<ManagingResource | null>(null);
   const [auditingFile, setAuditingFile] = useState<FileSummaryResponse | null>(null);
   const [editingControlFile, setEditingControlFile] = useState<FileSummaryResponse | null>(null);
+  // Leitura obrigatória (change `leitura-obrigatoria`): arquivo cujo
+  // formulário de marcação está aberto.
+  const [markingReadingFile, setMarkingReadingFile] = useState<FileSummaryResponse | null>(null);
   const [downloadingFolder, setDownloadingFolder] = useState<DownloadingFolder | null>(null);
   const { download, isPending: downloading } = useDownloadFile();
 
@@ -803,6 +808,18 @@ export function ExplorerPage() {
                 >
                   Dados de controle
                 </Button>,
+                // Leitura obrigatória (change `leitura-obrigatoria`, design.md
+                // D4): o mesmo veredito que governa os dados de controle — quem
+                // edita o documento decide marcá-lo. Elegibilidade e público,
+                // o formulário pergunta ao servidor.
+                <Button
+                  key="leitura"
+                  size="small"
+                  icon={<IconeLeituraObrigatoria />}
+                  onClick={() => setMarkingReadingFile(row.file)}
+                >
+                  Leitura obrigatória
+                </Button>,
               ]
             : []),
           <Popconfirm
@@ -1007,6 +1024,7 @@ export function ExplorerPage() {
         open={managingResource !== null}
         onClose={() => setManagingResource(null)}
       />
+      <MarcarLeituraModal file={markingReadingFile} onClose={() => setMarkingReadingFile(null)} />
     </div>
   );
 }

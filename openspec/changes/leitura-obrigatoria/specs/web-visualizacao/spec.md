@@ -6,8 +6,7 @@
 
 Quando a pessoa tem leitura obrigatória aberta do documento visualizado, o
 visualizador SHALL apresentar, no rodapé, o botão **Confirmar ciência**,
-habilitado somente depois que o documento termina de abrir — ou, no formato sem
-pré-visualização, depois que ele é baixado. Acionado, SHALL apresentar a
+habilitado somente depois que o documento termina de abrir. Acionado, SHALL apresentar a
 declaração "Declaro que li e compreendi o documento [código] - [título], Rev.
 [nº]." com Confirmar e Cancelar; confirmar SHALL registrar a ciência e o botão
 SHALL deixar de ser oferecido. Sem leitura aberta, o rodapé NÃO SHALL oferecer o

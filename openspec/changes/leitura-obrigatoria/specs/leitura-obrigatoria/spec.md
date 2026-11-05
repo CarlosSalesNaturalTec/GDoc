@@ -7,8 +7,8 @@
 Quem pode editar os dados de controle de um documento SHALL poder marcá-lo como
 leitura obrigatória, definindo o público, o prazo — com padrão de 15 dias — e
 uma mensagem opcional. A marcação SHALL valer para a **revisão vigente** e SHALL
-haver no máximo uma por revisão. Somente documento controlado e em vigor SHALL
-ser marcado; Arquivo geral, documento sem controle, pendente de cadastro, em
+haver no máximo uma por revisão. Somente documento controlado, em vigor e em
+formato que abre no visualizador SHALL ser marcado; Arquivo geral, documento sem controle, pendente de cadastro, em
 revisão, vencido ou obsoleto SHALL ser recusado com motivo próprio. Quem não
 pode editar os dados de controle NÃO SHALL marcar. Referência: PRD US 12.2;
 demanda do cliente nº 2, seções 3.1 e 3.2 (etapa 1).
@@ -20,7 +20,7 @@ demanda do cliente nº 2, seções 3.1 e 3.2 (etapa 1).
 
 #### Scenario: Documento fora de vigor é recusado
 - **WHEN** alguém tenta marcar um documento obsoleto, vencido, pendente de
-  cadastro ou Arquivo geral
+  cadastro, Arquivo geral ou em formato que não abre no visualizador
 - **THEN** a marcação é recusada com motivo que indica que o documento não é
   elegível
 

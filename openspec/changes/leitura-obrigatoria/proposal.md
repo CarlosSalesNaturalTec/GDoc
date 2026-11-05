@@ -14,8 +14,9 @@ mais trava esta fatia.
 
 - **Marcar** (etapa 1): em "Mais opções > Leitura obrigatória" na linha do
   arquivo do explorador, para quem pode editar os dados de controle do
-  documento. Só documento **controlado e em vigor** (Vigente ou a vencer) —
-  nunca Arquivo geral, pendente de cadastro, em revisão, vencido ou obsoleto.
+  documento. Só documento **controlado, em vigor** (Vigente ou a vencer) **e
+  que abre no visualizador** — nunca Arquivo geral, pendente de cadastro, em
+  revisão, vencido, obsoleto ou em formato sem pré-visualização.
   Público **combinável** — toda a unidade, setores, perfis de acesso, pessoas —,
   prazo com padrão de **15 dias** e mensagem opcional; **prévia da contagem**
   de pessoas antes de confirmar. Uma marcação por revisão.

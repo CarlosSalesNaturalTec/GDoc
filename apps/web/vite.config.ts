@@ -27,6 +27,7 @@ export const API_PROXY_PREFIXES = [
   '/search',
   '/notifications',
   '/favorites',
+  '/reading',
   '/health',
 ];
 

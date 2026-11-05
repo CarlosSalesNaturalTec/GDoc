@@ -93,6 +93,11 @@ contexto). Fica de fora:
 - revisão anterior — a nova revisão sem nova marcação **retira** o acesso de
   quem não tinha outro.
 
+Consequência aceita: os **Recentes** e a **contagem de novos** do Início
+filtram candidatos por `hasAccess(view)`, então o documento marcado aparece
+neles para o leitor. É coerente — ele pode visualizá-lo — e é por onde o
+leitor chega ao documento até a C2 trazer o menu de leituras.
+
 É uma ampliação de alcance decidida por quem já controla o documento (D4),
 dentro da unidade. Testes de isolamento próprios.
 
@@ -105,8 +110,8 @@ momento. Atribuição alheia, inexistente, de outra unidade → 404 indistinguí
 Concluída ou encerrada → 409 `not_pending`. Nenhuma rota desfaz.
 
 O "só depois que o documento abre" é da interface: o botão habilita quando o
-visualizador termina de carregar o documento (evento de carga), ou, no formato
-sem pré-visualização, depois de baixá-lo.
+visualizador termina de carregar o documento (evento de carga). Formato sem
+pré-visualização não é marcável (D11).
 
 ### D8 — Opções de público por arquivo
 
@@ -122,6 +127,15 @@ marcação e a atual não, o formulário vem **preenchido com o público
 anterior** e diz que a revisão mudou. Confirmar cria a campanha da revisão nova
 — é o "publicador escolhe se pede nova ciência ao mesmo público". O aviso no
 momento da substituição fica para a C2, junto do ícone na linha.
+
+### D11 — Só documento que abre no visualizador
+
+Descoberto na implementação: como o público só ganha **visualizar** (D6), um
+documento sem pré-visualização (formato de escritório, por exemplo) não poderia
+ser lido por ninguém do público sem outra permissão — nem aberto, nem baixado.
+A marcação passa a exigir formato pré-visualizável (`isPreviewable`, a mesma
+fonte de `view-url` e da SPA), recusando com `not_previewable`. Com isso o botão
+de ciência só depende do evento de carga do visualizador.
 
 ### D10 — Prefixo `/reading`
 

@@ -87,12 +87,15 @@ export async function hasAccess(
   // não tem ciclo de vida documental nem cadastro, e pedir as colunas em
   // `folders` quebraria a query.
   const documentColumns =
-    resourceType === GrantResourceType.FILE ? ', lifecycle_state, awaiting_registration' : '';
+    resourceType === GrantResourceType.FILE
+      ? ', lifecycle_state, awaiting_registration, document_revision'
+      : '';
   const { rows } = await client.query<{
     owner_id: string;
     unit_id: string;
     lifecycle_state?: string | null;
     awaiting_registration?: boolean | null;
+    document_revision?: number | null;
   }>(
     `SELECT owner_id, unit_id${documentColumns} FROM ${resourceTable(resourceType)} WHERE id = $1 ${deletedFilter}`,
     [resourceId],
@@ -126,6 +129,28 @@ export async function hasAccess(
   }
   if (resource.owner_id === ctx.userId) return true;
   if (isAdminOfUnit(ctx, resource.unit_id)) return true;
+
+  // Destinatário de leitura obrigatória (change `leitura-obrigatoria`,
+  // design.md D6): **só `view`**, **só arquivo**, **só a revisão vigente** que
+  // foi marcada. Sem este ramo quase ninguém do público leria um documento
+  // alheio — o acesso aqui é dono/admin/concessão, sem herança.
+  //
+  // Vem **depois** das subtrações (obsoleto, pendente de cadastro), que
+  // continuam vencendo; e a atribuição é comparada à unidade do recurso, além
+  // da RLS. Não alcança `download`/`rename`/`delete`, nem a listagem e a busca
+  // (os fragmentos SQL de alcance abaixo não mudam). Revisão nova sem nova
+  // marcação retira a liberação, porque a campanha é da revisão anterior.
+  if (permission === Permission.VIEW && resourceType === GrantResourceType.FILE) {
+    const { rows: leitura } = await client.query(
+      `SELECT 1 FROM reading_assignments a
+       JOIN reading_campaigns c ON c.id = a.campaign_id
+       WHERE a.user_id = $1 AND c.file_id = $2 AND a.unit_id = $3
+         AND c.document_revision IS NOT DISTINCT FROM $4::int
+       LIMIT 1`,
+      [ctx.userId, resourceId, resource.unit_id, resource.document_revision ?? null],
+    );
+    if (leitura.length > 0) return true;
+  }
 
   const { rows: grantRows } = await client.query(
     `SELECT 1 FROM grants
