@@ -140,13 +140,14 @@ administração.
 
 A navegação SHALL distinguir **destinos internos** — telas da aplicação,
 filtradas por papel, das quais exatamente uma reflete a tela corrente — de
-**acessos auxiliares**, que levam a recurso externo à aplicação. As duas
-naturezas SHALL ser reunidas em grupos distintos e rotulados, e o acesso
-auxiliar NÃO SHALL participar da indicação de tela corrente, por não ser uma
-tela. A distinção SHALL permanecer perceptível a quem não enxerga a tela, pelo
-nome acessível do item, que SHALL anunciar que o acesso leva para fora da
-aplicação — o rótulo do grupo acrescenta a distinção visual, e NÃO SHALL
-dispensar o nome acessível.
+**acessos auxiliares** — ajuda ao uso, que não é tela: o manual, que leva a
+recurso externo à aplicação, e o tour guiado, que é ação dentro dela (ver
+capability `tour-guiado`). As duas naturezas SHALL ser reunidas em grupos
+distintos e rotulados, e o acesso auxiliar NÃO SHALL participar da indicação de
+tela corrente, por não ser uma tela. O acesso auxiliar que leva para fora da
+aplicação SHALL anunciar isso no seu nome acessível — o rótulo do grupo
+acrescenta a distinção visual, e NÃO SHALL dispensar o nome acessível; o acesso
+auxiliar interno NÃO SHALL anunciar saída que não acontece.
 
 Abaixo do ponto de ruptura definido pela capability `web-responsividade`, a
 navegação SHALL ser apresentada como **painel sobreposto**, acionado a partir da
@@ -157,9 +158,9 @@ origem única — a SPA NÃO SHALL manter listas de navegação paralelas por mo
 apresentação. O painel SHALL apresentar também a identidade no seu rodapé, pela
 mesma origem única.
 
-Acionar um **destino interno** no painel sobreposto SHALL navegar e **fechar** o
-painel. Acionar o **acesso auxiliar** NÃO SHALL fechá-lo, por não haver navegação
-dentro da aplicação a refletir.
+Acionar um **destino interno** ou o **tour guiado** no painel sobreposto SHALL
+navegar e **fechar** o painel. Acionar o acesso auxiliar **externo** NÃO SHALL
+fechá-lo, por não haver navegação dentro da aplicação a refletir.
 
 Com a navegação colapsada, todo item — destino interno ou acesso auxiliar —
 SHALL permanecer identificável por seu nome, sem depender do reconhecimento do
@@ -194,8 +195,9 @@ change `menu-lateral-e-barra-superior`.
 
 #### Scenario: Acesso auxiliar é distinguível dos destinos internos
 - **WHEN** uma pessoa autenticada percorre a navegação
-- **THEN** o acesso auxiliar aparece num grupo rotulado distinto do grupo dos
-  destinos internos, e seu nome acessível indica que leva para fora da aplicação
+- **THEN** os acessos auxiliares aparecem num grupo rotulado distinto do grupo
+  dos destinos internos, e o nome acessível do manual indica que leva para fora
+  da aplicação
 
 #### Scenario: Navegação colapsada preserva o nome de cada item
 - **WHEN** uma pessoa autenticada colapsa a navegação lateral e aponta para um
@@ -222,7 +224,7 @@ change `menu-lateral-e-barra-superior`.
   revelando o conteúdo alcançado
 
 #### Scenario: Acionar o acesso auxiliar não fecha o painel sobreposto
-- **WHEN** uma pessoa aciona o acesso auxiliar no painel sobreposto
+- **WHEN** uma pessoa aciona o manual no painel sobreposto
 - **THEN** o recurso externo é aberto fora da aplicação e o painel permanece como
   estava, por não ter havido navegação interna
 
@@ -250,6 +252,15 @@ change `menu-lateral-e-barra-superior`.
 - **WHEN** uma pessoa de papel `collaborator` percorre os destinos da navegação
 - **THEN** encontra o destino de favoritos logo depois de recentes e antes de
   compartilhados comigo, e o abre sem recusa
+
+#### Scenario: O tour guiado é acesso auxiliar interno
+- **WHEN** uma pessoa autenticada, de qualquer papel, percorre o grupo AJUDA
+- **THEN** encontra o item Tour guiado, sem marcação de tela corrente e sem
+  anúncio de saída da aplicação no nome acessível
+
+#### Scenario: Acionar o tour no painel sobreposto fecha o painel
+- **WHEN** uma pessoa aciona o tour guiado no painel sobreposto
+- **THEN** o painel se fecha e o tour começa na tela inicial
 
 ### Requirement: Navegação reúne os itens em grupos rotulados
 
