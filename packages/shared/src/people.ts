@@ -8,6 +8,20 @@ export const PersonStatus = {
 
 export type PersonStatus = (typeof PersonStatus)[keyof typeof PersonStatus];
 
+/**
+ * Alcance do acompanhamento de leituras (change `gestor-de-acompanhamento`,
+ * design.md D1): do setor da pessoa, da unidade dela ou de todas as unidades.
+ * Ausente (`null`) = não acompanha. **Ortogonal ao papel de acesso** e sem
+ * efeito na resolução de acesso a conteúdo (design.md D7).
+ */
+export const ReadingOversight = {
+  SECTOR: 'sector',
+  UNIT: 'unit',
+  ALL_UNITS: 'all_units',
+} as const;
+export type ReadingOversight = (typeof ReadingOversight)[keyof typeof ReadingOversight];
+export const READING_OVERSIGHTS: readonly ReadingOversight[] = Object.values(ReadingOversight);
+
 export interface CreatePersonRequest {
   fullName: string;
   email: string;
@@ -27,6 +41,8 @@ export interface CreatePersonRequest {
    */
   sectorId?: string;
   notes?: string;
+  /** `null`/ausente = não acompanha. `all_units` só por `global_admin` (design.md D3). */
+  readingOversight?: ReadingOversight | null;
 }
 
 export interface UpdatePersonRequest {
@@ -45,6 +61,12 @@ export interface UpdatePersonRequest {
    */
   sectorId?: string | null;
   notes?: string;
+  /**
+   * Ausente preserva; `null` retira; valor marca. `all_units` — atribuir,
+   * alterar ou retirar — só por `global_admin` (design.md D3); ninguém altera a
+   * própria marcação (D4).
+   */
+  readingOversight?: ReadingOversight | null;
   role?: UserRole;
   status?: PersonStatus;
   /**
@@ -78,6 +100,12 @@ export interface PersonResponse {
    */
   sectorName: string | null;
   notes: string | null;
+  /**
+   * Alcance do acompanhamento de leituras; `null` = não acompanha. Opcional no
+   * contrato só porque uma API anterior não o envia — ausência é "não
+   * acompanha", nunca erro.
+   */
+  readingOversight?: ReadingOversight | null;
   role: UserRole;
   status: PersonStatus;
   createdAt: string;

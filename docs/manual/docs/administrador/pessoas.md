@@ -18,6 +18,8 @@ Abra **Colaboradores** no menu e clique em **Novo colaborador**. Informe:
   Pode ficar **sem setor**. Veja [Setores da unidade](#setores-da-unidade).
 - **Observação**
 - **Papel** (Colaborador ou Administrador da unidade)
+- **Acompanhamento de leituras** — se a pessoa é **gestora** e de quê (ver
+  [Gestores de acompanhamento](#gestores-de-acompanhamento))
 
 Confirme em **Cadastrar**. O colaborador passa a poder entrar com essas credenciais.
 
@@ -26,6 +28,41 @@ Confirme em **Cadastrar**. O colaborador passa a poder entrar com essas credenci
 - Para **editar** um colaborador, clique em **Editar** na linha dele. O **e-mail** não
   pode ser alterado na edição; os demais dados, o setor e o papel, sim. Para
   deixar a pessoa **sem setor**, limpe a escolha no campo Setor.
+
+## Gestores de acompanhamento
+
+**Gestor** é quem acompanha se a equipe leu os documentos de leitura
+obrigatória — coordenador, gerente, diretor. Não é papel de acesso: a pessoa
+continua **Colaborador** (ou Administrador da unidade), e marcar alguém como
+gestor **não** permite cadastrar pessoas, liberar permissões nem abrir arquivo
+nenhum.
+
+No campo **Acompanhamento de leituras** do cadastro, escolha:
+
+| Opção                           | Acompanha                                    | Quem pode marcar          |
+| ------------------------------- | -------------------------------------------- | ------------------------- |
+| **Não acompanha**               | —                                            | —                         |
+| **Gestor do setor**             | As pessoas do **setor** da pessoa            | Administração da unidade  |
+| **Gestor da unidade**           | Todas as pessoas da **unidade**              | Administração da unidade  |
+| **Gestor de todas as unidades** | Todas as unidades (Governança da Sede)       | Só o administrador global |
+
+- **Gestor do setor precisa de setor.** Se a pessoa não tiver setor, o sistema
+  recusa e pede que você escolha o setor. E, enquanto ela for gestora do setor,
+  não é possível deixá-la sem setor — troque antes o acompanhamento.
+- O sistema **não** deduz o gestor pelo cargo: "Coordenadora" escrito na
+  Função/cargo não faz ninguém gestor. É a marcação que vale.
+- Ninguém marca a si mesmo.
+- Quem tem **Gestor de todas as unidades** só pode ter o acompanhamento
+  alterado pelo administrador global; para o administrador da unidade, o campo
+  aparece travado.
+- A coluna **Acompanhamento** da lista mostra quem é gestor e de quê. O sistema
+  registra quem fez cada marcação e quando.
+
+!!! note "O que o gestor vê"
+    A marcação prepara a **leitura obrigatória**: é ela que vai definir quem
+    recebe os avisos de atraso da equipe e quem vê o acompanhamento de quem leu.
+    Essas telas chegam nas próximas entregas; marcar agora não muda nada do que
+    a pessoa vê hoje.
 
 ## Setores da unidade
 

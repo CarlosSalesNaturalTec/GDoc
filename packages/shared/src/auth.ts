@@ -1,3 +1,4 @@
+import type { ReadingOversight } from './people.js';
 import type { UserRole } from './roles.js';
 
 export interface LoginRequest {
@@ -49,6 +50,11 @@ export interface AuthenticatedIdentity {
    * saudação aparece; refazer pelo menu continua possível.
    */
   tourCompleted: boolean;
+  /**
+   * Alcance do acompanhamento de leituras, relido a cada requisição (change
+   * `gestor-de-acompanhamento`, design.md D6); `null` = não acompanha.
+   */
+  readingOversight: ReadingOversight | null;
 }
 
 /**
