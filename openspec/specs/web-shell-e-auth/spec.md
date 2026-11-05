@@ -125,9 +125,12 @@ identificador interno nem um fragmento dele. Conta sem nome cadastrado SHALL
 recorrer a um tratamento genérico, nunca ao identificador.
 
 O conjunto de destinos internos SHALL cobrir a tela inicial, os documentos, os
-recentes e a lixeira, acrescidos dos destinos de administração permitidos ao
-papel. A busca NÃO SHALL ocupar um destino da navegação, por estar
-permanentemente acessível na barra superior (ver capability `web-busca`).
+recentes, **os compartilhados comigo** e a lixeira, acrescidos dos destinos de
+administração permitidos ao papel. O destino de compartilhados SHALL ser
+oferecido a **qualquer** papel autenticado, inclusive `collaborator`, por não ser
+item de administração (ver capability `compartilhados-comigo`). A busca NÃO SHALL
+ocupar um destino da navegação, por estar permanentemente acessível na barra
+superior (ver capability `web-busca`).
 
 O acesso a "Minha conta" (rota `/minha-conta`, ver capability `web-minha-conta`)
 SHALL ser alcançável a partir da identidade no rodapé da navegação, e SHALL ser
@@ -237,6 +240,10 @@ change `menu-lateral-e-barra-superior`.
 - **THEN** não encontra a busca entre eles, por estar permanentemente acessível
   na barra superior
 
+#### Scenario: Compartilhados comigo é destino de qualquer papel
+- **WHEN** uma pessoa de papel `collaborator` percorre os destinos da navegação
+- **THEN** encontra "Compartilhados comigo" entre eles, e acioná-lo a leva ao
+  destino sem recusa
 ### Requirement: Navegação reúne os itens em grupos rotulados
 
 A navegação SHALL reunir seus itens em grupos com rótulo visível: os destinos

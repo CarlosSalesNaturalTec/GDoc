@@ -26,6 +26,9 @@ import type {
   RecentDocumentsResponse,
   ResetPasswordResponse,
   SearchFilesResponse,
+  SharedPermissionResponse,
+  SharedWithMeItemResponse,
+  SharedWithMeResponse,
   SignedUrlResponse,
   StorageQuotaResponse,
   TrashListResponse,
@@ -277,19 +280,29 @@ export const authorPersonSchema = z.object({
 export const authorPersonListSchema = z.array(authorPersonSchema);
 
 /** Espelha `GrantResponse` (design.md D6, `web-permissoes`): uma linha por (pessoa, verbo). */
+/**
+ * Conjunto fechado de verbos, **uma vez**: a lista estava escrita à mão em
+ * `grantResponseSchema` e em `grantNotificationPayloadSchema`, e a terceira
+ * cópia entraria com `sharedPermissionResponseSchema`. Constante duplicada à
+ * mão nos dois lados foi exatamente a causa do defeito que a change
+ * `tabela-de-cadastro-no-envio-em-lote` teve de corrigir (design.md D9): a
+ * origem é o enum `Permission` do contrato compartilhado.
+ */
+const permissionSchema = z.enum([
+  Permission.VIEW,
+  Permission.DOWNLOAD,
+  Permission.UPLOAD,
+  Permission.RENAME,
+  Permission.DELETE,
+]);
+
 export const grantResponseSchema: z.ZodType<GrantResponse> = z.object({
   id: z.string(),
   unitId: z.string(),
   subjectUserId: z.string(),
   resourceType: z.enum([GrantResourceType.FOLDER, GrantResourceType.FILE]),
   resourceId: z.string(),
-  permission: z.enum([
-    Permission.VIEW,
-    Permission.DOWNLOAD,
-    Permission.UPLOAD,
-    Permission.RENAME,
-    Permission.DELETE,
-  ]),
+  permission: permissionSchema,
   grantedBy: z.string(),
   createdAt: z.string(),
   // Change `expiracao-permissoes`, design.md D1/D2: nulo = permanente;
@@ -502,15 +515,7 @@ export const auditQueryResponseSchema: z.ZodType<AuditQueryResponse> = z.object(
 export const grantNotificationPayloadSchema: z.ZodType<GrantNotificationPayload> = z.object({
   resourceType: z.enum([GrantResourceType.FOLDER, GrantResourceType.FILE]),
   resourceId: z.string(),
-  permissions: z.array(
-    z.enum([
-      Permission.VIEW,
-      Permission.DOWNLOAD,
-      Permission.UPLOAD,
-      Permission.RENAME,
-      Permission.DELETE,
-    ]),
-  ),
+  permissions: z.array(permissionSchema),
   expiresAt: z.string(),
   subjectUserId: z.string().optional(),
 });
@@ -553,3 +558,33 @@ export const unreadNotificationCountResponseSchema: z.ZodType<UnreadNotification
   z.object({
     count: z.number(),
   });
+
+/**
+ * Espelha `SharedPermissionResponse` (US 4.4, capability
+ * `compartilhados-comigo`): o verbo com o **seu próprio** prazo.
+ */
+export const sharedPermissionResponseSchema: z.ZodType<SharedPermissionResponse> = z.object({
+  permission: permissionSchema,
+  expiresAt: z.string().nullable(),
+});
+
+/**
+ * Espelha `SharedWithMeItemResponse`, reusando `fileSummaryResponseSchema` em
+ * `file`: é o mesmo objeto que o `PreviewModal` consome, então validar aqui
+ * com outro schema abriria a porta para a lista aceitar um arquivo que o
+ * visualizador recusaria.
+ */
+export const sharedWithMeItemResponseSchema: z.ZodType<SharedWithMeItemResponse> = z.object({
+  resourceType: z.enum([GrantResourceType.FOLDER, GrantResourceType.FILE]),
+  id: z.string(),
+  name: z.string(),
+  folderName: z.string().nullable(),
+  permissions: z.array(sharedPermissionResponseSchema),
+  sharedAt: z.string(),
+  file: fileSummaryResponseSchema.nullable(),
+});
+
+/** Espelha `SharedWithMeResponse` — `GET /grants/received`. */
+export const sharedWithMeResponseSchema: z.ZodType<SharedWithMeResponse> = z.object({
+  items: z.array(sharedWithMeItemResponseSchema),
+});

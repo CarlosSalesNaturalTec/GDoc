@@ -5,6 +5,7 @@ import {
   IconeAjuda,
   IconeArquivos,
   IconeColaboradores,
+  IconeCompartilhados,
   IconeEnviar,
   IconeInicio,
   IconeLixeira,
@@ -71,14 +72,20 @@ export function AppShell() {
     // administração permitidos ao papel. A **busca não ocupa destino** — está
     // permanentemente acessível na barra superior (capability `web-busca`).
     //
-    // Favoritos, Compartilhados comigo e Leitura obrigatória pertencem às
-    // fatias A4, A5 e C2 e **não entram aqui** até que seus destinos existam:
-    // item de menu que não leva a nada é regressão (`tela-inicial`, "atalho
-    // apresentado conduz a uma ação executável").
+    // "Compartilhados comigo" entrou com a change `compartilhados-comigo`
+    // (fatia A5), junto com o seu destino. Favoritos e Leitura obrigatória
+    // pertencem às fatias A4 e C2 e **não entram aqui** até que seus destinos
+    // existam: item de menu que não leva a nada é regressão (`tela-inicial`,
+    // "atalho apresentado conduz a uma ação executável").
     const destinos: MenuProps['items'] = [
       { key: '/', icon: <IconeInicio />, label: <Link to="/">Início</Link> },
       { key: '/pastas', icon: <IconeArquivos />, label: <Link to="/pastas">Documentos</Link> },
       { key: '/recentes', icon: <IconeRecentes />, label: <Link to="/recentes">Recentes</Link> },
+      {
+        key: '/compartilhados',
+        icon: <IconeCompartilhados />,
+        label: <Link to="/compartilhados">Compartilhados comigo</Link>,
+      },
       { key: '/lixeira', icon: <IconeLixeira />, label: <Link to="/lixeira">Lixeira</Link> },
       ...(isAdmin
         ? [

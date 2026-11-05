@@ -73,13 +73,15 @@ describe('Painel sobreposto de navegação (responsividade-mobile-tablet)', () =
     expect(wideIdentidade).toContain('Administrador global');
     // Conjunto de destinos da change `shell-e-inicio`: a busca saiu da
     // navegação (está na barra superior), "Arquivos" virou "Documentos" e
-    // "Recentes" entrou. O manual segue por último, agora por estar no grupo
-    // AJUDA — Favoritos, Compartilhados comigo, Leitura obrigatória e Tour
-    // guiado entram com as fatias A4, A5, C2 e A6, não aqui.
+    // "Recentes" entrou. "Compartilhados comigo" entrou com a change
+    // `compartilhados-comigo` (fatia A5), junto com o seu destino. O manual
+    // segue por último, por estar no grupo AJUDA — Favoritos, Leitura
+    // obrigatória e Tour guiado entram com as fatias A4, C2 e A6, não aqui.
     expect(wideItems).toEqual([
       'Início',
       'Documentos',
       'Recentes',
+      'Compartilhados comigo',
       'Lixeira',
       'Colaboradores',
       'Painel',

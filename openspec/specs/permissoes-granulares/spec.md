@@ -157,8 +157,9 @@ recurso ancestral. Referência: PRD US 4.1, cenário 2.
 
 ### Requirement: Gestão de concessões restrita à administração
 
-Os endpoints de conceder, listar e revogar permissões SHALL ser acessíveis apenas a
-`unit_admin` e `global_admin`; um `collaborator` que os invoque SHALL receber 403.
+Os endpoints que **administram** as concessões de um recurso — conceder, listar as
+concessões daquele recurso e revogar — SHALL ser acessíveis apenas a `unit_admin` e
+`global_admin`; um `collaborator` que os invoque SHALL receber 403.
 `unit_admin` SHALL operar somente sobre recursos e pessoas da própria unidade (a RLS
 por `unit_id` é a garantia final, mesmo que a checagem de papel falhasse), enquanto
 `global_admin` SHALL ter alcance sobre todas as unidades. Conceder sobre um recurso
@@ -176,6 +177,14 @@ de que aquela pessoa teve aquele acesso e até quando, de modo que registros de
 auditoria anteriores permaneçam interpretáveis. Apenas a revogação SHALL remover a
 concessão do registro. Referência: PRD US 4.1; US 4.3; Épico 5 (isolamento);
 design.md D2 do change `expiracao-permissoes`.
+
+Ler as **próprias** concessões recebidas é operação **auto-escopada**, distinta de
+administrar as de um recurso, e SHALL estar disponível a qualquer papel
+autenticado, inclusive `collaborator`. Essa leitura SHALL limitar-se às concessões
+cuja destinatária é quem consulta, e NÃO SHALL revelar concessão de terceiro, quem
+a concedeu a terceiro, nem a existência de recurso fora do alcance de quem
+consulta. A RLS por `unit_id` permanece a garantia final. Ver capability
+`compartilhados-comigo`.
 
 #### Scenario: Colaborador não pode conceder
 - **WHEN** um `collaborator` tenta conceder uma permissão
@@ -207,3 +216,14 @@ design.md D2 do change `expiracao-permissoes`.
 #### Scenario: Revogar remove o registro, ao contrário de expirar
 - **WHEN** um administrador revoga uma concessão expirada
 - **THEN** a concessão deixa de constar da listagem
+
+#### Scenario: Colaborador lê as próprias concessões recebidas
+- **WHEN** um `collaborator` consulta as concessões vigentes de que é destinatário
+- **THEN** a consulta é atendida, limitada às concessões em que ele próprio é o
+  destinatário
+
+#### Scenario: A leitura auto-escopada não alcança concessão de terceiro
+- **WHEN** uma pessoa consulta as próprias concessões recebidas enquanto existem
+  concessões vigentes de outras pessoas sobre os mesmos recursos
+- **THEN** vê apenas as suas, sem nenhuma indicação de que outra pessoa tenha
+  acesso àqueles recursos

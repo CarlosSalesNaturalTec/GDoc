@@ -5,10 +5,19 @@ import type {
   GrantListResponse,
   GrantResponse,
   GrantSubjectsLimitExceededResponse,
+  SharedPermissionResponse,
+  SharedWithMeItemResponse,
+  SharedWithMeResponse,
 } from '@gdoc/shared';
+import type { PoolClient } from 'pg';
 import type { Ports } from '../ports/index.js';
 import type { TenantContext } from '../ports/database-port.js';
-import { resourceTable } from '../lib/access.js';
+import { hasAccess, resourceTable } from '../lib/access.js';
+import {
+  fileSummaryColumns,
+  toFileSummaryResponse,
+  type FileSummaryRow,
+} from '../lib/document-control.js';
 import { config } from '../config.js';
 
 interface GrantRow {
@@ -46,6 +55,16 @@ function isAdmin(ctx: TenantContext): boolean {
 const RESOURCE_TYPES: string[] = Object.values(GrantResourceType);
 const PERMISSIONS: string[] = Object.values(Permission);
 
+/**
+ * Ordem canônica dos verbos, para a resposta de `GET /grants/received` ser
+ * **determinística**: a ordem das linhas de `grants` não é garantida sem
+ * `ORDER BY`, então sem isto as etiquetas de um mesmo item apareceriam ora
+ * "Visualizar, Baixar", ora "Baixar, Visualizar", entre duas consultas iguais.
+ * A ordem é a do enum `Permission` — do verbo menos ao mais invasivo —, a
+ * mesma em que a tela de permissões os oferece.
+ */
+const PERMISSION_ORDER = new Map(PERMISSIONS.map((permission, index) => [permission, index]));
+
 /** Coluna computada de vigência, mesmo predicado de `lib/access.ts` D1 — `now()` do banco. */
 const EXPIRED_COLUMN = `(expires_at IS NOT NULL AND expires_at <= now()) AS expired`;
 
@@ -62,6 +81,163 @@ function grantSourceRef(
   expiresAt: Date,
 ): string {
   return `grant:${resourceType}:${resourceId}:${expiresAt.toISOString()}`;
+}
+
+/** Linha crua de concessão vigente recebida (`GET /grants/received`). */
+interface ReceivedGrantRow {
+  resource_type: string;
+  resource_id: string;
+  permission: string;
+  expires_at: string | null;
+  created_at: string;
+}
+
+/**
+ * Candidato a item de "Compartilhados comigo": um **recurso**, com os verbos
+ * vigentes que a pessoa tem sobre ele (design.md D5).
+ */
+interface SharedCandidate {
+  resourceType: GrantResourceType;
+  resourceId: string;
+  permissions: SharedPermissionResponse[];
+  /** Instante da concessão mais recente deste recurso, em ISO 8601 (UTC). */
+  sharedAt: string;
+}
+
+/**
+ * Candidatos a "compartilhado comigo", agrupados **por recurso** (design.md
+ * D1/D5).
+ *
+ * A base é `grants`, **não** `resourceScopeClause`: aquele fragmento devolve
+ * `TRUE` para quem é administrador da unidade da listagem — o que é correto
+ * para a listagem de pasta e apresentaria **todo o acervo da unidade** ao
+ * `unit_admin` sob o título "Compartilhados comigo". Quem seleciona aqui é a
+ * concessão; `hasAccess` depois apenas confirma (design.md D2).
+ *
+ * `unit_id` é comparado explicitamente contra o contexto autenticado, e não
+ * deixado só à RLS: para o `global_admin` o bypass é incondicional, e a trava
+ * sobre rotas de conteúdo exige a comparação explícita (CLAUDE.md, "Trava do
+ * bypass de `global_admin`"). `hasAccess` repete a trava depois, item a item —
+ * duas guardas, de propósito, como em `routes/recent.ts` (design.md D3b).
+ *
+ * A vigência é avaliada no SQL pelo relógio **do banco** (design.md D6), de
+ * modo que a concessão vencida sai da lista na requisição seguinte sem
+ * depender de nenhuma rotina ter rodado.
+ */
+async function listReceivedCandidates(
+  client: PoolClient,
+  ctx: TenantContext,
+): Promise<SharedCandidate[]> {
+  const { rows } = await client.query<ReceivedGrantRow>(
+    `SELECT resource_type, resource_id, permission, expires_at, created_at
+     FROM grants
+     WHERE subject_user_id = $1
+       AND unit_id = $2
+       AND (expires_at IS NULL OR expires_at > now())`,
+    [ctx.userId, ctx.unitId],
+  );
+
+  const porRecurso = new Map<string, SharedCandidate>();
+  for (const row of rows) {
+    const chave = `${row.resource_type}:${row.resource_id}`;
+    const concedidoEm = new Date(row.created_at).toISOString();
+    const verbo: SharedPermissionResponse = {
+      permission: row.permission as Permission,
+      expiresAt: row.expires_at ? new Date(row.expires_at).toISOString() : null,
+    };
+    const existente = porRecurso.get(chave);
+    if (existente) {
+      existente.permissions.push(verbo);
+      // O item figura pela concessão **mais recente** entre as suas: um verbo
+      // acrescentado hoje sobre recurso concedido meses atrás traz o item para
+      // o topo, porque é esse o fato novo para quem recebeu.
+      if (concedidoEm > existente.sharedAt) existente.sharedAt = concedidoEm;
+      continue;
+    }
+    porRecurso.set(chave, {
+      resourceType: row.resource_type as GrantResourceType,
+      resourceId: row.resource_id,
+      permissions: [verbo],
+      sharedAt: concedidoEm,
+    });
+  }
+
+  // Verbos em ordem canônica dentro de cada item, e itens em ordem de
+  // compartilhamento: as duas ordens são do servidor, não do banco nem da SPA.
+  for (const candidato of porRecurso.values()) {
+    candidato.permissions.sort(
+      (a, b) =>
+        (PERMISSION_ORDER.get(a.permission) ?? 0) - (PERMISSION_ORDER.get(b.permission) ?? 0),
+    );
+  }
+
+  // Ordena aqui, depois do agrupamento: ordenar no SQL daria a ordem das
+  // *concessões*, e o que se ordena é o item. `toISOString()` é sempre UTC de
+  // largura fixa, então a comparação lexicográfica é a cronológica. O id
+  // desempata para a ordem ser determinística entre requisições.
+  return [...porRecurso.values()].sort(
+    (a, b) => b.sharedAt.localeCompare(a.sharedAt) || a.resourceId.localeCompare(b.resourceId),
+  );
+}
+
+interface SharedFolderRow {
+  id: string;
+  name: string;
+  folder_name: string | null;
+}
+
+/**
+ * Detalhe das pastas sobreviventes. `owner_id <> $1` é a exclusão do que é da
+ * própria pessoa (design.md D8), no SQL e não na apresentação: concessão sobre
+ * recurso próprio é inerte na resolução de acesso — dono vence antes de
+ * qualquer concessão —, e listá-la afirmaria que o acesso vem de
+ * compartilhamento.
+ *
+ * O nome da pasta-mãe vem por subconsulta correlacionada, e **só** ele: a
+ * trilha completa nomearia pastas que a pessoa não alcança (design.md D7).
+ */
+async function readSharedFolders(
+  client: PoolClient,
+  ctx: TenantContext,
+  ids: string[],
+): Promise<Map<string, SharedFolderRow>> {
+  const { rows } = await client.query<SharedFolderRow>(
+    `SELECT f.id, f.name,
+            (SELECT p.name FROM folders p WHERE p.id = f.parent_id) AS folder_name
+     FROM folders f
+     WHERE f.id = ANY($2::uuid[]) AND f.owner_id <> $1`,
+    [ctx.userId, ids],
+  );
+  return new Map(rows.map((row) => [row.id, row]));
+}
+
+type SharedFileRow = FileSummaryRow & { folder_name: string | null };
+
+/**
+ * Detalhe dos arquivos sobreviventes, pelo **mesmo** fragmento que a listagem
+ * de pasta, a busca e os recentes usam (`fileSummaryColumns`): a linha nasce
+ * com tipo, código e situação do controle documental, e `toFileSummaryResponse`
+ * a entrega na forma que o `PreviewModal` consome (design.md D4).
+ *
+ * `fileSummaryColumns` projeta colunas **sem qualificação**, então a tabela não
+ * recebe alias e a subconsulta da pasta-mãe qualifica `files.folder_id`
+ * explicitamente — mesmo cuidado de `routes/recent.ts`. `$1` é referenciado
+ * pelo `WHERE` em todos os casos, inclusive para admin (cujo fragmento de
+ * alcance não o referencia), então não há placeholder sem uso.
+ */
+async function readSharedFiles(
+  client: PoolClient,
+  ctx: TenantContext,
+  ids: string[],
+): Promise<Map<string, SharedFileRow>> {
+  const { rows } = await client.query<SharedFileRow>(
+    `SELECT ${fileSummaryColumns(ctx, '$1')},
+            (SELECT p.name FROM folders p WHERE p.id = files.folder_id) AS folder_name
+     FROM files
+     WHERE id = ANY($2::uuid[]) AND owner_id <> $1`,
+    [ctx.userId, ids],
+  );
+  return new Map(rows.map((row) => [row.id, row]));
 }
 
 /**
@@ -247,6 +423,101 @@ export function grantsRouter(ports: Ports): Router {
       });
 
       const response: GrantListResponse = { grants: rows.map(toGrantResponse) };
+      res.json(response);
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  /**
+   * `GET /grants/received` — o que foi compartilhado comigo (US 4.4,
+   * capability `compartilhados-comigo`).
+   *
+   * **Sem checagem de papel**, ao contrário das três rotas acima: esta é
+   * leitura **auto-escopada**, e o requisito de `permissoes-granulares`
+   * distingue administrar as concessões de um recurso — restrito a
+   * `unit_admin`/`global_admin` — de ler as próprias. O alcance é garantido
+   * pelo `subject_user_id = ctx.userId` da consulta de candidatos, não por
+   * papel: não há parâmetro algum que permita pedir a lista de outra pessoa.
+   *
+   * Nenhuma auditoria (design.md D10): auditoria registra acesso a **bytes**, e
+   * esta rota não serve bytes. O `view-url`/`download-url` acionado a partir do
+   * item continua auditando separadamente, como em qualquer outro caminho.
+   */
+  router.get('/grants/received', async (req, res, next) => {
+    try {
+      const ctx = req.tenantContext!;
+
+      const items = await ports.database.withTenantTransaction(ctx, async (client) => {
+        const candidatos = await listReceivedCandidates(client, ctx);
+        if (candidatos.length === 0) return [];
+
+        // Composição das regras restritivas por `hasAccess`, item a item
+        // (design.md D2) — **uma** chamada por recurso, não por verbo. As
+        // regras restritivas (obsoleto, pendente de cadastro, lixeira, trava
+        // do bypass) são propriedade do recurso, não do verbo; passando um
+        // verbo que a pessoa comprovadamente tem, o ramo da concessão já é
+        // verdadeiro por construção e o que resta avaliar é só a subtração.
+        //
+        // É deliberado que o filtro não apareça nesta consulta: reescrevê-lo
+        // aqui seria a segunda expressão da regra de acesso, e duas expressões
+        // divergem — com vazamento como sintoma, não erro.
+        const permitidos: SharedCandidate[] = [];
+        for (const candidato of candidatos) {
+          const verbo = candidato.permissions[0]!.permission;
+          if (await hasAccess(client, ctx, candidato.resourceType, candidato.resourceId, verbo)) {
+            permitidos.push(candidato);
+          }
+        }
+        if (permitidos.length === 0) return [];
+
+        const idsDePasta = permitidos
+          .filter((c) => c.resourceType === GrantResourceType.FOLDER)
+          .map((c) => c.resourceId);
+        const idsDeArquivo = permitidos
+          .filter((c) => c.resourceType === GrantResourceType.FILE)
+          .map((c) => c.resourceId);
+
+        const pastas = idsDePasta.length
+          ? await readSharedFolders(client, ctx, idsDePasta)
+          : new Map<string, SharedFolderRow>();
+        const arquivos = idsDeArquivo.length
+          ? await readSharedFiles(client, ctx, idsDeArquivo)
+          : new Map<string, SharedFileRow>();
+
+        // A ordem é a dos candidatos, não a que o banco devolveu destas
+        // segundas leituras. `flatMap` descarta o candidato sem linha — o
+        // recurso próprio excluído por `owner_id <> $1` (design.md D8) e o que
+        // desapareceu entre as duas leituras.
+        return permitidos.flatMap<SharedWithMeItemResponse>((candidato) => {
+          const comum = {
+            resourceType: candidato.resourceType,
+            id: candidato.resourceId,
+            permissions: candidato.permissions,
+            sharedAt: candidato.sharedAt,
+          };
+
+          if (candidato.resourceType === GrantResourceType.FOLDER) {
+            const pasta = pastas.get(candidato.resourceId);
+            if (!pasta) return [];
+            return [{ ...comum, name: pasta.name, folderName: pasta.folder_name, file: null }];
+          }
+
+          const arquivo = arquivos.get(candidato.resourceId);
+          if (!arquivo) return [];
+          const resumo = toFileSummaryResponse(arquivo);
+          return [
+            {
+              ...comum,
+              name: resumo.fileName,
+              folderName: arquivo.folder_name,
+              file: resumo,
+            },
+          ];
+        });
+      });
+
+      const response: SharedWithMeResponse = { items };
       res.json(response);
     } catch (err) {
       next(err);

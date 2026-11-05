@@ -316,6 +316,33 @@ O **objetivo principal** do GDoc é entregar um repositório de arquivos corpora
       * **Quando** o prazo termina
       * **Então** o acesso correspondente é automaticamente encerrado e a área administrativa é avisada do corte.
 
+* **US 4.4:** Como Colaborador, eu quero ver num só lugar as pastas e os arquivos que outras pessoas liberaram para mim, para que eu os alcance sem depender de alguém me mandar o endereço.
+  * **Critérios de Aceitação:**
+    * *Cenário 1 — Reúne o que foi liberado para mim:*
+      * **Dado** que recebi permissão vigente sobre uma pasta e sobre um arquivo de outra pessoa
+      * **Quando** abro o destino de compartilhados
+      * **Então** vejo os dois, cada um com o que posso fazer nele, o prazo de cada permissão quando houver, a pasta que o contém e a data em que foi compartilhado, ordenados do mais recente para o mais antigo.
+    * *Cenário 2 — Alcanço o item sem percorrer as pastas:*
+      * **Dado** que o item liberado está dentro de pastas que eu não posso abrir
+      * **Quando** aciono o item na lista
+      * **Então** o arquivo abre na visualização e a pasta abre no explorador, sem que eu precise navegar até elas, e a lista não me mostra o nome de nenhuma pasta acima da que contém o item.
+    * *Cenário 3 — A permissão vencida não aparece:*
+      * **Dado** que o prazo de uma permissão que eu tinha foi atingido
+      * **Quando** consulto a lista
+      * **Então** o item não aparece, ainda que a permissão permaneça registrada para a administração.
+    * *Cenário 4 — A lista não amplia o meu alcance:*
+      * **Dado** que existem documentos obsoletos, arquivos pendentes de cadastro, itens na lixeira e conteúdo de outra unidade
+      * **Quando** consulto a lista
+      * **Então** nenhum deles aparece, qualquer que seja o meu perfil, e a ausência é indistinguível de o item não existir.
+    * *Cenário 5 — Só as ações que a minha permissão cobre:*
+      * **Dado** que recebi apenas a permissão de baixar um arquivo
+      * **Quando** vejo o item na lista
+      * **Então** me é oferecido baixar e não me é oferecido visualizar, sem atalho que resulte em recusa.
+    * *Cenário 6 — Nada compartilhado comigo:*
+      * **Dado** que ninguém liberou nada para mim
+      * **Quando** abro o destino
+      * **Então** a tela explica a ausência, em vez de apresentar uma tabela vazia sem explicação.
+
 ### Épico 5: Isolamento por Unidade
 
 * **US 5.1:** Como Administrador de Unidade, eu quero gerenciar apenas as pessoas e os arquivos da minha unidade para que meu escopo de atuação seja restrito a ela.
@@ -655,6 +682,7 @@ O **objetivo principal** do GDoc é entregar um repositório de arquivos corpora
 24. Substituição de arquivo avança a revisão do documento, preservando código, tipo e responsável; versões anteriores continuam indisponíveis para consulta, conforme o escopo do MVP.
 25. Documento marcado como obsoleto deixa de ser apresentado a Colaboradores por navegação, busca ou link direto, permanecendo visível a perfis de gestão da própria unidade e nunca atravessando o isolamento entre unidades.
 26. Tela inicial com identificação da pessoa, atalhos filtrados pelo perfil, acesso rápido às pastas de primeiro nível permitidas e lista de documentos alterados recentemente, restrita às permissões da pessoa e à sua unidade.
+27. Destino próprio, disponível a qualquer perfil, reunindo as pastas e os arquivos sobre os quais a pessoa tem permissão vigente recebida de outra pessoa, com os verbos e o prazo de cada um, a pasta que contém o item e a data do compartilhamento; a lista respeita todas as regras de visibilidade já vigentes e não amplia alcance.
 
 ## 6. Requisitos Não Funcionais
 
