@@ -97,6 +97,20 @@ decisões de produto, e duas delas mexem no núcleo de segurança do sistema.
 > de propósito — é estrutural e vai com as alternativas e o custo de cada uma;
 > o cliente confirmou que quer tratá-la separado.
 
+> 📨 **D1, D3 (colisão de nome) e D5 foram perguntadas.** O questionário está
+> em **`docs/questionario_d1_d3_d5_decisoes_estruturais.txt`** (2026-11-05), no
+> mesmo formato do da A1, que funcionou. São 8 perguntas em três blocos, cada
+> uma com o custo e o risco de cada caminho — as três mexem em alcance de
+> dados, e duas delas podem reabrir o isolamento entre unidades. Enquanto não
+> voltarem: **A3 e A6 seguem travadas** (bloco 1) e o **bloco C inteiro não
+> começa** (bloco 2, a colisão do nome "Gestor"). As respostas devem ser
+> transcritas num `docs/respostas_*.txt`, como foi feito na A1.
+>
+> O questionário também pergunta duas coisas menores que caem na mesma frase da
+> tela: o "Y documentos novos desde o último acesso" (hoje não há registro de
+> último acesso — ver a A3) e se o cartão da grade é clicável. Perguntar na
+> mesma rodada evita voltar ao cliente duas vezes pela mesma linha de texto.
+
 ### D1 — "Minhas unidades": acesso a mais de uma unidade  🔴 estrutural
 
 A demanda (1.3) pede uma grade de unidades e a frase *"você tem acesso a X
