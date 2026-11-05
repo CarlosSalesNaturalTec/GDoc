@@ -56,7 +56,7 @@ Legenda: `pendente` · `bloqueada` (ver coluna Bloqueio) · `em andamento` ·
 | A3 | Conteúdo da tela Início | 1.3 | **entregue** | E1 (marca d'água) | `conteudo-da-tela-inicio` |
 | A4 | Favoritos | 1.1 (menu) | **entregue** | — | `favoritos` |
 | A5 | Compartilhados comigo | 1.1 (menu) | **entregue** | — | `compartilhados-comigo` |
-| A6 | Tour guiado | 1.1, 1.3 | pendente | — | — |
+| A6 | Tour guiado | 1.1, 1.3 | em andamento | — | `tour-guiado` (em voo) |
 | A7 | Rótulo "Administrador da unidade" | — (resposta 5 de D3) | pendente | — | — |
 | B1 | Arquivo geral e pendente de cadastro | 2.3, 2.4 | **entregue** | — | `arquivo-geral-e-pendente-de-cadastro` |
 | B2 | Tabela de cadastro no envio em lote | 2.1, 2.2 | **entregue** | — | `tabela-de-cadastro-no-envio-em-lote` |
