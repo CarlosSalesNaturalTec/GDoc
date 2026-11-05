@@ -125,11 +125,16 @@ identificador interno nem um fragmento dele. Conta sem nome cadastrado SHALL
 recorrer a um tratamento genérico, nunca ao identificador.
 
 O conjunto de destinos internos SHALL cobrir a tela inicial, os documentos, os
-recentes, **os favoritos**, os compartilhados comigo e a lixeira, nessa ordem,
-acrescidos dos destinos de administração permitidos ao papel. Os destinos de
-favoritos e de compartilhados SHALL ser oferecidos a **qualquer** papel
-autenticado, inclusive `collaborator`, por não serem itens de administração (ver
-capabilities `favoritos` e `compartilhados-comigo`). A busca NÃO SHALL
+recentes, **os favoritos**, os compartilhados comigo, **a leitura obrigatória**
+e a lixeira, nessa ordem, acrescidos dos destinos de administração permitidos ao
+papel. Os destinos de favoritos, de compartilhados e de leitura obrigatória
+SHALL ser oferecidos a **qualquer** papel autenticado, inclusive
+`collaborator`, por não serem itens de administração (ver capabilities
+`favoritos`, `compartilhados-comigo` e `leitura-obrigatoria`). O item de
+leitura obrigatória SHALL apresentar o **contador** das leituras abertas da
+pessoa — pendentes e atrasadas — quando houver ao menos uma, e o nome acessível
+do item SHALL incluir essa contagem; sem leitura aberta, o contador NÃO SHALL
+ser apresentado. A busca NÃO SHALL
 ocupar um destino da navegação, por estar permanentemente acessível na barra
 superior (ver capability `web-busca`).
 
@@ -167,7 +172,8 @@ SHALL permanecer identificável por seu nome, sem depender do reconhecimento do
 ícone isolado.
 
 Referência: PRD NFR de Usabilidade ("interface limpa e premium, navegação
-familiar"); PRD US 1.3; PRD US 11.1; design.md D5/D6 do change
+familiar"); PRD US 1.3; PRD US 11.1; PRD US 12.4; demanda do cliente nº 2,
+seções 1.1 e 3.2 (etapa 2, item 2); design.md D5/D6 do change
 `web-shell-e-auth`; design.md D6/D8 do change `acesso-ao-manual-no-shell`, cuja
 decisão de posicionamento é substituída por design.md D2/D3 do change
 `responsividade-mobile-tablet`, por sua vez ajustada por design.md D1/D2 do
@@ -261,6 +267,17 @@ change `menu-lateral-e-barra-superior`.
 #### Scenario: Acionar o tour no painel sobreposto fecha o painel
 - **WHEN** uma pessoa aciona o tour guiado no painel sobreposto
 - **THEN** o painel se fecha e o tour começa na tela inicial
+
+#### Scenario: Leitura obrigatória é destino de qualquer papel, com contador
+- **WHEN** uma pessoa de papel `collaborator` com duas leituras obrigatórias
+  abertas percorre os destinos da navegação
+- **THEN** encontra "Leitura obrigatória" depois de compartilhados comigo e
+  antes da lixeira, com o contador 2, e o nome acessível do item diz que há 2
+  pendentes
+
+#### Scenario: Sem leitura aberta, sem contador
+- **WHEN** uma pessoa sem leitura obrigatória aberta percorre a navegação
+- **THEN** o item "Leitura obrigatória" aparece sem contador
 
 ### Requirement: Navegação reúne os itens em grupos rotulados
 
