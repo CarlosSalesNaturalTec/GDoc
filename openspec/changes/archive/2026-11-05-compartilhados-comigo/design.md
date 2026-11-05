@@ -60,46 +60,88 @@ concedidos, um `collaborator` não).
 *Alternativa descartada:* reusar `visibleResourceClause` e filtrar os
 não-concedidos depois, na SPA ou num segundo passo. Esconderia um furo de alcance
 atrás de um filtro de apresentação — exatamente o padrão que o `CLAUDE.md`
-proíbe, já que a SPA nunca é linha de defesa.
+proíbe, já que a SPA nunca é linha de defesa. A direção correta é a inversa: a
+concessão **seleciona** e `hasAccess` apenas **confirma** (ver D2), de modo que
+nenhum caminho desta rota consegue conceder alcance.
 
-### D2 — As regras restritivas entram por reúso dos fragmentos existentes
+### D2 — As regras restritivas entram por `hasAccess`, item a item
 
-A cláusula do obsoleto e a do pendente de cadastro, mais `deleted_at IS NULL`,
-compõem-se com o filtro de concessão. Nenhuma é reescrita: `controle-documental`
-declara cada regra **uma vez** e a faz valer em todos os caminhos de consulta
-(B1: *"uma regra, quatro caminhos"*), e uma cópia é como o quinto caminho
-divergiria em silêncio.
+Não por cláusula SQL reescrita. `GET /files/recent` já resolveu este problema e
+o registrou como decisão (`shell-e-inicio`, design.md D2): *"nenhuma segunda
+expressão da regra de acesso"* — um `JOIN` com `grants` montado na rota seria
+mais rápido e criaria uma segunda expressão, e **duas expressões divergem, com
+vazamento como sintoma em vez de erro**.
 
-*Alternativa descartada:* repetir as condições na consulta nova. Barato de
-escrever, e é a origem do defeito que a B2 teve de corrigir (constante duplicada
-à mão nos dois lados).
+`hasAccess` já encerra, num só lugar, tudo o que esta lista precisa compor:
+`deleted_at IS NULL`, a subtração do obsoleto, a subtração do pendente de
+cadastro (preservando o remetente) e a trava do bypass do `global_admin` por
+`isAdminOfUnit(ctx, resource.unit_id)`.
 
-### D3 — Rota `GET /grants/recebidas`, sob o prefixo que já existe
+**Uma chamada por recurso, não por verbo.** As regras restritivas são
+propriedade do **recurso**, não do verbo. Passando um verbo que a pessoa
+comprovadamente tem — o candidato veio de uma concessão vigente dele —,
+`hasAccess` reduz-se exatamente à composição restritiva: o ramo da concessão
+já é verdadeiro por construção, então o que resta avaliar é só a subtração.
+Chamar por (recurso × verbo) multiplicaria consultas para reavaliar sempre a
+mesma condição.
+
+*Alternativa descartada:* reusar `nonObsoleteClause` e `visibleRegistrationClause`
+como fragmentos na consulta nova. É reúso, não cópia, e seria defensável — mas
+ainda assim é uma **segunda montagem** da composição, e a rota nova seria o
+quinto lugar onde a ordem de composição precisa estar certa. `hasAccess` é o
+primeiro.
+
+### D3 — Rota `GET /grants/received`, sob o prefixo que já existe
 
 `/grants` já está nas três listas de prefixo (`lib/api-prefixes.ts`,
 `apps/web/vite.config.ts`, `infra/terraform/locals.tf`), então o invariante 7 do
-plano não é tocado. A rota passa por `attachTenantContext` como as demais, e é a
-primeira de `/grants` aberta a `collaborator` — daí a modificação de requisito em
-`permissoes-granulares`, que agora distingue **administrar as concessões de um
-recurso** de **ler as próprias**.
+plano não é tocado. O caminho é **em inglês**, como todos os demais do
+repositório (`/files/recent`, `/files/search`, `/trash/purge`): a convenção é
+pt_BR na prosa e na interface, inglês nos identificadores — e um caminho em
+português seria o único. A rota passa por `attachTenantContext` como as demais, e
+é a primeira de `/grants` aberta a `collaborator` — daí a modificação de
+requisito em `permissoes-granulares`, que agora distingue **administrar as
+concessões de um recurso** de **ler as próprias**.
 
 *Alternativas descartadas:* `/compartilhados` como prefixo de topo — custo nas
-três listas e no url-map do Terraform, sem ganho; `/files/compartilhados` —
-mentiria sobre o conteúdo, que inclui pastas.
+três listas e no url-map do Terraform, sem ganho; `/files/shared` — mentiria
+sobre o conteúdo, que inclui pastas.
 
-### D4 — Uma consulta, com as duas pernas em `UNION ALL`
+### D3b — A consulta de candidatos compara `unit_id` explicitamente
 
-Pastas e arquivos são tabelas distintas com colunas distintas, mas a tela é uma
-só e a ordenação é global. Duas pernas unidas no servidor dão uma ordenação
-correta e uma resposta; duas chamadas da SPA dariam duas listas que ela teria de
-intercalar, e a ordenação entre elas ficaria a cargo do cliente.
+A RLS de `grants` já trava as linhas à unidade para todo papel **exceto**
+`global_admin`, cujo bypass é incondicional. A consulta de candidatos compara
+`unit_id = $ctx.unitId` do mesmo modo que `listCandidates` em `recent.ts`, para
+que a lista não dependa de `hasAccess` como única guarda cross-unit. Duas
+guardas, de propósito — o mesmo arranjo que `recent.ts` documenta.
 
-### D5 — A agregação por recurso acontece no SQL
+### D4 — Duas leituras de detalhe, não um `UNION ALL`
 
-Um `GROUP BY` por recurso, com o conjunto de verbos agregado e `MAX(created_at)`
-como data do item. Devolver uma linha por verbo e agrupar na SPA colocaria regra
-de domínio na fronteira Zod, que existe para validar forma, não para derivar
-comportamento.
+Depois do filtro, os sobreviventes são lidos em duas consultas — uma de pastas,
+uma de arquivos. Não em `UNION ALL`, por duas razões concretas: `fileSummaryColumns`
+projeta colunas **sem qualificação** (é o fragmento das consultas de uma só
+tabela), e as duas pernas têm formas diferentes, de modo que a união exigiria
+`NULL` tipado para cada coluna ausente do outro lado. A perna de arquivo reusa
+`fileSummaryColumns` + `toFileSummaryResponse` — os mesmos da listagem de pasta,
+da busca e dos recentes —, e com isso a linha de arquivo nasce com tipo, código
+e situação, e serve **diretamente** ao `PreviewModal`, cuja propriedade é
+`FileSummaryResponse`.
+
+### D5 — A agregação por recurso acontece onde a lista de candidatos já vive
+
+As concessões vigentes são lidas, agrupadas por recurso e ordenadas no servidor,
+em JavaScript, sobre a lista que o laço de `hasAccess` já percorre — mesma forma
+de `recent.ts`, que filtra em JS e reordena pela ordem dos candidatos, não pela
+que a segunda leitura devolveu. O que **não** pode acontecer é a agregação na
+SPA: a fronteira Zod existe para validar forma, não para derivar comportamento.
+
+**Os verbos vão com o seu próprio prazo.** A resposta leva, por item, o par
+(verbo, vencimento), não um vencimento do item. Conceder vários verbos numa só
+operação dá a todos o mesmo prazo, mas `permissoes-granulares` permite
+reconceder um subconjunto com prazo diferente — e aí um "vencimento do item"
+teria de escolher entre mentir (o mais próximo, como se tudo vencesse junto) ou
+omitir. O par é lossless e a tela apresenta o prazo junto do verbo a que ele
+pertence.
 
 ### D6 — Vigência e ordenação no relógio do Postgres
 
@@ -161,13 +203,15 @@ viver longe do requisito que o produz.
   administração, que concede nominalmente (com teto de destinatários por
   requisição). Paginação e filtros são aditivos e não mudam nenhum requisito
   desta spec. Se incomodar, entra depois.
-- **Quatro regras restritivas compostas numa consulta nova** → cada uma com caso
-  de teste próprio, no mesmo nível dos testes de isolamento; `--strict` não pega
-  furo de alcance, teste pega.
-- **`UNION ALL` de duas tabelas com colunas diferentes** → as colunas da perna de
-  pasta que não existem para arquivo (e vice-versa) entram como `NULL` tipado; o
-  risco é de forma, e a fronteira Zod da SPA o converte em erro visível em vez de
-  em campo silenciosamente ausente (defeito que a B1 corrigiu com o `.catch`).
+- **As regras restritivas chegam por composição, não por leitura local** → quem
+  ler a consulta de candidatos não vê o filtro do obsoleto nem o do pendente, e
+  pode concluir que faltam. Cada um entra como caso de teste próprio, no nível
+  dos testes de isolamento; `--strict` não pega furo de alcance, teste pega.
+- **Uma consulta por recurso no laço de `hasAccess`** → é o custo que
+  `recent.ts` já aceita pela mesma razão, e aqui o conjunto é delimitado pela
+  concessão nominal, não por uma janela de auditoria. Se um dia incomodar, o
+  caminho é otimizar `hasAccess` para um lote, uma vez, para todas as rotas —
+  não reescrever a composição nesta.
 - **A trilha do explorador continua nomeando ancestrais inalcançáveis** → ver
   D7: pré-existente, não ampliado aqui, registrado como fatia futura para não se
   perder.

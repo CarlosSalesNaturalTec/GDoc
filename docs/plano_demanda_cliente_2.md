@@ -55,7 +55,7 @@ Legenda: `pendente` · `bloqueada` (ver coluna Bloqueio) · `em andamento` ·
 | A2 | Menu lateral e barra superior | 1.1, 1.2 | **entregue** | E1 (parcial) | `menu-lateral-e-barra-superior` |
 | A3 | Conteúdo da tela Início | 1.3 | pendente | D1, D4 | — |
 | A4 | Favoritos | 1.1 (menu) | pendente | — | — |
-| A5 | Compartilhados comigo | 1.1 (menu) | pendente | — | — |
+| A5 | Compartilhados comigo | 1.1 (menu) | **entregue** | — | `compartilhados-comigo` |
 | A6 | Tour guiado | 1.1, 1.3 | pendente | — | — |
 | B1 | Arquivo geral e pendente de cadastro | 2.3, 2.4 | **entregue** | — | `arquivo-geral-e-pendente-de-cadastro` |
 | B2 | Tabela de cadastro no envio em lote | 2.1, 2.2 | **entregue** | — | `tabela-de-cadastro-no-envio-em-lote` |
@@ -65,7 +65,9 @@ Legenda: `pendente` · `bloqueada` (ver coluna Bloqueio) · `em andamento` ·
 | C4 | Acompanhamento e relatório exportável | 3.5 | pendente | C1, D5 | — |
 
 Ordem sugerida: **A1 → A2 → A3 → (A4, A5, A6 em qualquer ordem) → B1 → B2 →
-C1 → C2 → C3 → C4**.
+C1 → C2 → C3 → C4**. Na prática o bloco B foi antecipado e, entre A4 e A5, a
+**A5 veio primeiro** — não exigia migração e fixou a forma de listagem plana
+que a A4 consome.
 
 > ✅ **A janela aberta pela B1 está fechada.** Entre a B1 e a B2, o servidor
 > exigia os dados por item e a SPA não os enviava, de modo que todo envio em lote
@@ -366,17 +368,77 @@ Governança local; (ii) papel novo de auditor cross-unit, restrito a
   listando os favoritos vigentes. Tabela com `unit_id` + RLS; favorito **não é
   permissão** — perder acesso ao recurso o remove da lista, sem erro.
 - **Depende de**: A2 (o item entra no menu)
+- **Consome a forma fixada pela A5**: a listagem plana de recursos em
+  profundidade arbitrária (localização = pasta-mãe, arquivo abre no
+  visualizador, pasta abre no explorador, ações só dos verbos concedidos,
+  perda de alcance remove sem erro) já está resolvida em
+  `compartilhados-comigo`. Favoritos é a mesma tela sobre outro dado —
+  inventar uma segunda forma é o que faria as duas divergirem.
 
-### A5 — Compartilhados comigo
+### A5 — Compartilhados comigo  ✅ entregue
 
-- **Capabilities**: `compartilhados-comigo` (nova), `permissoes-granulares`
-  (consumida)
+> Change `compartilhados-comigo`. **Desvios do previsto aqui, decididos durante
+> a especificação e a implementação:**
+>
+> - **Não é reentrada de escopo.** Esta seção classificava a fatia como tal, por
+>   analogia com Favoritos e Tour guiado. A lista de Fora de Escopo do PRD
+>   exclui *compartilhamento entre unidades* e *notificação a cada
+>   compartilhamento recebido* — **não** a listagem do que foi compartilhado
+>   comigo. Entrou como **US 4.4, no Épico 4** (permissões granulares), e não no
+>   Épico 11: o que a fatia entrega é a contrapartida da concessão granular, não
+>   orientação da tela inicial.
+> - **Os fragmentos de alcance de `lib/access.ts` não servem a esta tela**
+>   (design.md D1) — e esta é a descoberta que mais moldou a change.
+>   `resourceScopeClause` devolve **`TRUE`** para quem é administrador da
+>   unidade da listagem, o que é correto para a listagem de pasta e
+>   apresentaria **todo o acervo da unidade** ao `unit_admin` sob o título
+>   "Compartilhados comigo". A lista parte da **concessão**; `hasAccess` depois
+>   apenas confirma. O teste que fixa isso (admin com uma concessão recebida vê
+>   um item, não o acervo) é o mais importante da fatia.
+> - **As regras restritivas entram por `hasAccess`, não por cláusula SQL
+>   reescrita** (design.md D2). O plano previa reusar `nonObsoleteClause` e
+>   `visibleRegistrationClause` como fragmentos; o precedente de
+>   `GET /files/recent` é mais forte — *"nenhuma segunda expressão da regra de
+>   acesso"* —, e uma chamada por recurso basta, porque as regras restritivas
+>   são propriedade do recurso, não do verbo.
+> - **Nenhum prefixo de rota novo.** `GET /grants/received` vive sob `/grants`,
+>   que já está nas três listas — o invariante 7 não foi tocado. Em compensação,
+>   é a primeira rota de `/grants` aberta a `collaborator`, e por isso
+>   `permissoes-granulares` passou a distinguir **administrar as concessões de
+>   um recurso** de **ler as próprias**.
+> - **O prazo acompanha o verbo, não o item** (design.md D5). Conceder vários
+>   verbos numa operação dá a todos o mesmo prazo, mas reconceder um subconjunto
+>   com prazo diferente é permitido, e um prazo "do item" teria de escolher
+>   entre mentir e omitir.
+> - **A localização é só a pasta-mãe** (design.md D7), pelo precedente de
+>   `GET /files/recent`. Durante a conferência: `buildBreadcrumb`
+>   (`routes/folders.ts:71`) **sobe os pais sem checar acesso em nenhum deles**,
+>   de modo que a trilha do explorador nomeia pastas que a pessoa não alcança.
+>   É **pré-existente** (alcançável hoje por quem digita o endereço) e não foi
+>   ampliado aqui — a lista não acrescenta nome de ancestral nenhum. Fica como
+>   fatia futura, não como passageira desta.
+> - **Dois achados de passagem, corrigidos**: o enum de verbos estava escrito à
+>   mão duas vezes em `lib/schemas.ts` e a terceira cópia entraria com esta
+>   fatia (extraído para `permissionSchema`); e a ordem dos verbos na resposta
+>   dependia da ordem das linhas de `grants`, indeterminada sem `ORDER BY` —
+>   agora é a ordem canônica do enum.
+>
+> **A forma da listagem plana ficou fixada aqui, para a A4 consumir**: o que
+> mostrar como localização, o que o clique faz em arquivo e em pasta, que ações
+> oferecer (só as dos verbos que vieram) e o que acontece quando o alcance cai.
+> Favoritos é a mesma forma sobre outro dado.
+>
+> **Lacuna conhecida, aceita**: a lista não tem paginação nem filtros. O tamanho
+> é ditado pelo que a administração concedeu nominalmente, e ambos são aditivos.
+
+- **Capabilities**: `compartilhados-comigo` (**nova**), `permissoes-granulares`
+  (**modificada**), `web-shell-e-auth` (**modificada**)
 - **Demanda**: 1.1 (item de menu)
-- **PRD**: US nova (Épico 11) — também **reentrada de escopo**.
+- **PRD**: **US 4.4 nova, no Épico 4** — ver o desvio acima
 - **Entrega**: destino listando os recursos sobre os quais a pessoa tem
-  concessão vigente de outra pessoa (não os que ela mesma criou). Dado já
-  existe: a tabela de concessões, com a vigência avaliada no SQL pelo relógio do
-  Postgres. Nenhuma coluna nova.
+  concessão vigente de outra pessoa (não os que ela mesma criou), um item por
+  recurso com o conjunto dos verbos. Dado já existia: a tabela de concessões,
+  com a vigência avaliada no SQL pelo relógio do Postgres. **Nenhuma migração.**
 - **Depende de**: A2
 - **Risco**: a listagem não pode revelar recurso excluído ou de outra unidade —
   *fail-closed* igual ao `access.ts`.
