@@ -11,39 +11,59 @@ está na implantação correta quando existe mais de uma.
 ## Tela inicial
 
 Ao entrar, a primeira tela é o seu ponto de partida — ela responde, sem nenhum
-clique, a "quem sou, onde estou e o que mudou":
+clique, a "quem sou, onde estou, o que posso fazer e o que mudou":
 
-- **Saudação** com o seu nome e, abaixo dela, a sua **função/cargo**, o seu
-  **setor** e a sua **unidade** — como estão no seu cadastro. Se o seu cargo não
-  estiver preenchido, aparece no lugar o nome do seu **perfil de acesso**
-  ("Colaborador", "Gestor" ou "Administrador global"); se você não tem setor,
-  ele simplesmente não aparece. Se a sua conta ainda não tem nome cadastrado, a
-  saudação é genérica ("Olá!") e essa linha continua aparecendo.
+- **Saudação** conforme o horário — "Bom dia", "Boa tarde" ou "Boa noite" —
+  com o seu primeiro nome. Abaixo dela, a sua **função/cargo**, o seu **setor**
+  e a sua **unidade**, como estão no seu cadastro, seguidos de quantos
+  **documentos novos** foram publicados **nos últimos 7 dias** entre os que
+  você pode abrir (por exemplo, "— 6 documentos novos nos últimos 7 dias").
+  Se o seu cargo não estiver preenchido, aparece no lugar o nome do seu
+  **perfil de acesso** ("Colaborador", "Gestor" ou "Administrador global"); se
+  você não tem setor, ele simplesmente não aparece. Se a sua conta ainda não
+  tem nome cadastrado, a saudação fica só com o horário ("Bom dia!") e essa
+  linha continua aparecendo.
   Cargo e setor são dados do cadastro: quem os ajusta é quem administra a sua
   unidade, e **nenhum dos dois altera as suas permissões**.
-- **O que você pode fazer**: atalhos para as ações do dia a dia. Você vê
-  **apenas** os atalhos que o seu perfil pode executar — nenhum atalho exibido
-  resulta em recusa ao ser acionado. O atalho **Enviar documentos** leva você
-  direto à área de envio, já pronta para uso, quando você pode enviar ali.
-- **Suas pastas**: cartões para as pastas de primeiro nível da sua unidade que
-  você pode abrir. Pasta a que você não tem acesso não aparece nem é
-  mencionada. Se não houver nenhuma, a área diz isso em vez de ficar vazia.
-- **Alterados recentemente**: os documentos ao seu alcance que foram
-  publicados, substituídos, renomeados ou movidos nos últimos dias, do mais
-  recente para o mais antigo, com a data da alteração, o tipo, o código, a
-  situação e a pasta onde estão. "Ver todos" leva ao item **Recentes** do menu.
+- **Quatro atalhos** para as ações do dia a dia, cada um com ícone, título e
+  descrição:
+    - **Enviar documento** leva direto à área de envio, já pronta para uso,
+      quando você pode enviar ali;
+    - **Nova pasta** abre o formulário de nova pasta na raiz da sua unidade;
+    - **Buscar documento** abre a tela de busca com o campo já pronto para
+      digitar;
+    - **Manual do usuário** abre este manual numa nova aba.
+  Os atalhos de administração (Colaboradores, Painel, Unidades) e a Lixeira não
+  ficam mais na tela inicial — continuam no menu lateral.
+- **Pastas da unidade**: cartões para as pastas de primeiro nível da sua
+  unidade que você pode abrir; um clique no cartão abre a pasta, e **Ver todas
+  as pastas** leva a **Documentos**. Pasta a que você não tem acesso não
+  aparece nem é mencionada. Se não houver nenhuma, a área diz isso em vez de
+  ficar vazia.
+- **Documentos recentes**: os **cinco** documentos ao seu alcance publicados,
+  substituídos, renomeados ou movidos mais recentemente, do mais novo para o
+  mais antigo, com o **tipo**, o **nome** (e o código logo abaixo), a
+  **unidade**, a **revisão**, a **situação** e a data em que foi
+  **atualizado**. Clique no nome para visualizar o documento. **Ver histórico
+  completo** leva ao item **Recentes** do menu, com todo o recorte.
+- **Leitura obrigatória** e **Avisos**: dois cartões numa coluna à direita (ou
+  ao final da tela, no celular). O espaço já está reservado para a leitura
+  obrigatória, que chega numa próxima etapa; por enquanto cada cartão explica o
+  que vai aparecer ali. Os avisos de hoje continuam no **sino**, no topo da
+  tela.
 
 !!! tip "Os cartões são clicáveis por inteiro"
-    Nas duas áreas de cartões — **O que você pode fazer** e **Suas pastas** —
-    basta clicar ou tocar em qualquer ponto do cartão: o título, a descrição ou
-    o espaço em volta. Não é preciso acertar o texto.
+    Nos atalhos e em **Pastas da unidade**, basta clicar ou tocar em qualquer
+    ponto do cartão: o título, a descrição ou o espaço em volta. Não é preciso
+    acertar o texto.
 
-!!! note "A lista de recentes não amplia o seu acesso"
-    Só aparecem documentos que você já alcançaria navegando. Documento sem
-    permissão não aparece — nem o nome, nem a pasta —, documento de outra
-    unidade nunca aparece (qualquer que seja o seu perfil), e um documento sai
-    da lista assim que a permissão temporária que o liberava vence. Apenas
-    **alterações** entram: visualizar ou baixar um documento não o coloca aqui.
+!!! note "A tela inicial não amplia o seu acesso"
+    Só aparecem — e só entram na contagem de documentos novos — documentos que
+    você já alcançaria navegando. Documento sem permissão não aparece (nem o
+    nome, nem a pasta), documento de outra unidade nunca aparece (qualquer que
+    seja o seu perfil), e um documento sai da lista assim que a permissão
+    temporária que o liberava vence. Apenas **alterações** entram nos recentes:
+    visualizar ou baixar um documento não o coloca ali.
 
 ## Menu de navegação
 
@@ -52,9 +72,9 @@ perfil, reunidos em dois grupos — **NAVEGAÇÃO** e **AJUDA**:
 
 | Grupo         | Item do menu          | Para quem            | Serve para                                                              |
 | ------------- | --------------------- | -------------------- | ----------------------------------------------------------------------- |
-| **NAVEGAÇÃO** | **Início**            | Todos                | Tela inicial: saudação, atalhos, suas pastas e alterações recentes.     |
+| **NAVEGAÇÃO** | **Início**            | Todos                | Tela inicial: saudação, atalhos, pastas da unidade e documentos recentes. |
 | **NAVEGAÇÃO** | **Documentos**        | Todos                | Navegar por pastas, enviar, baixar, visualizar e gerenciar documentos.  |
-| **NAVEGAÇÃO** | **Recentes**          | Todos                | A lista completa dos documentos alterados recentemente.                 |
+| **NAVEGAÇÃO** | **Recentes**          | Todos                | O recorte completo dos documentos alterados recentemente (o "histórico completo" da tela inicial). |
 | **NAVEGAÇÃO** | **Compartilhados comigo** | Todos            | O que outras pessoas liberaram para você, com o que pode fazer em cada um. |
 | **NAVEGAÇÃO** | **Lixeira**           | Todos                | Recuperar ou acompanhar itens excluídos.                                |
 | **NAVEGAÇÃO** | **Colaboradores**     | Administradores      | Cadastrar, editar, ativar/desativar contas e redefinir senhas.          |

@@ -53,7 +53,7 @@ Legenda: `pendente` · `bloqueada` (ver coluna Bloqueio) · `em andamento` ·
 | :-- | :--- | :--- | :--- | :--- | :--- |
 | A1 | Função e setor na identidade | 1.3 (Atenção: Perfil), 3.1 | **entregue** | — | `funcao-e-setor-na-identidade` |
 | A2 | Menu lateral e barra superior | 1.1, 1.2 | **entregue** | E1 (parcial) | `menu-lateral-e-barra-superior` |
-| A3 | Conteúdo da tela Início | 1.3 | pendente | — | — |
+| A3 | Conteúdo da tela Início | 1.3 | **entregue** | E1 (marca d'água) | `conteudo-da-tela-inicio` |
 | A4 | Favoritos | 1.1 (menu) | pendente | — | — |
 | A5 | Compartilhados comigo | 1.1 (menu) | **entregue** | — | `compartilhados-comigo` |
 | A6 | Tour guiado | 1.1, 1.3 | pendente | — | — |
@@ -472,7 +472,52 @@ revisão de segurança antes do código.
 - **Risco**: o contador do sino consome a contagem de não lidas que
   `notificacoes` já expõe — conferir antes de criar rota nova.
 
-### A3 — Conteúdo da tela Início
+### A3 — Conteúdo da tela Início  ✅ entregue
+
+> Change `conteudo-da-tela-inicio`. **Desvios do previsto aqui, decididos
+> durante a especificação e a implementação:**
+>
+> - **"Novo" é publicado, não alterado** (design.md D1). A tabela de recentes
+>   logo abaixo já mostra as alterações; contá-las de novo repetiria a tabela
+>   com outro número e faria um documento renomeado parecer novo.
+> - **Rota própria, `GET /files/recent/new-count`**, sob `/files` — nenhum
+>   prefixo de topo novo, o invariante 7 não foi tocado. A contagem passa pela
+>   mesma `hasAccess(view)` da lista, item a item, com o teto
+>   `candidateLimit`; acima dele a tela diz **"pelo menos N"**, nunca o teto
+>   como número exato.
+> - **Os atalhos de administração saíram da tela.** O conjunto agora é o da
+>   demanda (Enviar documento, Nova pasta, Buscar documento, Manual do
+>   usuário), os quatro alcançáveis por qualquer papel. O filtro por papel
+>   continua no código para o atalho que vier a exigir papel.
+> - **"Nova pasta" e "Buscar documento" conduzem à ação, não à tela**, pela
+>   regra já vigente em `tela-inicial`: o explorador atende um pedido de nova
+>   pasta no endereço (`/pastas?nova-pasta=1`, **só na raiz**, onde criar é
+>   livre a qualquer pessoa autenticada; numa subpasta o pedido é descartado),
+>   e a busca recebe quem chega sem termo com o campo focado.
+> - **A coluna Pasta saiu dos recentes**, por não estar na lista da demanda; a
+>   coluna **Unidade é constante** (D1) e vem da identidade, não do DTO. O
+>   destino Recentes usa a mesma tabela — uma origem só — e passou a se chamar
+>   "Documentos recentes".
+> - **A coluna direita foi feita sem media query** (`flex-wrap`, 999:1), para
+>   não criar um segundo limiar de largura além do `lg` da aplicação. Os dois
+>   cartões dizem o que vão apresentar, e **não** "nenhuma pendência" — a frase
+>   seria verdadeira só por vacuidade.
+> - **Títulos de cartão quebram linha em vez de truncar**: em 375 px o link
+>   "Ver histórico completo" cortava "Documentos recentes" com reticências.
+>   Medido na app: sem rolagem horizontal em 375 px, coluna direita com 340 px
+>   em 1440 px.
+>
+> **Lacunas conhecidas, aceitas:**
+>
+> - **Link do tour** fora — o destino é a A6, e atalho sem destino é
+>   regressão. Entra com a A6.
+> - **Marca d'água** fora — **E1**: o ativo atual é JPEG opaco.
+> - "Ver histórico completo" leva ao **recorte** do servidor (até 10
+>   documentos em 90 dias, `config.recentDocuments`), não a um histórico sem
+>   limite; a frase de apoio do destino diz isso por escrito.
+> - Redação da linha de contagem a confirmar na homologação.
+> - O manual (`a-tela.md`) ainda chama `unit_admin` de "Gestor" — é a A7 que
+>   troca o rótulo em todo lugar.
 
 - **Capabilities**: `tela-inicial` (modificada), `controle-documental`
   (consumida na tabela de recentes)

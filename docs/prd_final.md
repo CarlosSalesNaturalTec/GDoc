@@ -633,7 +633,15 @@ O **objetivo principal** do GDoc é entregar um repositório de arquivos corpora
     * *Cenário 3 — Acesso rápido às pastas principais:*
       * **Dado** que tenho acesso a pastas de primeiro nível da minha unidade
       * **Quando** estou na tela inicial
-      * **Então** vejo cartões para essas pastas, restritos às que posso abrir.
+      * **Então** vejo cartões para essas pastas, sob o título "Pastas da unidade", restritos às que posso abrir; cada cartão abre a pasta, e há um caminho para ver todas as pastas. Não são listadas unidades: cada pessoa pertence a uma unidade só (resposta 1a de `docs/respostas_d1_d3_d5_decisoes_estruturais.txt`, que aceitou essa diferença em relação ao Anexo A da demanda nº 2).
+    * *Cenário 5 — Saudação pelo horário e documentos novos:*
+      * **Dado** que acabei de entrar no sistema
+      * **Quando** a tela inicial é apresentada
+      * **Então** sou saudado com "Bom dia", "Boa tarde" ou "Boa noite" e o meu primeiro nome, e a linha abaixo informa quantos documentos que eu posso abrir foram publicados nos últimos 7 dias — sem contar documento fora do meu alcance nem de outra unidade (resposta 3b do mesmo retorno).
+    * *Cenário 6 — Atalhos da tela inicial:*
+      * **Dado** que estou na tela inicial
+      * **Quando** consulto os atalhos
+      * **Então** vejo, como cartões soltos com ícone, título e descrição, Enviar documento, Nova pasta, Buscar documento e Manual do usuário (este só quando a implantação tem manual configurado); cada um conduz à ação — a área de envio, o formulário de nova pasta, o campo de busca, o manual em nova aba.
 
 * **US 11.2:** Como Colaborador, eu quero ver os documentos alterados recentemente para que eu acompanhe o que mudou sem vasculhar pastas.
   * **Critérios de Aceitação:**
@@ -653,6 +661,10 @@ O **objetivo principal** do GDoc é entregar um repositório de arquivos corpora
       * **Dado** que nenhum documento a que tenho acesso foi alterado
       * **Quando** abro a tela inicial
       * **Então** a área de recentes informa a ausência de alterações, em vez de permanecer vazia sem explicação.
+    * *Cenário 5 — Recorte e colunas na tela inicial:*
+      * **Dado** que mais de cinco documentos a que tenho acesso foram alterados
+      * **Quando** abro a tela inicial
+      * **Então** a área "Documentos recentes" apresenta os cinco mais recentes, cada um com tipo, nome com o código abaixo, unidade, revisão, situação e data da atualização, e "Ver histórico completo" leva ao recorte inteiro.
 
 ## 5. Requisitos Funcionais
 

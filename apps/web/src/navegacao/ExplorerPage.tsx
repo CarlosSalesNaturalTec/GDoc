@@ -48,6 +48,7 @@ import { PreviewModal } from '../visualizacao/PreviewModal';
 import { useDownloadFile } from '../visualizacao/useDownloadFile';
 import { UploadArea } from '../upload/UploadArea';
 import { PARAM_PEDIDO_DE_ENVIO } from './pedido-de-envio';
+import { PARAM_PEDIDO_DE_NOVA_PASTA } from './pedido-de-nova-pasta';
 import { DownloadFolderModal } from './DownloadFolderModal';
 import {
   useCreateFolder,
@@ -260,6 +261,27 @@ export function ExplorerPage() {
       { replace: true },
     );
   }, [pedidoDeEnvio, vereditoDeEnvio, setSearchParams]);
+
+  // Pedido de nova pasta (change `conteudo-da-tela-inicio`, design.md D5):
+  // mesmo ciclo do pedido de envio — espera o conteúdo chegar, é atendido uma
+  // vez e sai do endereço substituindo a entrada de histórico. Só a **raiz**
+  // atende: ali criar pasta é livre a qualquer pessoa autenticada; numa
+  // subpasta a regra é do servidor, e o cliente não a antecipa — o pedido é
+  // descartado sem abrir nada.
+  const pedidoDeNovaPasta = searchParams.get(PARAM_PEDIDO_DE_NOVA_PASTA) !== null;
+  const conteudoChegou = data !== undefined;
+  useEffect(() => {
+    if (!pedidoDeNovaPasta || !conteudoChegou) return;
+    if (currentFolderId === null) setNewFolderOpen(true);
+    setSearchParams(
+      (atual) => {
+        const proximo = new URLSearchParams(atual);
+        proximo.delete(PARAM_PEDIDO_DE_NOVA_PASTA);
+        return proximo;
+      },
+      { replace: true },
+    );
+  }, [pedidoDeNovaPasta, conteudoChegou, currentFolderId, setSearchParams]);
 
   // Seleção múltipla (US 2.4, design.md D3 do change `mover-itens-em-lote`):
   // escopada à pasta corrente, esvaziada ao navegar — entrar em subpasta,

@@ -47,7 +47,7 @@ describe('Identidade do shell vive no rodapé da navegação (web-shell-e-auth)'
     mockFetch({ ...ROTAS_DA_TELA_INICIAL, 'GET /auth/me': { status: 200, body: COLABORADOR } });
 
     renderApp(['/']);
-    await screen.findByText('O que você pode fazer');
+    await screen.findByText('Pastas da unidade');
 
     const rodape = navegacao();
     expect(within(rodape).getByText('Maria Silva')).toBeInTheDocument();
@@ -75,7 +75,7 @@ describe('Identidade do shell vive no rodapé da navegação (web-shell-e-auth)'
     });
 
     renderApp(['/']);
-    await screen.findByText('O que você pode fazer');
+    await screen.findByText('Pastas da unidade');
 
     const rodape = navegacao();
     // Linha visível: função · unidade. O setor **não** entra nela — a segunda
@@ -103,7 +103,7 @@ describe('Identidade do shell vive no rodapé da navegação (web-shell-e-auth)'
     });
 
     renderApp(['/']);
-    await screen.findByText('O que você pode fazer');
+    await screen.findByText('Pastas da unidade');
 
     // Mesmo texto que a listagem de colaboradores e o perfil da própria conta
     // exibem — a origem única é o que `nomenclatura-interface` exige.
@@ -115,7 +115,7 @@ describe('Identidade do shell vive no rodapé da navegação (web-shell-e-auth)'
     mockFetch({ ...ROTAS_DA_TELA_INICIAL, 'GET /auth/me': { status: 200, body: COLABORADOR } });
 
     renderApp(['/']);
-    await screen.findByText('O que você pode fazer');
+    await screen.findByText('Pastas da unidade');
 
     expect(within(cabecalho()).queryByText('Maria Silva')).not.toBeInTheDocument();
     expect(within(cabecalho()).queryByText('MS')).not.toBeInTheDocument();
@@ -130,7 +130,7 @@ describe('Identidade do shell vive no rodapé da navegação (web-shell-e-auth)'
     });
 
     renderApp(['/']);
-    await screen.findByText('O que você pode fazer');
+    await screen.findByText('Pastas da unidade');
 
     // O papel é o tratamento genérico: informação que a pessoa reconhece como
     // sua, ao contrário de um fragmento de uuid.
@@ -145,7 +145,7 @@ describe('Identidade do shell vive no rodapé da navegação (web-shell-e-auth)'
     mockFetch({ ...ROTAS_DA_TELA_INICIAL, 'GET /auth/me': { status: 200, body: COLABORADOR } });
 
     renderApp(['/']);
-    await screen.findByText('O que você pode fazer');
+    await screen.findByText('Pastas da unidade');
 
     const rodape = navegacao();
     // Sem exigir acionamento: as duas ações estão visíveis, não escondidas
@@ -163,7 +163,7 @@ describe('Identidade do shell vive no rodapé da navegação (web-shell-e-auth)'
     });
 
     renderApp(['/']);
-    await screen.findByText('O que você pode fazer');
+    await screen.findByText('Pastas da unidade');
 
     const link = within(navegacao()).getByRole('link', { name: /Minha conta/ });
     // O jsdom não tem layout para medir o truncamento; o que se trava aqui é a
@@ -177,7 +177,7 @@ describe('Identidade do shell vive no rodapé da navegação (web-shell-e-auth)'
     mockFetch({ ...ROTAS_DA_TELA_INICIAL, 'GET /auth/me': { status: 200, body: COLABORADOR } });
 
     renderApp(['/']);
-    await screen.findByText('O que você pode fazer');
+    await screen.findByText('Pastas da unidade');
 
     const trigger = document.querySelector('.ant-layout-sider-trigger') as HTMLElement;
     await userEvent.click(trigger);
@@ -203,7 +203,7 @@ describe('Navegação agrupada por natureza (web-shell-e-auth)', () => {
     });
 
     renderApp(['/']);
-    await screen.findByText('O que você pode fazer');
+    await screen.findByText('Pastas da unidade');
 
     const titulos = Array.from(navegacao().querySelectorAll('.ant-menu-item-group-title')).map(
       (el) => el.textContent?.trim(),
@@ -223,7 +223,7 @@ describe('Navegação agrupada por natureza (web-shell-e-auth)', () => {
     });
 
     const { router } = renderApp(['/']);
-    await screen.findByText('O que você pode fazer');
+    await screen.findByText('Pastas da unidade');
 
     const rotulo = navegacao().querySelector('.ant-menu-item-group-title') as HTMLElement;
     // O design system o marca como apresentação — não é item de menu nem
@@ -246,7 +246,7 @@ describe('Navegação agrupada por natureza (web-shell-e-auth)', () => {
     });
 
     renderApp(['/']);
-    await screen.findByText('O que você pode fazer');
+    await screen.findByText('Pastas da unidade');
 
     const titulos = Array.from(navegacao().querySelectorAll('.ant-menu-item-group-title')).map(
       (el) => el.textContent?.trim(),
@@ -261,7 +261,7 @@ describe('Ações da barra superior (web-shell-e-auth)', () => {
     mockFetch({ ...ROTAS_DA_TELA_INICIAL, 'GET /auth/me': { status: 200, body: COLABORADOR } });
 
     const { router } = renderApp(['/']);
-    await screen.findByText('O que você pode fazer');
+    await screen.findByText('Pastas da unidade');
 
     // Oferecida a `collaborator`: permissão de envio é por pasta e vem do
     // servidor, nunca do papel.
@@ -291,7 +291,7 @@ describe('Ações da barra superior (web-shell-e-auth)', () => {
     });
 
     const comAjuda = renderApp(['/']);
-    await comAjuda.findByText('O que você pode fazer');
+    await comAjuda.findByText('Pastas da unidade');
 
     const ajuda = within(cabecalho()).getByRole('link', { name: /^Ajuda/ });
     expect(ajuda).toHaveAttribute('href', MANUAL);
@@ -314,7 +314,7 @@ describe('Ações da barra superior (web-shell-e-auth)', () => {
       },
     });
     renderApp(['/']);
-    await screen.findByText('O que você pode fazer');
+    await screen.findByText('Pastas da unidade');
     expect(within(cabecalho()).queryByRole('link', { name: /^Ajuda/ })).not.toBeInTheDocument();
   });
 });
@@ -325,7 +325,7 @@ describe('Busca fora da navegação e permanente na barra superior (web-busca)',
     mockFetch({ ...ROTAS_DA_TELA_INICIAL, 'GET /auth/me': { status: 200, body: COLABORADOR } });
 
     const largo = renderApp(['/']);
-    await largo.findByText('O que você pode fazer');
+    await largo.findByText('Pastas da unidade');
     const doModoLargo = destinos(navegacao());
     expect(doModoLargo).not.toContain('Buscar');
     expect(doModoLargo).toEqual([
@@ -403,7 +403,7 @@ describe('Busca fora da navegação e permanente na barra superior (web-busca)',
     mockFetch({ ...ROTAS_DA_TELA_INICIAL, 'GET /auth/me': { status: 200, body: COLABORADOR } });
 
     renderApp(['/']);
-    await screen.findByText('O que você pode fazer');
+    await screen.findByText('Pastas da unidade');
 
     const campo = within(cabecalho()).getByRole('searchbox', { name: 'Buscar documentos' });
 
@@ -426,7 +426,7 @@ describe('Busca fora da navegação e permanente na barra superior (web-busca)',
     });
 
     renderApp(['/']);
-    await screen.findByText('O que você pode fazer');
+    await screen.findByText('Pastas da unidade');
 
     const campo = within(cabecalho()).getByRole('searchbox', { name: 'Buscar documentos' });
     await userEvent.type(campo, 'protocolo{Enter}');
@@ -453,7 +453,7 @@ describe('Busca fora da navegação e permanente na barra superior (web-busca)',
     });
 
     const { router } = renderApp(['/']);
-    await screen.findByText('O que você pode fazer');
+    await screen.findByText('Pastas da unidade');
 
     const campo = within(cabecalho()).getByRole('searchbox', { name: 'Buscar documentos' });
     await userEvent.type(campo, 'protocolo');
@@ -520,9 +520,12 @@ describe('Busca fora da navegação e permanente na barra superior (web-busca)',
       },
     });
 
-    renderApp(['/']);
+    // Fora da Início: lá o atalho do manual seria um segundo link de mesmo nome.
+    renderApp(['/recentes']);
     await userEvent.click(await screen.findByRole('button', { name: 'Abrir navegação' }));
-    await screen.findByRole('link', { name: /Manual do usuário/ });
+    await within(document.querySelector('.ant-drawer') as HTMLElement).findByRole('link', {
+      name: /Manual do usuário/,
+    });
 
     // Nenhum acesso é perdido: a ajuda sai da barra pela largura, e o mesmo
     // recurso está a um toque no grupo AJUDA do painel sobreposto.
@@ -539,7 +542,7 @@ describe('Busca fora da navegação e permanente na barra superior (web-busca)',
     mockFetch({ ...ROTAS_DA_TELA_INICIAL, 'GET /auth/me': { status: 200, body: COLABORADOR } });
 
     renderApp(['/']);
-    await screen.findByText('O que você pode fazer');
+    await screen.findByText('Pastas da unidade');
 
     // Sem isto a coluna cresce com o conteúdo da página e o cartão do rodapé
     // vai parar abaixo da dobra — a medição na app o encontrou em y=977 numa

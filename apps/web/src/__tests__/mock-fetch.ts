@@ -69,4 +69,5 @@ export const ROTAS_DA_TELA_INICIAL: RouteTable = {
     body: { folder: null, breadcrumb: [], folders: [], files: [], canUpload: true },
   },
   'GET /files/recent': { status: 200, body: { documents: [] } },
+  'GET /files/recent/new-count': { status: 200, body: { days: 7, count: 0, capped: false } },
 };

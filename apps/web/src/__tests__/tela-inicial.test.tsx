@@ -1,9 +1,18 @@
 import { screen, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
+import { fireEvent } from '@testing-library/react';
 import { DocumentStatus, DocumentType, UserRole } from '@gdoc/shared';
 import { mockFetch, ROTAS_DA_TELA_INICIAL } from './mock-fetch';
 import { renderApp } from './render-app';
 import { atalhosDoPapel } from '../inicio/atalhos';
+import { saudacao, saudacaoDoHorario } from '../shell/identidade';
+import { textoDeNovos } from '../inicio/queries';
+
+/** Saudação do horário com o primeiro nome — o horário real do teste é qualquer um. */
+const SAUDACAO_MARIA = /^(Bom dia|Boa tarde|Boa noite), Maria!$/;
+
+/** URL do manual que `renderApp` não configura por padrão. */
+const MANUAL_URL = 'https://manual.exemplo/';
 import { mockViewportWidth, WIDE_VIEWPORT } from './viewport';
 import { SEM_CONTROLE_DOCUMENTAL } from './document-control-fixture';
 
@@ -64,7 +73,7 @@ describe('Tela inicial (US 11.1 e 11.2)', () => {
 
     renderApp(['/']);
 
-    expect(await screen.findByText('Olá, Maria Silva!')).toBeInTheDocument();
+    expect(await screen.findByText(SAUDACAO_MARIA)).toBeInTheDocument();
     // Escopado ao conteúdo: a change `menu-lateral-e-barra-superior` passou a
     // apresentar papel e unidade também no cartão do usuário, no rodapé da
     // navegação. O que este caso exercita é a linha de contexto da **tela**.
@@ -99,7 +108,7 @@ describe('Tela inicial (US 11.1 e 11.2)', () => {
 
       renderApp(['/']);
 
-      await screen.findByText('Olá, Maria Silva!');
+      await screen.findByText(SAUDACAO_MARIA);
       expect(
         within(conteudo()).getByText('Gerente de Governança · Governança · Unidade Centro'),
       ).toBeInTheDocument();
@@ -120,7 +129,7 @@ describe('Tela inicial (US 11.1 e 11.2)', () => {
 
       renderApp(['/']);
 
-      await screen.findByText('Olá, Maria Silva!');
+      await screen.findByText(SAUDACAO_MARIA);
       expect(
         within(conteudo()).getByText('Colaborador · CME · Unidade Centro'),
       ).toBeInTheDocument();
@@ -138,7 +147,7 @@ describe('Tela inicial (US 11.1 e 11.2)', () => {
 
       renderApp(['/']);
 
-      await screen.findByText('Olá, Maria Silva!');
+      await screen.findByText(SAUDACAO_MARIA);
       // Sem rótulo vazio e sem espaço reservado: o termo simplesmente não
       // entra (capability `setores`).
       expect(within(conteudo()).getByText('Analista · Unidade Centro')).toBeInTheDocument();
@@ -155,89 +164,85 @@ describe('Tela inicial (US 11.1 e 11.2)', () => {
 
     renderApp(['/']);
 
-    expect(await screen.findByText('Olá!')).toBeInTheDocument();
+    expect(await screen.findByText(/^(Bom dia|Boa tarde|Boa noite)!$/)).toBeInTheDocument();
     // Função e unidade continuam presentes — o que falta é só o nome.
     expect(within(conteudo()).getByText('Colaborador · Unidade Centro')).toBeInTheDocument();
     expect(document.body.textContent).not.toContain('user-1');
     expect(document.body.textContent).not.toContain('US');
   });
 
-  it('atalho fora do alcance do perfil não é apresentado (US 11.1, cenário 2)', async () => {
+  it('apresenta os quatro atalhos da demanda, soltos e sem título de seção (US 11.1, cenário 2)', async () => {
+    mockViewportWidth(WIDE_VIEWPORT);
+    mockFetch({
+      ...ROTAS_DA_TELA_INICIAL,
+      'GET /auth/me': { status: 200, body: COLABORADOR },
+      'GET /auth/public-config': {
+        status: 200,
+        body: { appName: 'PapelHub', clientName: '', manualUrl: MANUAL_URL },
+      },
+    });
+
+    renderApp(['/']);
+
+    await screen.findByText(SAUDACAO_MARIA);
+    const area = conteudo();
+    for (const nome of ['Enviar documento', 'Nova pasta', 'Buscar documento']) {
+      expect(await within(area).findByRole('link', { name: nome })).toBeInTheDocument();
+    }
+    // O manual sai da aplicação, e o nome acessível diz isso — mesmo texto do
+    // menu (design.md D4).
+    const manual = await within(area).findByRole('link', {
+      name: 'Manual do usuário (abre em nova aba, fora da aplicação)',
+    });
+    expect(manual).toHaveAttribute('href', MANUAL_URL);
+    expect(manual).toHaveAttribute('target', '_blank');
+    // Sem título de seção acima dos cartões, e os atalhos de administração
+    // saíram da tela — estão no menu.
+    expect(within(area).queryByText('O que você pode fazer')).not.toBeInTheDocument();
+    expect(within(area).queryByRole('link', { name: 'Lixeira' })).not.toBeInTheDocument();
+  });
+
+  it('sem manual configurado, o atalho do manual não aparece', async () => {
     mockViewportWidth(WIDE_VIEWPORT);
     mockFetch({ ...ROTAS_DA_TELA_INICIAL, 'GET /auth/me': { status: 200, body: COLABORADOR } });
 
     renderApp(['/']);
 
-    const atalhos = (await screen.findByText('O que você pode fazer')).closest(
-      '.ant-card',
-    ) as HTMLElement;
-    expect(within(atalhos).getByRole('link', { name: 'Enviar documentos' })).toBeInTheDocument();
-    expect(within(atalhos).getByRole('link', { name: 'Lixeira' })).toBeInTheDocument();
-    // Administração não é alcance do colaborador: o atalho não existe, em vez
-    // de existir e recusar ao ser acionado.
-    expect(within(atalhos).queryByRole('link', { name: 'Colaboradores' })).not.toBeInTheDocument();
-    expect(within(atalhos).queryByRole('link', { name: 'Painel' })).not.toBeInTheDocument();
-    expect(within(atalhos).queryByRole('link', { name: 'Unidades' })).not.toBeInTheDocument();
+    await screen.findByText(SAUDACAO_MARIA);
+    expect(await within(conteudo()).findByRole('link', { name: 'Nova pasta' })).toBeInTheDocument();
+    expect(within(conteudo()).queryByRole('link', { name: /Manual do usuário/ })).toBeNull();
   });
 
-  it('o administrador global vê os atalhos de administração, incluindo unidades', async () => {
-    mockViewportWidth(WIDE_VIEWPORT);
-    mockFetch({
-      ...ROTAS_DA_TELA_INICIAL,
-      'GET /auth/me': {
-        status: 200,
-        body: { ...COLABORADOR, role: UserRole.GLOBAL_ADMIN, fullName: 'Ana Gestora' },
-      },
-    });
-
-    renderApp(['/']);
-
-    const atalhos = (await screen.findByText('O que você pode fazer')).closest(
-      '.ant-card',
-    ) as HTMLElement;
-    expect(within(atalhos).getByRole('link', { name: 'Colaboradores' })).toBeInTheDocument();
-    expect(within(atalhos).getByRole('link', { name: 'Painel' })).toBeInTheDocument();
-    expect(within(atalhos).getByRole('link', { name: 'Unidades' })).toBeInTheDocument();
+  it('atalho fora do alcance do perfil não é apresentado — o filtro por papel continua valendo', () => {
+    // Os quatro atalhos atuais servem a qualquer papel; o mecanismo de filtro
+    // permanece para o atalho que vier a exigir papel (design.md D4).
+    for (const role of [UserRole.COLLABORATOR, UserRole.UNIT_ADMIN, UserRole.GLOBAL_ADMIN]) {
+      expect(atalhosDoPapel(role, MANUAL_URL).map((a) => a.chave)).toEqual([
+        'enviar',
+        'nova-pasta',
+        'buscar',
+        'manual',
+      ]);
+    }
+    expect(atalhosDoPapel(UserRole.COLLABORATOR, '').map((a) => a.chave)).not.toContain('manual');
   });
 
   /**
    * "Cartão da tela inicial é acionável em toda a sua área" (change
-   * `cartoes-de-atalho-acionaveis`, design.md D7).
-   *
-   * O que estende a área acionável é o **link ser ancestral do cartão**: é
-   * isso que a verificação afirma, nas duas seções de cartões. Antes desta
-   * change o `<a>` era filho do cartão e cobria só o texto do rótulo — o
-   * `closest('a')` de um cartão devolvia `null`, e é por aí que uma regressão
-   * para o markup antigo reprova. O ambiente de teste não calcula geometria,
-   * de modo que um clique simulado não mediria área: mediria propagação de
-   * evento, que é consequência desta mesma estrutura.
+   * `cartoes-de-atalho-acionaveis`, design.md D7): o link é **ancestral** do
+   * cartão, e a descrição está dentro dele.
    */
   it('cada cartão de atalho está contido no seu link, com o rótulo por nome acessível', async () => {
     mockViewportWidth(WIDE_VIEWPORT);
-    mockFetch({
-      ...ROTAS_DA_TELA_INICIAL,
-      'GET /auth/me': {
-        status: 200,
-        body: { ...COLABORADOR, role: UserRole.GLOBAL_ADMIN, fullName: 'Ana Gestora' },
-      },
-    });
+    mockFetch({ ...ROTAS_DA_TELA_INICIAL, 'GET /auth/me': { status: 200, body: COLABORADOR } });
 
     renderApp(['/']);
 
-    const atalhos = (await screen.findByText('O que você pode fazer')).closest(
-      '.ant-card',
-    ) as HTMLElement;
-
-    for (const atalho of atalhosDoPapel(UserRole.GLOBAL_ADMIN)) {
-      // O nome acessível é o rótulo curto, nunca rótulo + descrição
-      // concatenados (design.md D2) — a descrição é texto do cartão, não parte
-      // do nome do destino.
-      const link = within(atalhos).getByRole('link', { name: atalho.rotulo });
+    await screen.findByText(SAUDACAO_MARIA);
+    for (const atalho of atalhosDoPapel(UserRole.COLLABORATOR, '')) {
+      const link = await within(conteudo()).findByRole('link', { name: atalho.rotulo });
       expect(link).toHaveAttribute('href', atalho.destino);
-      // A descrição está **dentro** do link, logo acionar sobre ela conduz ao
-      // destino; e o cartão que o `hoverable` apresenta como acionável é o que
-      // o link envolve.
-      const cartao = within(atalhos)
+      const cartao = within(conteudo())
         .getByText(atalho.descricao)
         .closest('.ant-card') as HTMLElement;
       expect(cartao.closest('a')).toBe(link);
@@ -263,7 +268,9 @@ describe('Tela inicial (US 11.1 e 11.2)', () => {
 
     renderApp(['/']);
 
-    const cartoes = (await screen.findByText('Suas pastas')).closest('.ant-card') as HTMLElement;
+    const cartoes = (await screen.findByText('Pastas da unidade')).closest(
+      '.ant-card',
+    ) as HTMLElement;
     // Sem `aria-label` aqui (design.md D2): o ícone é decorativo, então o nome
     // acessível do link continua a ser o nome da pasta.
     const link = await within(cartoes).findByRole('link', { name: 'Protocolos' });
@@ -274,71 +281,27 @@ describe('Tela inicial (US 11.1 e 11.2)', () => {
 
   /**
    * "Atalho apresentado conduz a uma ação executável, sem recusa por
-   * permissão" (US 11.1, cenário 2). A guarda de rota redireciona para `/`
-   * quem chega fora do seu papel — então um atalho que recusasse apareceria
-   * aqui como volta à própria tela inicial. É essa a prova: nenhum destino
-   * oferecido devolve a pessoa ao ponto de partida.
+   * permissão" (US 11.1, cenário 2), e "atalhos distintos têm destinos
+   * distintos". Cada destino interno é alcançado de fato, e o atalho conduz à
+   * ação — o formulário de nova pasta aberto, o campo de busca focado.
    */
-  it.each([
-    [UserRole.COLLABORATOR, ['/pastas?enviar=1', '/pastas', '/lixeira']],
-    [
-      UserRole.UNIT_ADMIN,
-      ['/pastas?enviar=1', '/pastas', '/lixeira', '/admin/pessoas', '/admin/painel'],
-    ],
-    [
-      UserRole.GLOBAL_ADMIN,
-      [
-        '/pastas?enviar=1',
-        '/pastas',
-        '/lixeira',
-        '/admin/pessoas',
-        '/admin/painel',
-        '/admin/unidades',
-      ],
-    ],
-  ])(
-    'todo atalho oferecido a %s é alcançável, sem recusa por permissão',
-    async (role, destinos) => {
-      // Os destinos declarados no caso são exatamente os de `atalhosDoPapel` —
-      // se um atalho novo entrar sem entrar aqui, a comparação abaixo acusa.
-      const oferecidos = atalhosDoPapel(role).map((a) => a.destino);
-      expect([...new Set(oferecidos)].sort()).toEqual([...destinos].sort());
-      // Nenhum destino se repete entre atalhos: dois cartões de texto
-      // diferente levando ao mesmo ponto de partida é o que esta change
-      // desfez ("Enviar documentos" e "Ver documentos" apontavam ambos para
-      // `/pastas`, e o de envio não enviava).
-      expect(oferecidos).toHaveLength(new Set(oferecidos).size);
+  it('os destinos dos atalhos são distintos e conduzem à ação anunciada', async () => {
+    const destinos = atalhosDoPapel(UserRole.COLLABORATOR, MANUAL_URL).map((a) => a.destino);
+    expect(destinos).toHaveLength(new Set(destinos).size);
+    expect(destinos).toEqual(['/pastas?enviar=1', '/pastas?nova-pasta=1', '/busca', MANUAL_URL]);
 
-      for (const destino of destinos) {
-        mockViewportWidth(WIDE_VIEWPORT);
-        mockFetch({
-          ...ROTAS_DA_TELA_INICIAL,
-          'GET /auth/me': { status: 200, body: { ...COLABORADOR, role } },
-          'GET /trash': { status: 200, body: { items: [] } },
-          'GET /users': { status: 200, body: [] },
-          'GET /units': { status: 200, body: [] },
-          'GET /dashboard': {
-            status: 200,
-            body: {
-              totalFiles: 0,
-              totalUsers: 0,
-              usedBytes: 0,
-              filesByCategory: [],
-              uploadsByMonth: [],
-              topUsers: [],
-            },
-          },
-        });
+    mockViewportWidth(WIDE_VIEWPORT);
+    mockFetch({ ...ROTAS_DA_TELA_INICIAL, 'GET /auth/me': { status: 200, body: COLABORADOR } });
+    const novaPasta = renderApp(['/pastas?nova-pasta=1']);
+    expect(await novaPasta.findByRole('dialog', { name: 'Nova pasta' })).toBeInTheDocument();
+    novaPasta.unmount();
 
-        const tela = renderApp([destino]);
-        // A guarda devolveria à tela inicial; chegar ao destino significa que
-        // a ação está ao alcance do papel.
-        await tela.findByRole('searchbox', { name: 'Buscar documentos' });
-        expect(tela.queryByText('O que você pode fazer')).not.toBeInTheDocument();
-        tela.unmount();
-      }
-    },
-  );
+    mockFetch({ ...ROTAS_DA_TELA_INICIAL, 'GET /auth/me': { status: 200, body: COLABORADOR } });
+    const busca = renderApp(['/busca']);
+    const campo = await busca.findByPlaceholderText('Buscar por nome');
+    expect(campo).toHaveFocus();
+    busca.unmount();
+  });
 
   it('apresenta acesso rápido apenas às pastas que o servidor devolveu (US 11.1, cenário 3)', async () => {
     mockViewportWidth(WIDE_VIEWPORT);
@@ -359,7 +322,9 @@ describe('Tela inicial (US 11.1 e 11.2)', () => {
 
     renderApp(['/']);
 
-    const cartoes = (await screen.findByText('Suas pastas')).closest('.ant-card') as HTMLElement;
+    const cartoes = (await screen.findByText('Pastas da unidade')).closest(
+      '.ant-card',
+    ) as HTMLElement;
     expect(await within(cartoes).findByRole('link', { name: 'Protocolos' })).toHaveAttribute(
       'href',
       '/pastas/folder-1',
@@ -375,7 +340,9 @@ describe('Tela inicial (US 11.1 e 11.2)', () => {
 
     renderApp(['/']);
 
-    const cartoes = (await screen.findByText('Suas pastas')).closest('.ant-card') as HTMLElement;
+    const cartoes = (await screen.findByText('Pastas da unidade')).closest(
+      '.ant-card',
+    ) as HTMLElement;
     expect(
       await within(cartoes).findByText('Nenhuma pasta disponível para você no momento'),
     ).toBeInTheDocument();
@@ -396,6 +363,7 @@ describe('Tela inicial (US 11.1 e 11.2)', () => {
               changedAt: '2026-10-27T10:00:00.000Z',
               documentType: DocumentType.PROTOCOL,
               documentCode: 'PRT-001',
+              documentRevision: 3,
               documentStatus: DocumentStatus.CURRENT,
             }),
             documento({
@@ -410,7 +378,7 @@ describe('Tela inicial (US 11.1 e 11.2)', () => {
 
     renderApp(['/']);
 
-    const recentes = (await screen.findByText('Alterados recentemente')).closest(
+    const recentes = (await screen.findByText('Documentos recentes')).closest(
       '.ant-card',
     ) as HTMLElement;
     await within(recentes).findByRole('table');
@@ -427,11 +395,21 @@ describe('Tela inicial (US 11.1 e 11.2)', () => {
     expect(linhas[0]!.textContent).toContain('PRT');
     expect(linhas[0]!.textContent).toContain('PRT-001');
     expect(linhas[0]!.textContent).toContain('Vigente');
-    // A pasta que contém o documento conduz ao explorador.
-    expect(within(recentes).getAllByRole('link', { name: 'Protocolos' })[0]).toHaveAttribute(
-      'href',
-      '/pastas/folder-1',
-    );
+    // Unidade (da identidade, design.md D7) e revisão formatada.
+    expect(linhas[0]!.textContent).toContain('Unidade Centro');
+    expect(linhas[0]!.textContent).toContain('Rev. 03');
+    // Colunas na ordem da demanda nº 2, seção 1.3.
+    const cabecalhos = within(recentes)
+      .getAllByRole('columnheader')
+      .map((c) => c.textContent);
+    expect(cabecalhos).toEqual([
+      'Tipo',
+      'Documento',
+      'Unidade',
+      'Revisão',
+      'Situação',
+      'Atualizado',
+    ]);
   });
 
   it('ausência de alterações é informada, em vez de tabela vazia sem explicação (US 11.2, cenário 4)', async () => {
@@ -440,7 +418,7 @@ describe('Tela inicial (US 11.1 e 11.2)', () => {
 
     renderApp(['/']);
 
-    const recentes = (await screen.findByText('Alterados recentemente')).closest(
+    const recentes = (await screen.findByText('Documentos recentes')).closest(
       '.ant-card',
     ) as HTMLElement;
     expect(
@@ -480,8 +458,10 @@ describe('Tela inicial (US 11.1 e 11.2)', () => {
 
       // Saudação, atalhos e pastas resolvem mesmo com a lista de recentes
       // ainda pendurada.
-      expect(await screen.findByText('Olá, Maria Silva!')).toBeInTheDocument();
-      const cartoes = (await screen.findByText('Suas pastas')).closest('.ant-card') as HTMLElement;
+      expect(await screen.findByText(SAUDACAO_MARIA)).toBeInTheDocument();
+      const cartoes = (await screen.findByText('Pastas da unidade')).closest(
+        '.ant-card',
+      ) as HTMLElement;
       expect(await within(cartoes).findByRole('link', { name: 'Protocolos' })).toBeInTheDocument();
     } finally {
       globalThis.fetch = fetchOriginal;
@@ -501,9 +481,140 @@ describe('Tela inicial (US 11.1 e 11.2)', () => {
 
     renderApp(['/recentes']);
 
-    expect(
-      await screen.findByRole('heading', { name: 'Alterados recentemente' }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Documentos recentes' })).toBeInTheDocument();
     expect(await screen.findByRole('button', { name: 'mudou.pdf' })).toBeInTheDocument();
+  });
+
+  it('a tela inicial apresenta no máximo cinco documentos, e o histórico completo leva aos demais', async () => {
+    mockViewportWidth(WIDE_VIEWPORT);
+    const seis = Array.from({ length: 6 }, (_, i) =>
+      documento({ id: `file-${i}`, fileName: `doc-${i}.pdf` }),
+    );
+    mockFetch({
+      ...ROTAS_DA_TELA_INICIAL,
+      'GET /auth/me': { status: 200, body: COLABORADOR },
+      'GET /files/recent': { status: 200, body: { documents: seis } },
+    });
+
+    renderApp(['/']);
+
+    const recentes = (await screen.findByText('Documentos recentes')).closest(
+      '.ant-card',
+    ) as HTMLElement;
+    await within(recentes).findByText('doc-0.pdf');
+    expect(within(recentes).getAllByRole('row').slice(1)).toHaveLength(5);
+    expect(within(recentes).queryByText('doc-5.pdf')).not.toBeInTheDocument();
+    const historico = within(recentes).getByRole('link', { name: 'Ver histórico completo' });
+    expect(historico).toHaveAttribute('href', '/recentes');
+
+    fireEvent.click(historico);
+    expect(await screen.findByText('doc-5.pdf')).toBeInTheDocument();
+  });
+
+  it('"Ver todas as pastas" conduz à raiz do explorador', async () => {
+    mockViewportWidth(WIDE_VIEWPORT);
+    mockFetch({ ...ROTAS_DA_TELA_INICIAL, 'GET /auth/me': { status: 200, body: COLABORADOR } });
+
+    renderApp(['/']);
+
+    const pastas = (await screen.findByText('Pastas da unidade')).closest(
+      '.ant-card',
+    ) as HTMLElement;
+    expect(within(pastas).getByRole('link', { name: 'Ver todas as pastas' })).toHaveAttribute(
+      'href',
+      '/pastas',
+    );
+  });
+
+  describe('contagem de documentos novos na linha abaixo da saudação', () => {
+    it('acrescenta a contagem que o servidor devolveu à linha de contexto', async () => {
+      mockViewportWidth(WIDE_VIEWPORT);
+      mockFetch({
+        ...ROTAS_DA_TELA_INICIAL,
+        'GET /auth/me': { status: 200, body: COLABORADOR },
+        'GET /files/recent/new-count': {
+          status: 200,
+          body: { days: 7, count: 4, capped: false },
+        },
+      });
+
+      renderApp(['/']);
+
+      await screen.findByText(SAUDACAO_MARIA);
+      expect(
+        await within(conteudo()).findByText(
+          'Colaborador · Unidade Centro — 4 documentos novos nos últimos 7 dias',
+        ),
+      ).toBeInTheDocument();
+    });
+
+    it('falha da contagem não impede a linha de contexto nem o resto da tela', async () => {
+      mockViewportWidth(WIDE_VIEWPORT);
+      mockFetch({
+        ...ROTAS_DA_TELA_INICIAL,
+        'GET /auth/me': { status: 200, body: COLABORADOR },
+        'GET /files/recent/new-count': { status: 500, body: { error: 'x' } },
+      });
+
+      renderApp(['/']);
+
+      await screen.findByText(SAUDACAO_MARIA);
+      expect(
+        await within(conteudo()).findByText('Colaborador · Unidade Centro'),
+      ).toBeInTheDocument();
+      expect(screen.getByText('Pastas da unidade')).toBeInTheDocument();
+    });
+
+    it('o texto da contagem trata zero, um, vários e o teto ("pelo menos")', () => {
+      expect(textoDeNovos({ days: 7, count: 0, capped: false })).toBe(
+        'nenhum documento novo nos últimos 7 dias',
+      );
+      expect(textoDeNovos({ days: 7, count: 1, capped: false })).toBe(
+        '1 documento novo nos últimos 7 dias',
+      );
+      expect(textoDeNovos({ days: 7, count: 12, capped: false })).toBe(
+        '12 documentos novos nos últimos 7 dias',
+      );
+      // O teto nunca é apresentado como contagem exata (design.md D3).
+      expect(textoDeNovos({ days: 7, count: 300, capped: true })).toBe(
+        'pelo menos 300 documentos novos nos últimos 7 dias',
+      );
+    });
+  });
+
+  describe('saudação por horário (design.md D9)', () => {
+    const as = (hora: number) => new Date(2026, 10, 5, hora, 30);
+
+    it.each([
+      [5, 'Bom dia'],
+      [11, 'Bom dia'],
+      [12, 'Boa tarde'],
+      [17, 'Boa tarde'],
+      [18, 'Boa noite'],
+      [0, 'Boa noite'],
+      [4, 'Boa noite'],
+    ])('às %ih a saudação é "%s"', (hora, esperado) => {
+      expect(saudacaoDoHorario(as(hora))).toBe(esperado);
+    });
+
+    it('saúda pelo primeiro nome, e sem nome só pelo horário', () => {
+      expect(saudacao('Mariana Bispo Santos', as(9))).toBe('Bom dia, Mariana!');
+      expect(saudacao(null, as(20))).toBe('Boa noite!');
+    });
+  });
+
+  it('reserva a coluna de leitura obrigatória e avisos sem afirmar ausência de pendências', async () => {
+    mockViewportWidth(WIDE_VIEWPORT);
+    mockFetch({ ...ROTAS_DA_TELA_INICIAL, 'GET /auth/me': { status: 200, body: COLABORADOR } });
+
+    renderApp(['/']);
+
+    const coluna = await screen.findByRole('complementary', {
+      name: 'Leitura obrigatória e avisos',
+    });
+    expect(within(coluna).getByText('Leitura obrigatória')).toBeInTheDocument();
+    expect(within(coluna).getByText('Avisos')).toBeInTheDocument();
+    expect(coluna.textContent).toContain('Aqui vão aparecer os documentos que você precisa ler');
+    expect(coluna.textContent).not.toMatch(/nenhuma pend/i);
   });
 });

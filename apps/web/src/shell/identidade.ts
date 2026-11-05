@@ -34,12 +34,32 @@ export function iniciaisDoNome(nome: string): string {
   return `${primeira}${ultima}`.toUpperCase();
 }
 
+/** Primeiro termo do nome cadastrado — é por ele que a tela inicial saúda. */
+export function primeiroNome(nome: string): string {
+  return nome.trim().split(/\s+/)[0] ?? '';
+}
+
 /**
- * Saudação da tela inicial (US 11.1, cenário 1 e 2): com o nome quando existe,
- * genérica quando não — e em nenhum dos casos com o identificador interno.
+ * Saudação do horário (change `conteudo-da-tela-inicio`, design.md D9): bom
+ * dia de 5h a 11h59, boa tarde de 12h a 17h59, boa noite no resto — pelo
+ * relógio de quem vê a tela. É cortesia, não regra: não há por que perguntar
+ * ao servidor. O instante vem por parâmetro para o teste fixar o horário.
  */
-export function saudacao(nome: string | null): string {
-  return nome === null ? 'Olá!' : `Olá, ${nome}!`;
+export function saudacaoDoHorario(agora: Date = new Date()): string {
+  const hora = agora.getHours();
+  if (hora >= 5 && hora < 12) return 'Bom dia';
+  if (hora >= 12 && hora < 18) return 'Boa tarde';
+  return 'Boa noite';
+}
+
+/**
+ * Saudação da tela inicial (US 11.1, cenário 1; demanda nº 2, seção 1.3): a do
+ * horário com o **primeiro nome** quando existe, só a do horário quando não —
+ * e em nenhum dos casos com o identificador interno.
+ */
+export function saudacao(nome: string | null, agora: Date = new Date()): string {
+  const doHorario = saudacaoDoHorario(agora);
+  return nome === null ? `${doHorario}!` : `${doHorario}, ${primeiroNome(nome)}!`;
 }
 
 /**

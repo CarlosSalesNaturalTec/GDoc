@@ -18,7 +18,7 @@
 | Excluir a pasta atual          | Documentos    | Botão **Excluir esta pasta** (barra superior)              |
 | Excluir uma subpasta           | Documentos    | Botão **Excluir** na linha da subpasta                     |
 | Recuperar algo excluído        | Lixeira       | **Restaurar** (dentro do prazo de retenção)                |
-| Ver o que mudou recentemente   | Início ou Recentes | Lista **Alterados recentemente**                      |
+| Ver o que mudou recentemente   | Início ou Recentes | Lista **Documentos recentes**                         |
 | Encontrar um arquivo           | Cabeçalho     | Campo **Buscar documentos** + Enter; refine na tela de resultados |
 | Ver quem acessou meu arquivo   | Documentos    | Botão **Auditoria** (dono/admin)                           |
 | Compartilhar um arquivo enviado | —            | Peça a um administrador para conceder permissão            |

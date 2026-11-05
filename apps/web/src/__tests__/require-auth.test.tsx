@@ -23,7 +23,7 @@ describe('Guarda de rota por autenticação', () => {
     });
     renderApp(['/']);
 
-    await screen.findByText('O que você pode fazer');
+    await screen.findByText('Pastas da unidade');
   });
 
   it('logout encerra a sessão e volta ao login', async () => {
@@ -37,7 +37,7 @@ describe('Guarda de rota por autenticação', () => {
     });
     renderApp(['/']);
 
-    await screen.findByText('O que você pode fazer');
+    await screen.findByText('Pastas da unidade');
     // "Sair" mora no menu de identidade do cabeçalho (change `troca-de-senha`,
     // design.md D5/D6) — precisa abrir o dropdown antes de clicar no item.
     await userEvent.click(screen.getByText('Colaborador'));

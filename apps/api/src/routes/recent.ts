@@ -1,7 +1,11 @@
 import { Router } from 'express';
 import type { PoolClient } from 'pg';
 import { AuditAction, GrantResourceType, Permission } from '@gdoc/shared';
-import type { RecentDocumentResponse, RecentDocumentsResponse } from '@gdoc/shared';
+import type {
+  NewDocumentsCountResponse,
+  RecentDocumentResponse,
+  RecentDocumentsResponse,
+} from '@gdoc/shared';
 import type { Ports } from '../ports/index.js';
 import type { TenantContext } from '../ports/database-port.js';
 import { hasAccess, isAdminOfUnit } from '../lib/access.js';
@@ -81,6 +85,33 @@ async function listCandidates(
 }
 
 /**
+ * Candidatos a "documento novo" (change `conteudo-da-tela-inicio`, design.md
+ * D1 e D3): arquivos da unidade do contexto **publicados** na janela, pelo
+ * relógio do Postgres. `unit_id` comparado explicitamente pelo mesmo motivo
+ * de `listCandidates` — a trava do bypass de `global_admin` sobre conteúdo.
+ * Lê até `limit` linhas; quem chama pede uma a mais que o teto para saber se
+ * ele foi ultrapassado.
+ */
+async function listNewCandidates(
+  client: PoolClient,
+  ctx: TenantContext,
+  limit: number,
+): Promise<string[]> {
+  const { rows } = await client.query<{ id: string }>(
+    `SELECT f.id
+     FROM files f
+     WHERE f.unit_id = $1
+       AND f.deleted_at IS NULL
+       AND f.status = 'active'
+       AND f.created_at >= now() - ($2 || ' days')::interval
+     ORDER BY f.created_at DESC, f.id
+     LIMIT $3`,
+    [ctx.unitId, String(config.recentDocuments.newWindowDays), limit],
+  );
+  return rows.map((row) => row.id);
+}
+
+/**
  * `GET /files/recent` — documentos alterados recentemente (US 11.2, change
  * `shell-e-inicio`).
  *
@@ -102,6 +133,38 @@ async function listCandidates(
  */
 export function recentRouter(ports: Ports): Router {
   const router = Router();
+
+  // `GET /files/recent/new-count` — quantos documentos novos a pessoa alcança
+  // (design.md D2: rota própria, para a contagem não segurar a lista nem o
+  // contrário). **Nenhuma segunda expressão da regra de acesso** (D3): cada
+  // candidato passa por `hasAccess(view)`, como na lista — o obsoleto, o
+  // pendente de cadastro e a vigência de concessão vêm de lá, sem código
+  // próprio aqui.
+  router.get('/files/recent/new-count', async (req, res, next) => {
+    try {
+      const ctx = req.tenantContext!;
+      const { candidateLimit, newWindowDays } = config.recentDocuments;
+
+      const response = await ports.database.withTenantTransaction(
+        ctx,
+        async (client): Promise<NewDocumentsCountResponse> => {
+          const candidates = await listNewCandidates(client, ctx, candidateLimit + 1);
+          const capped = candidates.length > candidateLimit;
+          let count = 0;
+          for (const id of candidates.slice(0, candidateLimit)) {
+            if (await hasAccess(client, ctx, GrantResourceType.FILE, id, Permission.VIEW)) {
+              count += 1;
+            }
+          }
+          return { days: newWindowDays, count, capped };
+        },
+      );
+
+      res.json(response);
+    } catch (err) {
+      next(err);
+    }
+  });
 
   router.get('/files/recent', async (req, res, next) => {
     try {

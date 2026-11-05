@@ -173,7 +173,7 @@ apurados pelo relógio do servidor de banco. A contagem SHALL passar pela mesma
 resolução de acesso da lista de recentes, e NÃO SHALL contar documento que a
 pessoa não alcançaria por navegação nem documento de outra unidade, qualquer
 que seja o papel do solicitante. Quando a quantidade exceder o teto de
-apuração, a tela SHALL dizer que há **mais de** um número, e NÃO SHALL
+apuração, a tela SHALL dizer que há **pelo menos** um número, e NÃO SHALL
 apresentar o teto como contagem exata. A falha da contagem NÃO SHALL impedir o
 restante da tela de aparecer. Referência: PRD US 11.1;
 `docs/respostas_d1_d3_d5_decisoes_estruturais.txt`, resposta 3 (b).
@@ -191,9 +191,9 @@ restante da tela de aparecer. Referência: PRD US 11.1;
 - **WHEN** um documento foi publicado há mais de 7 dias e alterado ontem
 - **THEN** ele aparece entre os recentes, mas não entra na contagem de novos
 
-#### Scenario: Acima do teto, a tela diz "mais de"
+#### Scenario: Acima do teto, a tela diz "pelo menos"
 - **WHEN** a quantidade de candidatos excede o teto de apuração
-- **THEN** a linha informa que há mais de um número de documentos novos, sem
+- **THEN** a linha informa que há pelo menos um número de documentos novos, sem
   apresentá-lo como contagem exata
 
 ### Requirement: Tela inicial reserva a coluna de leitura obrigatória e avisos

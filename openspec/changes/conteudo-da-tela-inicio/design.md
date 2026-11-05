@@ -66,7 +66,9 @@ administração) e a vigência de concessão.
 
 O custo é proporcional ao número de candidatos, e por isso há **teto**: lê-se
 até `candidateLimit + 1` candidatos; se o teto for ultrapassado a resposta diz
-`capped: true` e a tela escreve "mais de N". Um número exato que custasse uma
+`capped: true` e a tela escreve "pelo menos N" — e não "mais de N": `count`
+é o que se apurou entre os candidatos lidos, um piso, que pode ser o total
+exato se os candidatos além do teto forem inacessíveis. Um número exato que custasse uma
 varredura sem limite a cada abertura da tela Início não vale o que custa.
 
 ### D4 — Quatro atalhos fixos, filtro por papel preservado
@@ -172,5 +174,6 @@ uma SPA antiga simplesmente não a chama.
 
 ## Open Questions
 
-- Redação exata da linha de contagem — fixada aqui como "N documento(s)
-  novo(s) nos últimos 7 dias", a confirmar na homologação.
+- Redação exata da linha de contagem — fixada aqui como "— N documentos novos
+  nos últimos 7 dias" (com "nenhum documento novo" e "1 documento novo"), a
+  confirmar na homologação.

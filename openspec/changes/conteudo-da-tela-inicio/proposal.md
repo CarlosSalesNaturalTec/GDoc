@@ -28,7 +28,8 @@ fatia.
   publicados nos últimos 7 dias. Rota nova `GET /files/recent/new-count`, sob o
   prefixo `/files` que já existe — nenhum prefixo de topo novo. A contagem
   passa pela mesma resolução de acesso da lista de recentes (`hasAccess`,
-  verbo `view`), e **não amplia alcance**.
+  verbo `view`), e **não amplia alcance**. Acima do teto de apuração, a tela
+  diz "pelo menos N".
 - **Quatro atalhos soltos**, sem título de seção, com ícone colorido, título e
   descrição: **Enviar documento**, **Nova pasta**, **Buscar documento** e
   **Manual do usuário**. Os atalhos de administração (Colaboradores, Painel,

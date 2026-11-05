@@ -668,3 +668,42 @@ describe('Explorador atende ao pedido de envio recebido no endereço (web-navega
     expect(gatilhoDeEnvio()).not.toHaveFocus();
   });
 });
+
+/**
+ * Pedido de nova pasta recebido no endereço (change `conteudo-da-tela-inicio`,
+ * design.md D5): é o que faz o atalho "Nova pasta" da tela inicial conduzir ao
+ * formulário. Atendido só na raiz — onde criar pasta é livre a qualquer pessoa
+ * autenticada — e uma vez só.
+ */
+describe('Explorador atende ao pedido de nova pasta recebido no endereço (web-navegacao)', () => {
+  it('na raiz, o formulário de nova pasta é apresentado e o pedido sai do endereço', async () => {
+    mockFetch({
+      'GET /auth/me': { status: 200, body: IDENTITY },
+      'GET /folders/root/contents': { status: 200, body: contents() },
+    });
+    const { router } = renderApp(['/pastas?nova-pasta=1']);
+
+    expect(await findDialogByTitle('Nova pasta')).toBeInTheDocument();
+    // Substitui a entrada de histórico: recarregar ou voltar não reabre.
+    await waitFor(() => expect(router.state.location.search).not.toContain('nova-pasta'));
+    expect(router.state.historyAction).toBe('REPLACE');
+  });
+
+  it('numa subpasta, o pedido é descartado sem abrir o formulário', async () => {
+    mockFetch({
+      'GET /auth/me': { status: 200, body: IDENTITY },
+      'GET /folders/folder-a/contents': {
+        status: 200,
+        body: contents({
+          folder: folder({ id: 'folder-a', name: 'Pasta A' }),
+          breadcrumb: [folder({ id: 'folder-a', name: 'Pasta A' })],
+        }),
+      },
+    });
+    const { router } = renderApp(['/pastas/folder-a?nova-pasta=1']);
+
+    await screen.findByRole('button', { name: /Excluir esta pasta/ });
+    await waitFor(() => expect(router.state.location.search).not.toContain('nova-pasta'));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+});

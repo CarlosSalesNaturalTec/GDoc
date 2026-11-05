@@ -38,7 +38,7 @@ describe('Login (US 1.2)', () => {
     await screen.findByRole('heading', { name: 'PapelHub' });
     await fillAndSubmit('ana@example.com', 'senha-correta');
 
-    await screen.findByText('O que você pode fazer');
+    await screen.findByText('Pastas da unidade');
   });
 
   it('credenciais inválidas mostram mensagem genérica e permanecem no login (cenário 2)', async () => {
@@ -126,7 +126,7 @@ describe('Identidade visual na tela de login (identidade-visual)', () => {
     expect(screen.queryByText('SETES')).not.toBeInTheDocument();
 
     await fillAndSubmit('ana@example.com', 'senha-correta');
-    await screen.findByText('O que você pode fazer');
+    await screen.findByText('Pastas da unidade');
   });
 
   it('falha ao obter a identidade visual não bloqueia o bootstrap nem o login', async () => {
@@ -145,7 +145,7 @@ describe('Identidade visual na tela de login (identidade-visual)', () => {
     expect(screen.queryByText('SETES')).not.toBeInTheDocument();
 
     await fillAndSubmit('ana@example.com', 'senha-correta');
-    await screen.findByText('O que você pode fazer');
+    await screen.findByText('Pastas da unidade');
   });
 
   it('título do documento compõe "PapelHub - SETES" com identificação configurada', async () => {
@@ -329,7 +329,7 @@ describe('Aviso de contato do suporte na tela de login (identidade-visual)', () 
     expect(screen.queryByText(/Fale com o suporte/)).not.toBeInTheDocument();
 
     await fillAndSubmit('ana@example.com', 'senha-correta');
-    await screen.findByText('O que você pode fazer');
+    await screen.findByText('Pastas da unidade');
   });
 
   // O contato do suporte é o caminho que **de fato** redefine a senha: não há
