@@ -60,7 +60,7 @@ Legenda: `pendente` · `bloqueada` (ver coluna Bloqueio) · `em andamento` ·
 | A7 | Rótulo "Administrador da unidade" | — (resposta 5 de D3) | **entregue** | — | `rotulo-administrador-da-unidade` |
 | B1 | Arquivo geral e pendente de cadastro | 2.3, 2.4 | **entregue** | — | `arquivo-geral-e-pendente-de-cadastro` |
 | B2 | Tabela de cadastro no envio em lote | 2.1, 2.2 | **entregue** | — | `tabela-de-cadastro-no-envio-em-lote` |
-| C0 | Gestor de acompanhamento no cadastro | 3.1 | pendente | — | — |
+| C0 | Gestor de acompanhamento no cadastro | 3.1 | em andamento | — | `gestor-de-acompanhamento` (em voo) |
 | C1 | Núcleo da leitura obrigatória (marcar e dar ciência) | 3.1, 3.2 (etapas 1 e 3), 3.3, 3.4 | pendente | — | — |
 | C2 | Superfícies de pendência (menu, contador, cartão, abas) | 3.2 (etapa 2), 3.5 | pendente | C1, A2, A3 | — |
 | C3 | Avisos e atrasos | 3.2 (etapas 2 e 4), 3.3 | pendente | C0, C1 | — |
