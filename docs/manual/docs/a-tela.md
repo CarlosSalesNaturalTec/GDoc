@@ -55,6 +55,7 @@ perfil, reunidos em dois grupos — **NAVEGAÇÃO** e **AJUDA**:
 | **NAVEGAÇÃO** | **Início**            | Todos                | Tela inicial: saudação, atalhos, suas pastas e alterações recentes.     |
 | **NAVEGAÇÃO** | **Documentos**        | Todos                | Navegar por pastas, enviar, baixar, visualizar e gerenciar documentos.  |
 | **NAVEGAÇÃO** | **Recentes**          | Todos                | A lista completa dos documentos alterados recentemente.                 |
+| **NAVEGAÇÃO** | **Compartilhados comigo** | Todos            | O que outras pessoas liberaram para você, com o que pode fazer em cada um. |
 | **NAVEGAÇÃO** | **Lixeira**           | Todos                | Recuperar ou acompanhar itens excluídos.                                |
 | **NAVEGAÇÃO** | **Colaboradores**     | Administradores      | Cadastrar, editar, ativar/desativar contas e redefinir senhas.          |
 | **NAVEGAÇÃO** | **Painel**            | Administradores      | Ver estatísticas e gráficos de uso.                                     |

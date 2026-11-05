@@ -12,6 +12,7 @@ import { PainelPage } from '../painel/PainelPage';
 import { MinhaContaPage } from '../conta/MinhaContaPage';
 import { InicioPage } from '../inicio/InicioPage';
 import { RecentesPage } from '../inicio/RecentesPage';
+import { CompartilhadosPage } from '../compartilhados/CompartilhadosPage';
 
 /**
  * Guarda por papel aninhada (design.md D6): as próximas fatias só declaram a
@@ -33,6 +34,11 @@ export const routes: RouteObject[] = [
           { path: '/busca', element: <BuscaPage /> },
           // Destino "Recentes" da navegação (change `shell-e-inicio`).
           { path: '/recentes', element: <RecentesPage /> },
+          // "Compartilhados comigo" (US 4.4, `compartilhados-comigo`):
+          // acessível a **qualquer** papel autenticado — não é item de
+          // administração, e a rota do servidor é auto-escopada pela sessão,
+          // então não há alcance a filtrar por papel aqui.
+          { path: '/compartilhados', element: <CompartilhadosPage /> },
           { path: '/lixeira', element: <LixeiraPage /> },
           // "Minha conta" (US 1.3, `web-minha-conta`): acessível a qualquer
           // papel autenticado — não é item de administração, então não entra

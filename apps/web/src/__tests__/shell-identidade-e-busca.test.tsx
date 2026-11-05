@@ -328,7 +328,13 @@ describe('Busca fora da navegação e permanente na barra superior (web-busca)',
     await largo.findByText('O que você pode fazer');
     const doModoLargo = destinos(navegacao());
     expect(doModoLargo).not.toContain('Buscar');
-    expect(doModoLargo).toEqual(['Início', 'Documentos', 'Recentes', 'Lixeira']);
+    expect(doModoLargo).toEqual([
+      'Início',
+      'Documentos',
+      'Recentes',
+      'Compartilhados comigo',
+      'Lixeira',
+    ]);
     largo.unmount();
 
     mockViewportWidth(NARROW_VIEWPORT);

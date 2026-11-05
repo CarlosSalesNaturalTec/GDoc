@@ -29,6 +29,7 @@ import {
   RotateCw,
   ScrollText,
   Search,
+  Share2,
   Trash2,
   Undo2,
   Upload,
@@ -96,6 +97,8 @@ export const IconeNotificacoes = criarIcone(Bell, 'IconeNotificacoes');
 
 // Itens do explorador e da lixeira
 export const IconePasta = criarIcone(Folder, 'IconePasta');
+/** Destino "Compartilhados comigo" (US 4.4): o que chegou por concessão de outra pessoa. */
+export const IconeCompartilhados = criarIcone(Share2, 'IconeCompartilhados');
 export const IconePastaAberta = criarIcone(FolderOpen, 'IconePastaAberta');
 export const IconeArquivo = criarIcone(File, 'IconeArquivo');
 export const IconeNovaPasta = criarIcone(FolderPlus, 'IconeNovaPasta');
