@@ -20,6 +20,7 @@ import type {
   NotificationListResponse,
   NotificationResponse,
   PersonResponse,
+  SectorResponse,
   PublicConfigResponse,
   RecentDocumentResponse,
   RecentDocumentsResponse,
@@ -65,6 +66,12 @@ export const authenticatedIdentitySchema: z.ZodType<AuthenticatedIdentity> = z.o
   // tratamento genérico para ele: nunca se recorre ao identificador interno.
   fullName: z.string().catch(''),
   unitName: z.string().catch(''),
+  // Função e setor (change `funcao-e-setor-na-identidade`), com o mesmo
+  // `.catch('')`: vazio é o valor que a API devolve para cadastro sem o dado,
+  // e a interface já sabe o que fazer com ele — recorrer ao rótulo do papel,
+  // no caso da função, e omitir, no caso do setor.
+  jobTitle: z.string().catch(''),
+  sectorName: z.string().catch(''),
 });
 
 /** Espelha `FolderResponse` (design.md D8, `web-navegacao`). */
@@ -349,7 +356,8 @@ export const personResponseSchema: z.ZodType<PersonResponse> = z.object({
   email: z.string(),
   phone: z.string().nullable(),
   jobTitle: z.string().nullable(),
-  workArea: z.string().nullable(),
+  sectorId: z.string().nullable(),
+  sectorName: z.string().nullable(),
   notes: z.string().nullable(),
   role: z.enum([UserRole.COLLABORATOR, UserRole.UNIT_ADMIN, UserRole.GLOBAL_ADMIN]),
   status: z.enum([PersonStatus.ACTIVE, PersonStatus.DISABLED]),
@@ -360,6 +368,21 @@ export const personResponseSchema: z.ZodType<PersonResponse> = z.object({
 
 /** Espelha a listagem de `GET /users` (design.md D7, `web-pessoas`). */
 export const personListSchema = z.array(personResponseSchema);
+
+/**
+ * Espelha `SectorResponse` (change `funcao-e-setor-na-identidade`,
+ * capability `setores`) — fronteira de `GET/POST/PATCH/DELETE /sectors`.
+ */
+export const sectorResponseSchema: z.ZodType<SectorResponse> = z.object({
+  id: z.string(),
+  unitId: z.string(),
+  name: z.string(),
+  createdAt: z.string(),
+  peopleCount: z.number(),
+});
+
+/** Espelha a listagem de `GET /sectors`. */
+export const sectorListSchema = z.array(sectorResponseSchema);
 
 /** Espelha `UnitResponse` (change `gestao-de-unidades`, `web-unidades`) — fronteira de `GET/POST/PATCH /units`. */
 export const unitResponseSchema: z.ZodType<UnitResponse> = z.object({

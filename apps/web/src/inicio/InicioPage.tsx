@@ -3,8 +3,7 @@ import { Link } from 'react-router-dom';
 import { IconePasta } from '../app/icons';
 import { paleta } from '../app/theme';
 import { useSession } from '../auth/session-context';
-import { ROLE_LABEL } from '../shell/role-label';
-import { nomeExibido, saudacao } from '../shell/identidade';
+import { funcaoExibida, nomeExibido, saudacao, setorExibido } from '../shell/identidade';
 import { useFolderContents } from '../navegacao/queries';
 import { atalhosDoPapel } from './atalhos';
 import { TabelaDeRecentes } from './TabelaDeRecentes';
@@ -63,10 +62,21 @@ export function InicioPage() {
         <Typography.Title level={3} style={{ marginBottom: 4 }}>
           {saudacao(nome)}
         </Typography.Title>
-        {/* Função e unidade sempre presentes, com ou sem nome cadastrado
-            (US 11.1 cenário 1): o identificador interno nunca aparece. */}
+        {/* Função, setor e unidade sempre presentes, com ou sem nome cadastrado
+            (US 11.1 cenário 1): o identificador interno nunca aparece.
+
+            A **função do cadastro** no lugar do papel de acesso (change
+            `funcao-e-setor-na-identidade`, resposta 1a do cliente) — era esta
+            a queixa de "para a gerente de Governança aparece Colaborador".
+            Sem função preenchida, `funcaoExibida` recai no rótulo do papel,
+            pela mesma origem única das outras telas.
+
+            O setor entra entre função e unidade, e é **omitido** quando a
+            pessoa não tem — sem separador solto nem espaço reservado. */}
         <Typography.Text type="secondary">
-          {ROLE_LABEL[identity.role]} · {identity.unitName}
+          {[funcaoExibida(identity), setorExibido(identity), identity.unitName]
+            .filter((parte): parte is string => parte !== null)
+            .join(' · ')}
         </Typography.Text>
       </div>
 

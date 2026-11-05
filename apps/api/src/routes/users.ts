@@ -19,7 +19,8 @@ interface PersonRow {
   email: string;
   phone: string | null;
   job_title: string | null;
-  work_area: string | null;
+  sector_id: string | null;
+  sector_name: string | null;
   notes: string | null;
   role: string;
   status: string;
@@ -29,7 +30,13 @@ interface PersonRow {
 }
 
 const PERSON_COLUMNS =
-  'id, unit_id, full_name, email, phone, job_title, work_area, notes, role, status, created_at, ' +
+  'id, unit_id, full_name, email, phone, job_title, sector_id, notes, role, status, created_at, ' +
+  // Nome do setor por **subconsulta escalar**, não por JOIN (change
+  // `funcao-e-setor-na-identidade`): assim a mesma lista de colunas serve ao
+  // `SELECT` e aos dois `RETURNING` de INSERT/UPDATE, onde não há FROM para
+  // juntar. A RLS de `sectors` continua valendo dentro da subconsulta — e a
+  // linha de pessoa de outra unidade já estaria escondida antes disso.
+  '(SELECT s.name FROM sectors s WHERE s.id = users.sector_id) AS sector_name, ' +
   // Consumo e exceção de cota (change `cota-por-usuario`): o consumo existe
   // para que a administração decida a cota vendo o uso atual em vez de às
   // cegas (design.md D5); a exceção é `null` quando a pessoa segue o padrão da
@@ -45,7 +52,8 @@ function toPersonResponse(row: PersonRow): PersonResponse {
     email: row.email,
     phone: row.phone,
     jobTitle: row.job_title,
-    workArea: row.work_area,
+    sectorId: row.sector_id,
+    sectorName: row.sector_name,
     notes: row.notes,
     role: row.role as PersonResponse['role'],
     status: row.status as PersonResponse['status'],
@@ -64,6 +72,33 @@ function isAdmin(ctx: TenantContext): boolean {
 
 function isUniqueViolation(err: unknown): boolean {
   return (err as { code?: string } | null)?.code === '23505';
+}
+
+/**
+ * O setor informado pertence à unidade de destino? (change
+ * `funcao-e-setor-na-identidade`, capability `gestao-pessoas`.)
+ *
+ * Lido do banco na mesma transacao da escrita - nunca do corpo da requisicao -
+ * pelo mesmo motivo de `targetRoleOf`. Setor inexistente e setor de outra
+ * unidade devolvem o **mesmo** `false`: a recusa e fail-closed e nao distingue
+ * os dois casos, de modo que a resposta nao revela o que existe na outra
+ * unidade.
+ *
+ * A chave estrangeira composta `(unit_id, sector_id)` de `0020_sectors.sql` e a
+ * rede embaixo desta checagem, nao um substituto dela: o banco recusaria o
+ * vinculo de qualquer forma, mas com erro de constraint em vez de uma recusa
+ * nomeada que a interface consiga apresentar no campo certo.
+ */
+async function sectorBelongsToUnit(
+  client: PoolClient,
+  sectorId: string,
+  unitId: string,
+): Promise<boolean> {
+  const { rows } = await client.query<{ id: string }>(
+    'SELECT id FROM sectors WHERE id = $1 AND unit_id = $2',
+    [sectorId, unitId],
+  );
+  return rows.length > 0;
 }
 
 /**
@@ -187,7 +222,8 @@ export function usersRouter(ports: Ports): Router {
       // global_admin escolhendo uma unidade desativada.
       // `email_conflict` não é uma variante aqui: a violação de unicidade é
       // lançada pelo insert e capturada no `catch` externo (409).
-      type CreateOutcome = { kind: 'ok'; row: PersonRow } | { kind: 'unit_disabled' };
+      type CreateOutcome =
+        { kind: 'ok'; row: PersonRow } | { kind: 'unit_disabled' } | { kind: 'invalid_sector' };
 
       let outcome: CreateOutcome;
       try {
@@ -200,8 +236,16 @@ export function usersRouter(ports: Ports): Router {
             return { kind: 'unit_disabled' };
           }
 
+          // Setor e validado contra a unidade de **destino**, na mesma
+          // transacao do insert - nao contra a unidade de quem cadastra.
+          const sectorId =
+            typeof body.sectorId === 'string' && body.sectorId ? body.sectorId : null;
+          if (sectorId && !(await sectorBelongsToUnit(client, sectorId, unitId))) {
+            return { kind: 'invalid_sector' };
+          }
+
           const { rows } = await client.query<PersonRow>(
-            `INSERT INTO users (unit_id, email, password_hash, role, full_name, phone, job_title, work_area, notes)
+            `INSERT INTO users (unit_id, email, password_hash, role, full_name, phone, job_title, sector_id, notes)
              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
              RETURNING ${PERSON_COLUMNS}`,
             [
@@ -212,7 +256,7 @@ export function usersRouter(ports: Ports): Router {
               body.fullName,
               body.phone ?? null,
               body.jobTitle ?? null,
-              body.workArea ?? null,
+              sectorId,
               body.notes ?? null,
             ],
           );
@@ -228,6 +272,12 @@ export function usersRouter(ports: Ports): Router {
 
       if (outcome.kind === 'unit_disabled') {
         res.status(409).json({ error: 'unit is disabled' });
+        return;
+      }
+      // 409, no mesmo plano de "unit is disabled": referencia a uma entidade
+      // que nao e aceitavel para esta operacao, nao corpo malformado.
+      if (outcome.kind === 'invalid_sector') {
+        res.status(409).json({ error: 'invalid_sector' });
         return;
       }
 
@@ -327,7 +377,11 @@ export function usersRouter(ports: Ports): Router {
       if (body.fullName !== undefined) setField('full_name', body.fullName);
       if (body.phone !== undefined) setField('phone', body.phone);
       if (body.jobTitle !== undefined) setField('job_title', body.jobTitle);
-      if (body.workArea !== undefined) setField('work_area', body.workArea);
+      // Tres estados, como em `storage_quota_bytes`: ausente preserva, `null`
+      // remove o vinculo, id vincula. A validacao do id acontece dentro da
+      // transacao, abaixo.
+      const sectorRequested = Object.prototype.hasOwnProperty.call(body, 'sectorId');
+      if (sectorRequested) setField('sector_id', body.sectorId ?? null);
       if (body.notes !== undefined) setField('notes', body.notes);
       if (body.status !== undefined) setField('status', body.status);
       if (body.role !== undefined) setField('role', body.role);
@@ -353,23 +407,55 @@ export function usersRouter(ports: Ports): Router {
       // escondendo a linha, ou a linha visível mas fora do alcance por papel
       // — caem no mesmo 403, sem distinção (mesmo tratamento usado por
       // routes/files.ts para "linha escondida pela RLS").
-      const row = await ports.database.withTenantTransaction(ctx, async (client) => {
-        const allowed = await canEditTarget(client, ctx, req.params.id!);
-        if (!allowed) return null;
+      type PatchOutcome =
+        { kind: 'ok'; row: PersonRow } | { kind: 'forbidden' } | { kind: 'invalid_sector' };
 
-        const { rows } = await client.query<PersonRow>(
-          `UPDATE users SET ${setClauses.join(', ')} WHERE id = $${values.length} RETURNING ${PERSON_COLUMNS}`,
-          values,
-        );
-        return rows[0] ?? null;
-      });
+      const outcome = await ports.database.withTenantTransaction<PatchOutcome>(
+        ctx,
+        async (client) => {
+          const allowed = await canEditTarget(client, ctx, req.params.id!);
+          if (!allowed) return { kind: 'forbidden' };
 
-      if (!row) {
+          // Setor validado contra a unidade **da pessoa editada**, lida aqui e
+          // nao deduzida do contexto: um `global_admin` edita pessoa de
+          // qualquer unidade, e o setor tem de ser da unidade dela.
+          //
+          // Antes do UPDATE, de proposito: a recusa e total (nenhum dos demais
+          // campos enviados e aplicado), no mesmo espirito da guarda de cota e
+          // das travas de auto-edicao acima.
+          if (sectorRequested && body.sectorId) {
+            const { rows: alvo } = await client.query<{ unit_id: string }>(
+              'SELECT unit_id FROM users WHERE id = $1',
+              [req.params.id],
+            );
+            const unitOfTarget = alvo[0]?.unit_id;
+            if (
+              !unitOfTarget ||
+              !(await sectorBelongsToUnit(client, body.sectorId, unitOfTarget))
+            ) {
+              return { kind: 'invalid_sector' };
+            }
+          }
+
+          const { rows } = await client.query<PersonRow>(
+            `UPDATE users SET ${setClauses.join(', ')} WHERE id = $${values.length} RETURNING ${PERSON_COLUMNS}`,
+            values,
+          );
+          const row = rows[0];
+          return row ? { kind: 'ok', row } : { kind: 'forbidden' };
+        },
+      );
+
+      if (outcome.kind === 'forbidden') {
         res.status(403).json({ error: 'forbidden' });
         return;
       }
+      if (outcome.kind === 'invalid_sector') {
+        res.status(409).json({ error: 'invalid_sector' });
+        return;
+      }
 
-      res.json(toPersonResponse(row));
+      res.json(toPersonResponse(outcome.row));
     } catch (err) {
       next(err);
     }

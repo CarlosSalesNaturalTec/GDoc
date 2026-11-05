@@ -11,8 +11,11 @@ Abra **Colaboradores** no menu e clique em **Novo colaborador**. Informe:
 - **E-mail** (único; será o login)
 - **Senha inicial** (mínimo de 8 caracteres)
 - **Telefone**
-- **Função/cargo**
-- **Área de trabalho**
+- **Função/cargo** — o cargo da pessoa, como "Gerente de Governança". É o que
+  aparece para ela abaixo da saudação na tela inicial e no seu cartão, no pé do
+  menu. Preencher este campo não altera permissão nenhuma.
+- **Setor** — escolhido de uma **lista** dos setores da unidade, não digitado.
+  Pode ficar **sem setor**. Veja [Setores da unidade](#setores-da-unidade).
 - **Observação**
 - **Papel** (Colaborador ou Gestor)
 
@@ -21,7 +24,28 @@ Confirme em **Cadastrar**. O colaborador passa a poder entrar com essas credenci
 - Se o **e-mail já estiver em uso**, o cadastro é recusado e o campo é sinalizado —
   ajuste o e-mail sem perder o resto do preenchimento.
 - Para **editar** um colaborador, clique em **Editar** na linha dele. O **e-mail** não
-  pode ser alterado na edição; os demais dados e o papel, sim.
+  pode ser alterado na edição; os demais dados, o setor e o papel, sim. Para
+  deixar a pessoa **sem setor**, limpe a escolha no campo Setor.
+
+## Setores da unidade
+
+O setor é uma **lista fechada, por unidade** — e não um texto que cada pessoa
+digita do seu jeito. A razão é prática: a mesma área escrita como "Governança",
+"governanca" e "Gov." seria tratada como três setores diferentes, e quem
+estivesse escrito de um jeito ficaria de fora de uma consulta feita pelo outro.
+
+Para manter a lista, abra **Colaboradores** e clique em **Setores**. No painel
+que abre você pode:
+
+- **Adicionar** um setor;
+- **Renomear** um setor — útil para padronizar a escrita. Renomear **não**
+  desfaz nenhum vínculo: quem estava no setor continua nele, com o nome novo;
+- **Remover** um setor **sem colaboradores**. Se ainda houver gente vinculada, a
+  remoção é recusada e o sistema informa quantas pessoas são — mova-as antes.
+
+O nome do setor é único dentro da unidade, sem diferenciar maiúsculas de
+minúsculas. Duas unidades podem ter setores de mesmo nome, independentes entre
+si.
 
 A lista mostra nome, e-mail, função, papel e **status** (ativo ou desativado).
 

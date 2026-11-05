@@ -6,6 +6,7 @@ import { ApiError } from '../lib/api-client';
 import { useSession } from '../auth/session-context';
 import { ROLE_LABEL } from '../shell/role-label';
 import { useUnits } from '../unidades/queries';
+import { useSectors } from '../setores/queries';
 import { useCreatePerson, useUpdatePerson } from './queries';
 import { formatFileSize } from '../navegacao/format';
 
@@ -31,7 +32,8 @@ interface PessoaFormValues {
   unitId?: string;
   phone?: string;
   jobTitle?: string;
-  workArea?: string;
+  /** `undefined` ⇒ sem setor; na edição, envia `null` para remover o vínculo. */
+  sectorId?: string;
   notes?: string;
   role: UserRole;
   /** `true` ⇒ a pessoa segue o padrão da plataforma (envia `null`). */
@@ -84,6 +86,42 @@ export function PessoaFormModal({ target, open, onClose }: PessoaFormModalProps)
     cotaGbDigitada * BYTES_POR_GB < (target?.storageUsedBytes ?? 0);
   const { data: units } = useUnits({ onlyActive: true, enabled: showUnitSelector });
 
+  // Unidade de **destino** do cadastro, que é quem define a lista de setores
+  // oferecida (change `funcao-e-setor-na-identidade`, capability
+  // `web-pessoas`):
+  //
+  // - editando, é a unidade da pessoa editada — inclusive quando um
+  //   `global_admin` edita alguém de outra unidade;
+  // - cadastrando como `global_admin`, é a unidade escolhida no formulário;
+  // - cadastrando como `unit_admin`, é a própria (o servidor força, e aqui
+  //   `undefined` faz a consulta usar a unidade do contexto).
+  const unidadeNoFormulario = Form.useWatch('unitId', form);
+  const unidadeDeDestino = isEdit
+    ? target.unitId
+    : showUnitSelector
+      ? unidadeNoFormulario
+      : undefined;
+  const unidadePropria = unidadeDeDestino === undefined || unidadeDeDestino === identity?.unitId;
+  const { data: setores } = useSectors({
+    unitId: unidadePropria ? undefined : unidadeDeDestino,
+    // Sem unidade escolhida ainda, não há lista a pedir — e a consulta
+    // pouparia um 403 previsível.
+    enabled: isEdit || !showUnitSelector || Boolean(unidadeNoFormulario),
+  });
+
+  // Trocar a unidade repõe a lista e **descarta** a escolha anterior: sem
+  // isso, o formulário enviaria setor de outra unidade e o servidor recusaria
+  // a requisição inteira (capability `gestao-pessoas`, fail-closed).
+  useEffect(() => {
+    if (isEdit || !showUnitSelector) return;
+    form.setFieldValue('sectorId', undefined);
+  }, [unidadeNoFormulario, form, isEdit, showUnitSelector]);
+
+  const opcoesDeSetor = (setores ?? []).map((setor) => ({
+    value: setor.id,
+    label: setor.name,
+  }));
+
   useEffect(() => {
     if (!open) return;
     if (target) {
@@ -92,7 +130,7 @@ export function PessoaFormModal({ target, open, onClose }: PessoaFormModalProps)
         email: target.email,
         phone: target.phone ?? undefined,
         jobTitle: target.jobTitle ?? undefined,
-        workArea: target.workArea ?? undefined,
+        sectorId: target.sectorId ?? undefined,
         notes: target.notes ?? undefined,
         role: target.role,
         quotaSeguePadrao: target.storageQuotaBytes === null,
@@ -120,7 +158,10 @@ export function PessoaFormModal({ target, open, onClose }: PessoaFormModalProps)
             fullName: values.fullName,
             phone: values.phone || undefined,
             jobTitle: values.jobTitle || undefined,
-            workArea: values.workArea || undefined,
+            // `null` (não `undefined`) quando a escolha foi limpa: é o que
+            // **remove** o vínculo. Omitir preservaria o setor vigente, e a
+            // pessoa ficaria presa ao setor antigo sem nenhum aviso.
+            sectorId: values.sectorId ?? null,
             notes: values.notes || undefined,
             role: values.role,
             // Só o `global_admin` manda o campo. Quem não pode concedê-lo o
@@ -145,13 +186,20 @@ export function PessoaFormModal({ target, open, onClose }: PessoaFormModalProps)
           unitId: showUnitSelector ? values.unitId : undefined,
           phone: values.phone || undefined,
           jobTitle: values.jobTitle || undefined,
-          workArea: values.workArea || undefined,
+          sectorId: values.sectorId || undefined,
           notes: values.notes || undefined,
           role: values.role,
         });
       }
       onClose();
     } catch (err) {
+      // 409 `invalid_sector`: o setor escolhido não é da unidade de destino —
+      // na prática, lista obsoleta depois de a unidade mudar. Sinaliza no
+      // campo de setor, não como falha genérica.
+      if (err instanceof ApiError && err.status === 409 && err.message === 'invalid_sector') {
+        form.setFields([{ name: 'sectorId', errors: ['Setor indisponível; escolha outro'] }]);
+        return;
+      }
       // gestao-de-unidades D7: 409 "unit is disabled" (unidade desativada
       // escolhida) sinaliza no seletor de unidade, não no e-mail.
       if (err instanceof ApiError && err.status === 409 && err.message === 'unit is disabled') {
@@ -227,8 +275,27 @@ export function PessoaFormModal({ target, open, onClose }: PessoaFormModalProps)
         <Form.Item name="jobTitle" label="Função/cargo">
           <Input />
         </Form.Item>
-        <Form.Item name="workArea" label="Área de trabalho">
-          <Input />
+        {/* Lista **fechada**, não digitação livre (resposta 5a do cliente):
+            setor passa a escolher o público da leitura obrigatória, e grafia
+            divergente deixaria gente fora do envio. `allowClear` é o que
+            permite deixar a pessoa sem setor — estado válido, e o único
+            possível enquanto a lista oficial de cada unidade não chega. */}
+        <Form.Item
+          name="sectorId"
+          label="Setor"
+          extra={
+            opcoesDeSetor.length === 0
+              ? 'Nenhum setor cadastrado nesta unidade ainda. Use "Setores" na página de colaboradores.'
+              : undefined
+          }
+        >
+          <Select
+            allowClear
+            showSearch
+            optionFilterProp="label"
+            placeholder="Sem setor"
+            options={opcoesDeSetor}
+          />
         </Form.Item>
         <Form.Item name="notes" label="Observação">
           <Input.TextArea rows={2} />

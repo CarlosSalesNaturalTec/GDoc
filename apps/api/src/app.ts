@@ -8,6 +8,7 @@ import { filesRouter } from './routes/files.js';
 import { foldersRouter } from './routes/folders.js';
 import { usersRouter } from './routes/users.js';
 import { unitsRouter } from './routes/units.js';
+import { sectorsRouter } from './routes/sectors.js';
 import { grantsRouter } from './routes/grants.js';
 import { authRouter } from './routes/auth.js';
 import { storageEventsRouter, type StorageEventsOptions } from './routes/storage-events.js';
@@ -152,6 +153,7 @@ export function createApp(ports: Ports, options: CreateAppOptions = {}): Express
     '/folders',
     '/users',
     '/units',
+    '/sectors',
     '/grants',
     '/trash',
     '/dashboard',
@@ -162,6 +164,7 @@ export function createApp(ports: Ports, options: CreateAppOptions = {}): Express
   app.use(foldersRouter(ports));
   app.use(usersRouter(ports));
   app.use(unitsRouter(ports));
+  app.use(sectorsRouter(ports));
   app.use(grantsRouter(ports));
   app.use(trashRouter(ports));
   app.use(auditRouter(ports));
