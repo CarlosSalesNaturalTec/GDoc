@@ -61,7 +61,7 @@ Legenda: `pendente` · `bloqueada` (ver coluna Bloqueio) · `em andamento` ·
 | B1 | Arquivo geral e pendente de cadastro | 2.3, 2.4 | **entregue** | — | `arquivo-geral-e-pendente-de-cadastro` |
 | B2 | Tabela de cadastro no envio em lote | 2.1, 2.2 | **entregue** | — | `tabela-de-cadastro-no-envio-em-lote` |
 | C0 | Gestor de acompanhamento no cadastro | 3.1 | **entregue** | — | `gestor-de-acompanhamento` |
-| C1 | Núcleo da leitura obrigatória (marcar e dar ciência) | 3.1, 3.2 (etapas 1 e 3), 3.3, 3.4 | pendente | — | — |
+| C1 | Núcleo da leitura obrigatória (marcar e dar ciência) | 3.1, 3.2 (etapas 1 e 3), 3.3, 3.4 | **entregue** | — | `leitura-obrigatoria` |
 | C2 | Superfícies de pendência (menu, contador, cartão, abas) | 3.2 (etapa 2), 3.5 | pendente | C1, A2, A3 | — |
 | C3 | Avisos e atrasos | 3.2 (etapas 2 e 4), 3.3 | pendente | C0, C1 | — |
 | C4 | Acompanhamento e relatório exportável | 3.5 | pendente | C0, C1, D6 | — |
@@ -909,7 +909,42 @@ revisão de segurança antes do código.
   acompanhamento da C4 e o aviso da C3 — escrever isso como limite na spec, e
   testar que a marcação não muda nenhuma resposta de `access.ts`.
 
-### C1 — Núcleo da leitura obrigatória (marcar e dar ciência)
+### C1 — Núcleo da leitura obrigatória (marcar e dar ciência)  ✅ entregue
+
+> Change `leitura-obrigatoria`. **Desvios e decisões da implementação:**
+>
+> - **Ser do público libera visualizar** (design.md D6) — a decisão de
+>   segurança da fatia. Sem ela quase ninguém do público leria um documento
+>   alheio. Ramo novo em `lib/access.ts`: só `view`, só arquivo, só a revisão
+>   marcada e vigente, depois das subtrações (obsoleto, pendente) e com
+>   comparação de unidade. Fora da listagem de pasta e da busca. **Aparece nos
+>   Recentes e na contagem de novos** do leitor, que usam a mesma `hasAccess` —
+>   aceito, e é por onde o leitor chega ao documento até a C2.
+> - **Quem marca é quem edita os dados de controle** (`rename`, design.md D4),
+>   não "quem tem envio na pasta": marcar é decidir sobre um documento.
+> - **Só documento que abre no visualizador** (D11), descoberto na
+>   implementação: o público não baixa, então formato sem pré-visualização
+>   seria ilegível para ele. Recusa `not_previewable`.
+> - **Tudo apurado na consulta** (D3): Pendente, Atrasada, Concluída, Encerrada
+>   pelo relógio do Postgres; nova revisão e obsoleto encerram sem escrita.
+> - **Público é critério** (D2): quem entra depois recebe a pendência, com 15
+>   dias, **na primeira consulta às próprias leituras** — até a C3 reconciliar
+>   diariamente.
+> - **Prefixo de topo novo `/reading`**, nas três listas.
+>
+> **Lacunas conhecidas, aceitas:**
+>
+> - Não há ainda **tela de "minhas leituras"** — a API (`GET /reading/mine`)
+>   existe; menu, abas, contador, cartão do Início e ícone na linha são da
+>   **C2**. Até lá o leitor chega pelo visualizador a partir dos Recentes ou do
+>   endereço.
+> - **Marcar na etapa final do envio** fica para depois; a fatia cobre o
+>   "depois, em Mais opções".
+> - O aviso de "pedir nova ciência?" **no momento de substituir** o arquivo
+>   também fica para a C2; hoje o pedido acontece ao reabrir a marcação, com o
+>   público anterior preenchido.
+> - O evento de carga do `iframe` não distingue documento carregado de página
+>   de erro — limitação do navegador; o botão habilita nos dois casos.
 
 - **Capabilities**: `leitura-obrigatoria` (nova), `controle-documental`
   (consumida), `auditoria` (consumida)
