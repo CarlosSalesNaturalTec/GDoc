@@ -248,6 +248,17 @@ variable "notify_expiring_grants_schedule" {
   default     = "30 3 * * *"
 }
 
+variable "notify_readings_schedule" {
+  description = <<-EOT
+    Expressão cron (fuso do Cloud Scheduler) da rotina diária de avisos de
+    leitura obrigatória (change avisos-e-atrasos, design.md D4). Depois do
+    expurgo (03:00) e dos avisos de concessão (03:30), para não concorrer por
+    conexões de banco.
+  EOT
+  type        = string
+  default     = "45 3 * * *"
+}
+
 variable "grant_expiring_notice_window_days" {
   description = <<-EOT
     Janela de antecedência (dias) do aviso prévio de vencimento de permissão

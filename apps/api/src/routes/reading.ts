@@ -35,6 +35,9 @@ import {
   parseAudience,
   reconcileForUser,
 } from '../lib/reading.js';
+import { notifyAssigned, readAssignedNotices } from '../lib/reading-notices.js';
+
+type ReaderNotices = Awaited<ReturnType<typeof readAssignedNotices>>;
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
@@ -311,7 +314,7 @@ export function readingRouter(ports: Ports): Router {
             gate: FileGate;
             error: 'not_eligible' | 'invalid_audience' | 'invalid_due_date' | 'already_marked';
           }
-        | { gate: FileGate; campaign: ReadingCampaignResponse };
+        | { gate: FileGate; campaign: ReadingCampaignResponse; avisos: ReaderNotices };
 
       const out = await ports.database.withTenantTransaction<Out>(ctx, async (client) => {
         const gate = await gateFile(client, ctx, fileId, true);
@@ -349,13 +352,19 @@ export function readingRouter(ports: Ports): Router {
           ],
         );
         if (!rows[0]) return { gate, error: 'already_marked' };
-        await materializeCampaign(client, rows[0].id);
+        const criadas = await materializeCampaign(client, rows[0].id);
+        const avisos = await readAssignedNotices(client, criadas);
         const { rows: criada } = await client.query<CampaignRow>(
           `SELECT ${CAMPAIGN_COLUMNS} FROM reading_campaigns c WHERE c.id = $1`,
           [rows[0].id],
         );
-        return { gate, campaign: toCampaignResponse(criada[0]!) };
+        return { gate, campaign: toCampaignResponse(criada[0]!), avisos };
       });
+
+      // Aviso de nova leitura ao público (change `avisos-e-atrasos`, design.md
+      // D2): **depois** da transação — a marcação já está registrada, e a
+      // falha ao avisar não a desfaz; a rotina diária emite o que faltar.
+      if ('avisos' in out) await notifyAssigned(ports.notifications, out.avisos);
 
       if (sendGate(res, out.gate)) return;
       if ('error' in out) {
@@ -374,8 +383,11 @@ export function readingRouter(ports: Ports): Router {
   router.get('/reading/mine', async (req, res, next) => {
     try {
       const ctx = req.tenantContext!;
+      let avisos: ReaderNotices = [];
       const items = await ports.database.withTenantTransaction(ctx, async (client) => {
-        await reconcileForUser(client, ctx);
+        // Quem entrou depois no público é alcançado aqui — e avisado, depois
+        // da transação (change `avisos-e-atrasos`, design.md D2).
+        avisos = await readAssignedNotices(client, await reconcileForUser(client, ctx));
         const { rows } = await client.query<{
           assignment_id: string;
           campaign_id: string;
@@ -427,6 +439,7 @@ export function readingRouter(ports: Ports): Router {
           };
         });
       });
+      await notifyAssigned(ports.notifications, avisos);
       const body: MyReadingsResponse = { items };
       res.json(body);
     } catch (err) {

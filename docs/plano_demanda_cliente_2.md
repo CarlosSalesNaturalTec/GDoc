@@ -63,7 +63,7 @@ Legenda: `pendente` · `bloqueada` (ver coluna Bloqueio) · `em andamento` ·
 | C0 | Gestor de acompanhamento no cadastro | 3.1 | **entregue** | — | `gestor-de-acompanhamento` |
 | C1 | Núcleo da leitura obrigatória (marcar e dar ciência) | 3.1, 3.2 (etapas 1 e 3), 3.3, 3.4 | **entregue** | — | `leitura-obrigatoria` |
 | C2 | Superfícies de pendência (menu, contador, cartão, abas) | 3.2 (etapa 2), 3.5 | **entregue** | — | `superficies-de-pendencia` |
-| C3 | Avisos e atrasos | 3.2 (etapas 2 e 4), 3.3 | pendente | C0, C1 | — |
+| C3 | Avisos e atrasos | 3.2 (etapas 2 e 4), 3.3 | **entregue** | — | `avisos-e-atrasos` |
 | C4 | Acompanhamento e relatório exportável | 3.5 | pendente | C0, C1, D6 | — |
 
 Ordem sugerida: **A1 → A2 → A3 → (A4, A5, A6 em qualquer ordem) → B1 → B2 →
@@ -1029,7 +1029,35 @@ revisão de segurança antes do código.
 - **Nota**: a aba **Acompanhamento** é de C4 — aqui entram só as duas abas de
   todo mundo.
 
-### C3 — Avisos e atrasos
+### C3 — Avisos e atrasos  ✅ entregue
+
+> Change `avisos-e-atrasos` (PRD **US 12.5**). **Desvios e decisões da
+> implementação:**
+>
+> - **Três assuntos novos** no canal (design.md D1): `reading_assigned`,
+>   `reading_overdue` e `reading_overdue_team`, cada um com o seu evento de
+>   origem. O atraso é avisado **uma vez por leitura e prazo** — sem lembrete
+>   diário; a situação Atrasada continua visível nas abas e no cartão.
+> - **Nova leitura avisada onde nasce** (D2): na marcação, na consulta às
+>   próprias leituras (quem entrou depois) e pela rotina, que também emite o
+>   que tiver falhado. A falha ao avisar não desfaz a marcação.
+> - **Aviso ao gestor agregado** por (gestor, marcação, prazo), com a contagem e
+>   até 20 nomes e setores (D3), em vez de um aviso por pessoa atrasada.
+> - **"Todas as unidades" não recebe atraso de outra unidade** (D3): aviso
+>   nominal entre unidades é a exceção estreita da D5, que fica com o relatório
+>   da C4. Na própria unidade, cobre a unidade inteira.
+> - **Rotina `notify-readings` às 03:45** (D4): reconcilia o público de todas
+>   as marcações em curso — a pendência de quem entra depois deixa de depender
+>   de a pessoa abrir a aplicação — e emite os avisos. Script
+>   `npm run notify:readings`; par job + agendador em `scheduler.tf`.
+> - **Cartão "Avisos" do Início** deixou de ser reservado: lista os avisos de
+>   leitura obrigatória (D5). O sino oferece "Abrir leituras" nos do leitor; o
+>   do gestor ainda não tem destino (C4).
+>
+> **Lacunas conhecidas, aceitas:** o aviso ao gestor congela a lista no
+> momento da emissão (quem confirma depois continua no texto); a primeira
+> execução depois do deploy avisa, uma vez, todos os atrasos já existentes; o
+> aviso ao gestor não leva a uma tela até a C4 existir.
 
 - **Capabilities**: `leitura-obrigatoria` (modificada), `notificacoes`
   (modificada), `platform-infrastructure` (job + scheduler)
@@ -1042,8 +1070,7 @@ revisão de segurança antes do código.
   uma pessoa).
 - **Depende de**: **C0**, **C1**
 - **Nota (pós-C2)**: a sinalização **"Atrasada"** nas abas e no cartão do Início
-  já foi entregue pela C2; restam aqui o aviso no sino e a rotina diária — que
-  também passa a reconciliar o público, aliviando `GET /reading/mine`.
+  já foi entregue pela C2; restaram aqui o aviso no sino e a rotina diária.
 - **Risco**: a emissão é idempotente por `(recipientUserId, kind, sourceRef)` —
   a rotina de atraso roda todo dia e **não pode** reavisar a cada execução; o
   `sourceRef` tem de incluir a competência do aviso. O padrão já está resolvido
@@ -1069,6 +1096,11 @@ revisão de segurança antes do código.
   unidade e setor. Três visões distintas (Governança / publicador / gestor) são
   três recortes de alcance, e cada um precisa de teste próprio. O cálculo de
   adesão exclui pessoa desligada (3.3).
+- **Nota (pós-C3)**: o aviso de atraso ao gestor de **todas as unidades** ficou
+  restrito à própria unidade dele (C3, design.md D3). Se o cliente quiser o
+  aviso das outras unidades, ele entra aqui, sob a mesma exceção estreita da D5
+  e com o mesmo teste de isolamento; o destino "Abrir acompanhamento" do aviso
+  ao gestor também nasce aqui.
 
 ---
 

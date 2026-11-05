@@ -1,58 +1,15 @@
 import { Badge, Button, Dropdown, Empty, List, Typography } from 'antd';
 import { IconeNotificacoes } from '../app/icons';
 import { RotuloDeEstado } from '../app/RotuloDeEstado';
-import type { NotificationResponse } from '@gdoc/shared';
-import { GrantResourceType, NotificationKind } from '@gdoc/shared';
-import { VERB_LABEL } from '../permissoes/PermissoesModal';
+import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { formatDate } from '../navegacao/format';
+import { destinoDaNotificacao, mensagemDaNotificacao } from '../notificacoes/mensagens';
 import {
   useMarkNotificationAsRead,
   useNotifications,
   useUnreadNotificationCount,
 } from '../notificacoes/queries';
-
-const RESOURCE_LABEL: Record<GrantResourceType, string> = {
-  [GrantResourceType.FOLDER]: 'pasta',
-  [GrantResourceType.FILE]: 'arquivo',
-};
-
-/**
- * `subjectUserId` (aviso de corte) não é resolvido a nome aqui: a central
- * aparece em toda página do shell, e resolver nomes exigiria mais uma
- * chamada sempre ativa a `GET /users` — o mesmo endpoint que páginas de
- * administração já consultam para outros fins. O uuid identifica a pessoa
- * de forma inequívoca; a listagem de pessoas (`admin/pessoas`) é onde o
- * administrador confere quem é quem.
- */
-function messageFor(notification: NotificationResponse): string {
-  const { payload } = notification;
-
-  // O payload é união discriminada pelo `kind` (US 10.9): ramificar antes de
-  // ler campos é o que mantém o canal aberto a assuntos que não são
-  // concessão. Este caso sai primeiro porque não tem recurso, verbos nem
-  // prazo a formatar.
-  if (notification.kind === NotificationKind.REGISTRATION_PENDING) {
-    const nome = 'fileName' in payload ? payload.fileName : 'um arquivo';
-    return `${nome} está pendente de cadastro: informe tipo, código, revisão, responsável e próxima revisão para publicá-lo.`;
-  }
-
-  if (!('resourceType' in payload)) return 'Notificação';
-
-  const resource = RESOURCE_LABEL[payload.resourceType];
-  const verbs = payload.permissions.map((permission) => VERB_LABEL[permission]).join(', ');
-  const date = formatDate(payload.expiresAt);
-
-  switch (notification.kind) {
-    case NotificationKind.GRANT_CREATED:
-      return `Você recebeu acesso (${verbs}) a este ${resource}, válido até ${date}.`;
-    case NotificationKind.GRANT_EXPIRING:
-      return `Seu acesso (${verbs}) a este ${resource} vence em ${date}.`;
-    case NotificationKind.GRANT_EXPIRED:
-      return `O acesso (${verbs}) de ${payload.subjectUserId ?? '—'} a este ${resource} foi encerrado em ${date}.`;
-    default:
-      return 'Notificação';
-  }
-}
 
 /**
  * Central de notificações do shell (tasks.md 8.3, capability `notificacoes`):
@@ -63,6 +20,7 @@ export function NotificationCenter() {
   const { data: unreadCount } = useUnreadNotificationCount();
   const { data, refetch } = useNotifications(false);
   const markAsRead = useMarkNotificationAsRead();
+  const [aberto, setAberto] = useState(false);
 
   const notifications = data?.notifications ?? [];
 
@@ -114,7 +72,20 @@ export function NotificationCenter() {
                 }
                 description={
                   <>
-                    <Typography.Text>{messageFor(notification)}</Typography.Text>
+                    <Typography.Text>{mensagemDaNotificacao(notification)}</Typography.Text>
+                    {destinoDaNotificacao(notification) && (
+                      <div>
+                        {/* Aviso do leitor leva às próprias leituras (change
+                            `avisos-e-atrasos`, design.md D5); navegar fecha o
+                            sino, como acionar um destino. */}
+                        <Link
+                          to={destinoDaNotificacao(notification)!}
+                          onClick={() => setAberto(false)}
+                        >
+                          Abrir leituras
+                        </Link>
+                      </div>
+                    )}
                     <div>
                       <Typography.Text type="secondary" style={{ fontSize: 12 }}>
                         {formatDate(notification.createdAt)}
@@ -134,7 +105,9 @@ export function NotificationCenter() {
     <Dropdown
       trigger={['click']}
       popupRender={dropdownRender}
+      open={aberto}
       onOpenChange={(open) => {
+        setAberto(open);
         if (open) refetch();
       }}
     >
