@@ -90,8 +90,24 @@ const FILE_SUMMARY_BASE_COLUMNS = `id, owner_id, folder_id, file_name, content_t
  */
 export function fileSummaryColumns(ctx: TenantContext, ownerIdParam: string): string {
   const canEdit = resourceScopeClause(GrantResourceType.FILE, ownerIdParam, ctx, Permission.RENAME);
-  return `${FILE_SUMMARY_BASE_COLUMNS}, (${canEdit}) AS can_edit_control, ${FILE_DERIVED_COLUMNS}`;
+  return `${FILE_SUMMARY_BASE_COLUMNS}, (${canEdit}) AS can_edit_control, ${REQUIRED_READING_SQL} AS required_reading, ${FILE_DERIVED_COLUMNS}`;
 }
+
+/**
+ * A revisão vigente tem marcação de leitura obrigatória em curso (change
+ * `superficies-de-pendencia`, design.md D4): marcação da **revisão atual**, de
+ * documento não obsoleto — o complemento do ramo `closed` de
+ * `READING_STATUS_SQL` (`lib/reading.ts`), para a marcação não ser "em curso"
+ * num lugar e "encerrada" no outro.
+ *
+ * Só **descreve** uma linha que a consulta já devolve: entra na projeção, não
+ * no `WHERE`, então não amplia alcance. A RLS de `reading_campaigns` limita a
+ * subconsulta à unidade do contexto. As consultas que usam `fileSummaryColumns`
+ * leem `FROM files` sem alias, e a correlação é por `files.id`.
+ */
+const REQUIRED_READING_SQL = `(files.lifecycle_state IS DISTINCT FROM '${DocumentLifecycleState.OBSOLETE}'
+     AND EXISTS (SELECT 1 FROM reading_campaigns rc
+                 WHERE rc.file_id = files.id AND rc.document_revision = files.document_revision))`;
 
 export interface FileSummaryRow {
   id: string;
@@ -119,6 +135,8 @@ export interface FileSummaryRow {
   awaiting_registration?: boolean;
   /** Só vem nas consultas de listagem (ver `fileSummaryColumns`). */
   can_edit_control?: boolean;
+  /** Só vem nas consultas de listagem (ver `REQUIRED_READING_SQL`). */
+  required_reading?: boolean;
 }
 
 /** Colunas de controle de uma linha de `files`, como o driver as entrega. */
@@ -168,6 +186,7 @@ export function toFileSummaryResponse(row: FileSummaryRow): FileSummaryResponse 
     // Ausente nas consultas que não são de listagem: ausência é "não
     // oferecer", nunca um `false` inventado sobre quem talvez possa.
     ...(row.can_edit_control === undefined ? {} : { canEditControl: row.can_edit_control }),
+    ...(row.required_reading === undefined ? {} : { requiredReading: row.required_reading }),
   };
 }
 

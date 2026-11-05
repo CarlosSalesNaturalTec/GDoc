@@ -96,7 +96,9 @@ Compartilhados comigo e Favoritos). O caminho da SPA não colide com o prefixo
 O item mostra o contador só quando há leitura aberta (zero não é apresentado,
 como no sino). O nome acessível do link inclui a contagem por extenso
 ("Leitura obrigatória, 2 pendentes"), para quem não enxerga o selo. No modo
-colapsado a coluna mostra só ícones; o selo acompanha o ícone.
+colapsado a coluna mostra só ícones e o design system esconde o rótulo — e o
+selo com ele —, então a dica apresentada ao apontar o item traz a contagem
+("Leitura obrigatória (2)").
 
 ## Risks / Trade-offs
 

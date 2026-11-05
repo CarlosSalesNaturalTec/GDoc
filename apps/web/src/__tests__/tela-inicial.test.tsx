@@ -603,7 +603,7 @@ describe('Tela inicial (US 11.1 e 11.2)', () => {
     });
   });
 
-  it('reserva a coluna de leitura obrigatória e avisos sem afirmar ausência de pendências', async () => {
+  it('coluna de leitura obrigatória e avisos: avisos reservado, sem afirmar ausência de avisos', async () => {
     mockViewportWidth(WIDE_VIEWPORT);
     mockFetch({ ...ROTAS_DA_TELA_INICIAL, 'GET /auth/me': { status: 200, body: COLABORADOR } });
 
@@ -614,7 +614,11 @@ describe('Tela inicial (US 11.1 e 11.2)', () => {
     });
     expect(within(coluna).getByText('Leitura obrigatória')).toBeInTheDocument();
     expect(within(coluna).getByText('Avisos')).toBeInTheDocument();
-    expect(coluna.textContent).toContain('Aqui vão aparecer os documentos que você precisa ler');
-    expect(coluna.textContent).not.toMatch(/nenhuma pend/i);
+    // Leitura obrigatória deixou de ser reservada (change
+    // `superficies-de-pendencia`): sem pendências, agora é verdade dizer que
+    // não há. Avisos continua reservado até a C3.
+    expect(await within(coluna).findByText('Nenhuma leitura obrigatória pendente.')).toBeVisible();
+    expect(coluna.textContent).toContain('Aqui vão aparecer os avisos sobre leituras obrigatórias');
+    expect(coluna.textContent).not.toMatch(/nenhum aviso/i);
   });
 });

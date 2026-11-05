@@ -51,10 +51,14 @@ clique, a "quem sou, onde estou, o que posso fazer e o que mudou":
   **atualizado**. Clique no nome para visualizar o documento. **Ver histórico
   completo** leva ao item **Recentes** do menu, com todo o recorte.
 - **Leitura obrigatória** e **Avisos**: dois cartões numa coluna à direita (ou
-  ao final da tela, no celular). O espaço já está reservado para a leitura
-  obrigatória, que chega numa próxima etapa; por enquanto cada cartão explica o
-  que vai aparecer ali. Os avisos de hoje continuam no **sino**, no topo da
-  tela.
+  ao final da tela, no celular). O cartão **Leitura obrigatória** lista os
+  documentos que você ainda precisa ler, com o **prazo** de cada um — a leitura
+  com prazo vencido aparece marcada como **Atrasada** — e o botão **Ler e
+  confirmar ciência**, que abre o documento no visualizador. **Ver todas** leva
+  à lista completa; sem nada pendente, o cartão diz isso. Ver [Leitura
+  obrigatória](colaborador/leitura-obrigatoria.md). O cartão **Avisos** ainda
+  está reservado e explica o que vai aparecer ali; os avisos de hoje continuam
+  no **sino**, no topo da tela.
 
 !!! tip "Os cartões são clicáveis por inteiro"
     Nos atalhos e em **Pastas da unidade**, basta clicar ou tocar em qualquer
@@ -96,6 +100,7 @@ perfil, reunidos em dois grupos — **NAVEGAÇÃO** e **AJUDA**:
 | **NAVEGAÇÃO** | **Recentes**          | Todos                | O recorte completo dos documentos alterados recentemente (o "histórico completo" da tela inicial). |
 | **NAVEGAÇÃO** | **Favoritos**         | Todos                | A sua lista pessoal de pastas e arquivos marcados — ver [Favoritos](colaborador/favoritos.md). |
 | **NAVEGAÇÃO** | **Compartilhados comigo** | Todos            | O que outras pessoas liberaram para você, com o que pode fazer em cada um. |
+| **NAVEGAÇÃO** | **Leitura obrigatória** | Todos              | Os documentos que você precisa ler (**Pendentes**) e as ciências que já confirmou (**Concluídas**). O número ao lado do item é a quantidade de leituras em aberto — ver [Leitura obrigatória](colaborador/leitura-obrigatoria.md). |
 | **NAVEGAÇÃO** | **Lixeira**           | Todos                | Recuperar ou acompanhar itens excluídos.                                |
 | **NAVEGAÇÃO** | **Colaboradores**     | Administradores      | Cadastrar, editar, ativar/desativar contas e redefinir senhas.          |
 | **NAVEGAÇÃO** | **Painel**            | Administradores      | Ver estatísticas e gráficos de uso.                                     |

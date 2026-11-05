@@ -62,7 +62,7 @@ Legenda: `pendente` · `bloqueada` (ver coluna Bloqueio) · `em andamento` ·
 | B2 | Tabela de cadastro no envio em lote | 2.1, 2.2 | **entregue** | — | `tabela-de-cadastro-no-envio-em-lote` |
 | C0 | Gestor de acompanhamento no cadastro | 3.1 | **entregue** | — | `gestor-de-acompanhamento` |
 | C1 | Núcleo da leitura obrigatória (marcar e dar ciência) | 3.1, 3.2 (etapas 1 e 3), 3.3, 3.4 | **entregue** | — | `leitura-obrigatoria` |
-| C2 | Superfícies de pendência (menu, contador, cartão, abas) | 3.2 (etapa 2), 3.5 | pendente | C1, A2, A3 | — |
+| C2 | Superfícies de pendência (menu, contador, cartão, abas) | 3.2 (etapa 2), 3.5 | **entregue** | — | `superficies-de-pendencia` |
 | C3 | Avisos e atrasos | 3.2 (etapas 2 e 4), 3.3 | pendente | C0, C1 | — |
 | C4 | Acompanhamento e relatório exportável | 3.5 | pendente | C0, C1, D6 | — |
 
@@ -983,7 +983,36 @@ revisão de segurança antes do código.
   ciência sem marcar não existe. Separá-las produziria duas fatias
   inutilizáveis.
 
-### C2 — Superfícies de pendência
+### C2 — Superfícies de pendência  ✅ entregue
+
+> Change `superficies-de-pendencia` (PRD **US 12.4**). **Desvios e decisões da
+> implementação:**
+>
+> - **Uma consulta só** (design.md D1): contador do menu, cartão do Início,
+>   abas e rodapé do visualizador leem `GET /reading/mine`, já existente desde
+>   a C1. Não há rota nova nem migração; confirmar ciência atualiza as quatro
+>   superfícies de uma vez. Consequência aceita: a reconciliação de quem entra
+>   depois no público (C1, D2) passa a rodar em toda tela autenticada, pelo
+>   menu — idempotente e limitada à própria pessoa; a C3 vai tirar esse peso.
+> - **Encerrada não aparece** em Pendentes nem em Concluídas (D2): não é
+>   pendência nem ciência. O histórico delas é do acompanhamento (C4).
+> - **"Atrasada" sinalizada em tom negativo** já nesta fatia, nas abas e no
+>   cartão — é só apresentação da situação que a C1 apura. Da C3 restam o
+>   **aviso** no sino ao leitor e ao gestor e a rotina diária.
+> - **Ícone na linha** por coluna nova do resumo de arquivo (`requiredReading`,
+>   D4): revisão atual marcada e não obsoleta, apurada na própria listagem; não
+>   amplia alcance nem revela público ou prazo.
+> - Destino da SPA em **`/leituras`** — não é prefixo de API, não entra nas
+>   três listas.
+> - O cartão do Início lista **3** pendências antes do "Ver todas" (a
+>   confirmar na homologação).
+>
+> **Lacuna conhecida, aceita:** o aviso "pedir nova ciência?" **no momento de
+> substituir** o arquivo, que a C1 tinha deixado para cá, **não entrou**: a SPA
+> não tem tela de substituição de arquivo (só a API,
+> `POST /files/:id/replace-url`). O pedido continua acontecendo ao reabrir a
+> marcação, com o público anterior preenchido. Entra junto com a tela de
+> substituir, quando ela existir.
 
 - **Capabilities**: `leitura-obrigatoria` (modificada), `tela-inicial`
   (modificada), `web-shell-e-auth` (modificada), `web-navegacao` (modificada),
@@ -1012,6 +1041,9 @@ revisão de segurança antes do código.
   marcação da C0 cobrindo o setor ou a unidade do leitor (pode ser mais de
   uma pessoa).
 - **Depende de**: **C0**, **C1**
+- **Nota (pós-C2)**: a sinalização **"Atrasada"** nas abas e no cartão do Início
+  já foi entregue pela C2; restam aqui o aviso no sino e a rotina diária — que
+  também passa a reconciliar o público, aliviando `GET /reading/mine`.
 - **Risco**: a emissão é idempotente por `(recipientUserId, kind, sourceRef)` —
   a rotina de atraso roda todo dia e **não pode** reavisar a cada execução; o
   `sourceRef` tem de incluir a competência do aviso. O padrão já está resolvido

@@ -121,7 +121,24 @@ export function useCreateReadingCampaign() {
   });
 }
 
-/** Leituras da própria pessoa, com a situação apurada pelo servidor (design.md D3). */
+export type MinhaLeitura = MyReadingsResponse['items'][number];
+
+/**
+ * Aberta = pendente ou atrasada (change `superficies-de-pendencia`, design.md
+ * D2): a atrasada **continua aberta**. Encerrada não é pendência nem ciência,
+ * e não entra em nenhuma superfície do leitor.
+ */
+export function estaAberta(leitura: MinhaLeitura): boolean {
+  return leitura.status === ReadingStatus.PENDING || leitura.status === ReadingStatus.LATE;
+}
+
+/**
+ * Leituras da própria pessoa, com a situação apurada pelo servidor (design.md
+ * D3 de `leitura-obrigatoria`). **Uma consulta só** alimenta o contador do
+ * menu, o cartão do Início, as abas e o rodapé do visualizador (design.md D1
+ * de `superficies-de-pendencia`): a confirmação de ciência a invalida, e as
+ * quatro superfícies nunca divergem.
+ */
 export function useMyReadings(enabled = true) {
   return useQuery({
     queryKey: [MY_READINGS_KEY],

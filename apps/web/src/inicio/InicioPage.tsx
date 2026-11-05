@@ -11,6 +11,7 @@ import { atalhosDoPapel, type Atalho } from './atalhos';
 import { textoDeNovos, useNewDocumentsCount } from './queries';
 import { TabelaDeRecentes } from './TabelaDeRecentes';
 import { TourGuiado } from '../tour/TourGuiado';
+import { CartaoDeLeituras } from '../leitura/CartaoDeLeituras';
 import { DESTINO_PEDIDO_DE_TOUR } from '../tour/pedido-de-tour';
 
 /**
@@ -107,9 +108,10 @@ function CartaoDeAtalho({ atalho }: { atalho: Atalho }) {
 
 /**
  * Cartão reservado da coluna direita (design.md D8): diz por escrito o que vai
- * apresentar, e **não** afirma ausência de pendências — a leitura obrigatória
- * ainda não existe, e "nenhuma pendência" seria verdadeiro só por vacuidade.
- * O conteúdo chega com a fatia C2.
+ * apresentar, e **não** afirma ausência — "nenhum aviso" seria verdadeiro só
+ * por vacuidade. Resta só o de Avisos, cujo conteúdo chega com a fatia C3; o
+ * de Leitura obrigatória virou `CartaoDeLeituras` (change
+ * `superficies-de-pendencia`).
  */
 function CartaoReservado({ titulo, children }: { titulo: string; children: ReactNode }) {
   return (
@@ -261,10 +263,7 @@ export function InicioPage() {
         style={{ flex: '1 1 340px', minWidth: 0 }}
       >
         <Space direction="vertical" size="large" style={{ display: 'flex' }}>
-          <CartaoReservado titulo="Leitura obrigatória">
-            Aqui vão aparecer os documentos que você precisa ler, com o prazo de cada um e o botão
-            para confirmar a leitura.
-          </CartaoReservado>
+          <CartaoDeLeituras />
           <CartaoReservado titulo="Avisos">
             Aqui vão aparecer os avisos sobre leituras obrigatórias. Os demais avisos continuam no
             sino, no topo da tela.

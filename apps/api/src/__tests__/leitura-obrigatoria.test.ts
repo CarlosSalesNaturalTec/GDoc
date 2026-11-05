@@ -398,6 +398,41 @@ describe('Leitura obrigatória (routes/reading.ts)', () => {
     ).toBe(404);
   });
 
+  // Ícone na linha (change `superficies-de-pendencia`, design.md D4): o resumo
+  // de arquivo da listagem diz se a **revisão vigente** está marcada.
+  it('a listagem informa se a revisão vigente é de leitura obrigatória', async () => {
+    async function naRaiz(userId: string) {
+      const { app, cookie } = await como(userId);
+      const res = await request(app).get('/folders/root/contents').set('Cookie', cookie);
+      expect(res.status).toBe(200);
+      return (res.body.files as Array<{ id: string; requiredReading?: boolean }>).find(
+        (f) => f.id === doc,
+      );
+    }
+
+    expect((await naRaiz(ids.userA))!.requiredReading).toBe(false);
+    await marcar(ids.userA, { fileId: doc, audience: tudo({ userIds: [leitora] }) });
+    expect((await naRaiz(ids.userA))!.requiredReading).toBe(true);
+    expect((await naRaiz(adminA))!.requiredReading).toBe(true);
+    // Não amplia alcance: o público visualiza pelo visualizador, mas o
+    // documento continua fora da navegação de quem não o alcança por ela.
+    expect(await naRaiz(leitora)).toBeUndefined();
+
+    // Revisão nova sem marcação: deixa de ser.
+    await withSystemBypass(pool, (c) =>
+      c.query('UPDATE files SET document_revision = 2 WHERE id = $1', [doc]),
+    );
+    expect((await naRaiz(ids.userA))!.requiredReading).toBe(false);
+
+    // Remarcada e depois obsoleta: o administrador ainda lista, sem o ícone.
+    await marcar(ids.userA, { fileId: doc, audience: tudo({ userIds: [leitora] }) });
+    expect((await naRaiz(adminA))!.requiredReading).toBe(true);
+    await withSystemBypass(pool, (c) =>
+      c.query(`UPDATE files SET lifecycle_state = 'obsolete' WHERE id = $1`, [doc]),
+    );
+    expect((await naRaiz(adminA))!.requiredReading).toBe(false);
+  });
+
   it('sem sessão retorna 401', async () => {
     expect((await request(createApp(ports)).get('/reading/mine')).status).toBe(401);
   });

@@ -47,21 +47,51 @@ anterior**. Basta confirmar.
 Se o documento for declarado **obsoleto**, as leituras abertas também são
 encerradas.
 
+## Onde encontrar as suas leituras (leitor)
+
+- **No menu**, o item **Leitura obrigatória** mostra ao lado um número: a
+  quantidade de leituras que você ainda tem em aberto. Sem nenhuma, o número
+  não aparece.
+- **Na tela inicial**, o cartão **Leitura obrigatória**, na coluna da direita,
+  lista as leituras em aberto, com o prazo de cada uma e o botão **Ler e
+  confirmar ciência**.
+- **Em Documentos**, o documento cuja revisão vigente é de leitura obrigatória
+  traz um ícone de livro com um sinal de confirmado ao lado do nome — aponte
+  para ele para ler "Leitura obrigatória".
+
+O item do menu abre uma tela com duas abas:
+
+| Aba            | O que mostra                                                                                                                |
+| :------------- | :-------------------------------------------------------------------------------------------------------------------------- |
+| **Pendentes**  | As leituras em aberto: o documento (código, título e revisão), o prazo, a situação, a mensagem de quem marcou e o botão **Ler e confirmar ciência**. As **atrasadas** vêm primeiro, marcadas em vermelho. |
+| **Concluídas** | As ciências que você já confirmou, com a data e a hora da confirmação.                                                     |
+
+Uma leitura **encerrada** — porque o documento ganhou nova revisão ou foi
+declarado obsoleto — não aparece em nenhuma das duas abas: não há mais o que
+ler nela.
+
 ## Ler e confirmar a ciência (leitor)
 
-1. Abra o documento no visualizador.
+1. Clique em **Ler e confirmar ciência** — na aba **Pendentes** ou no cartão da
+   tela inicial. O documento abre no visualizador. (Você também pode abrir o
+   documento por outro caminho; o botão do rodapé aparece do mesmo jeito.)
 2. No rodapé, o botão **Confirmar ciência** fica habilitado assim que o
    documento termina de abrir.
 3. Ao clicar, aparece a declaração: *"Declaro que li e compreendi o documento
    [código] - [título], Rev. [nº]."* — escolha **Confirmar** ou **Cancelar**.
 4. A ciência fica registrada com a data e a hora, a sua unidade e o seu setor
-   naquele momento. **A confirmação não pode ser desfeita.**
+   naquele momento. **A confirmação não pode ser desfeita.** A leitura sai de
+   **Pendentes**, passa para **Concluídas** e o número do menu diminui.
 
 Passado o prazo sem confirmação, a leitura **continua aberta** e passa a constar
-como **atrasada**.
+como **Atrasada**.
 
-!!! tip "Onde encontrar as suas leituras"
-    A lista das suas leituras pendentes e concluídas, o contador no menu e o
-    cartão na tela inicial chegam numa próxima entrega. Por enquanto, o
-    documento marcado para você aparece entre os **Documentos recentes** da tela
-    inicial quando acaba de ser publicado ou alterado.
+!!! note "Documento indisponível"
+    Se, numa leitura em aberto, aparecer **Documento indisponível** no lugar do
+    botão, é porque você deixou de ter acesso ao documento depois que ele foi
+    marcado. Procure quem publicou o documento ou a administração da unidade.
+
+!!! tip "Avisos no sino e acompanhamento"
+    Os avisos de nova leitura e de atraso no **sino** e a aba de
+    **acompanhamento** para quem publica e para gestores chegam numa próxima
+    entrega.

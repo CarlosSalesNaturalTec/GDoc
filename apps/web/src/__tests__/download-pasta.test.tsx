@@ -109,6 +109,10 @@ describe('Download de pasta (web-navegacao, download-pasta-zip)', () => {
         );
       if (path === '/folders/root/contents')
         return new Response(JSON.stringify(contents()), { status: 200 });
+      // Contador do menu (change `superficies-de-pendencia`): consulta da
+      // API, não byte do storage.
+      if (path === '/reading/mine')
+        return new Response(JSON.stringify({ items: [] }), { status: 200 });
       if (path === '/folders/root/download-manifest' && method === 'POST') {
         return new Response(JSON.stringify(manifest({ totalFiles: 3, allowedFiles: 0 })), {
           status: 200,

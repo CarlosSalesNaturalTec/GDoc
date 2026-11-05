@@ -206,6 +206,9 @@ describe('Confirmar ciência no visualizador (web-visualizacao)', () => {
   };
 
   function rotas(itens: MyReadingResponse[]) {
+    // A lista muda quando a ciência é registrada — não na N-ésima consulta: o
+    // contador do menu lê a mesma consulta (change `superficies-de-pendencia`).
+    let confirmada = false;
     return {
       'GET /auth/me': { status: 200, body: IDENTITY },
       'GET /folders/root/contents': conteudo([arquivo({ canEditControl: false })]),
@@ -218,11 +221,11 @@ describe('Confirmar ciência no visualizador (web-visualizacao)', () => {
           action: 'view',
         },
       },
-      'GET /reading/mine': [
-        { status: 200, body: { items: itens } },
-        { status: 200, body: { items: [] } },
-      ],
-      'POST /reading/assignments/a-1/acknowledge': { status: 204 },
+      'GET /reading/mine': () => ({ status: 200, body: { items: confirmada ? [] : itens } }),
+      'POST /reading/assignments/a-1/acknowledge': () => {
+        confirmada = true;
+        return { status: 204 };
+      },
     };
   }
 

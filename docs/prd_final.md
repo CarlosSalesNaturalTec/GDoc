@@ -763,6 +763,29 @@ O **objetivo principal** do GDoc é entregar um repositório de arquivos corpora
       * **Quando** o prazo passa, ou o documento ganha nova revisão, ou é declarado obsoleto
       * **Então** ela aparece como Atrasada e continua aberta, no primeiro caso; é encerrada, nos dois outros — sem depender de rotina.
 
+* **US 12.4:** Como leitor, eu quero ver no menu, na tela inicial e numa lista própria as leituras obrigatórias que tenho a fazer para que eu não perca nenhum prazo.
+  * **Critérios de Aceitação:**
+    * *Cenário 1 — Contador no menu:*
+      * **Dado** que tenho leituras obrigatórias pendentes ou atrasadas
+      * **Quando** olho o menu, em qualquer tela
+      * **Então** o item "Leitura obrigatória" mostra quantas são; sem nenhuma em aberto, não mostra número.
+    * *Cenário 2 — Pendentes e Concluídas:*
+      * **Dado** que abro o item "Leitura obrigatória"
+      * **Quando** percorro as abas
+      * **Então** vejo em "Pendentes" as leituras em aberto, as atrasadas primeiro e sinalizadas, com documento, prazo e o botão "Ler e confirmar ciência", e em "Concluídas" as ciências que confirmei, com data e hora; a leitura encerrada não aparece em nenhuma das duas.
+    * *Cenário 3 — Cartão na tela inicial:*
+      * **Dado** que tenho leituras em aberto
+      * **Quando** abro a tela inicial
+      * **Então** o cartão "Leitura obrigatória" da coluna direita as lista com o prazo e o botão "Ler e confirmar ciência"; sem nenhuma, diz que não há leitura pendente.
+    * *Cenário 4 — O atalho abre, não confirma:*
+      * **Dado** uma leitura em aberto
+      * **Quando** aciono "Ler e confirmar ciência"
+      * **Então** o documento abre no visualizador, e a ciência só é confirmada pelo botão do rodapé, depois que o documento abre; confirmada, a leitura passa para "Concluídas" e o contador diminui.
+    * *Cenário 5 — Ícone em Documentos:*
+      * **Dado** um documento cuja revisão vigente é de leitura obrigatória
+      * **Quando** abro a pasta dele
+      * **Então** a linha do documento traz o ícone de leitura obrigatória; uma revisão nova ainda não marcada não traz.
+
 ## 5. Requisitos Funcionais
 
 1. Autenticação por usuário e senha; contas criadas exclusivamente pela área administrativa, sem autocadastro.

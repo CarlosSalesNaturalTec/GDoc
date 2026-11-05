@@ -11,7 +11,7 @@ interface MockedResponse {
  * a mesma rota de listagem é rechamada com um resultado diferente
  * (`web-navegacao`, tasks 6.1).
  */
-type RouteEntry = MockedResponse | MockedResponse[];
+type RouteEntry = MockedResponse | MockedResponse[] | (() => MockedResponse);
 
 export type RouteTable = Record<string, RouteEntry>;
 
@@ -37,7 +37,13 @@ export function mockFetch(table: RouteTable): void {
       }
 
       let route: MockedResponse;
-      if (Array.isArray(entry)) {
+      if (typeof entry === 'function') {
+        // Resposta que depende do estado do teste, não da ordem das chamadas:
+        // quando várias superfícies leem a mesma consulta (o contador do menu
+        // e o visualizador, por exemplo), o número de refetches não é parte
+        // do que o teste afirma.
+        route = entry();
+      } else if (Array.isArray(entry)) {
         const index = callIndex[key] ?? 0;
         route = entry[Math.min(index, entry.length - 1)]!;
         callIndex[key] = index + 1;
@@ -70,4 +76,7 @@ export const ROTAS_DA_TELA_INICIAL: RouteTable = {
   },
   'GET /files/recent': { status: 200, body: { documents: [] } },
   'GET /files/recent/new-count': { status: 200, body: { days: 7, count: 0, capped: false } },
+  // Cartão "Leitura obrigatória" da coluna direita (change
+  // `superficies-de-pendencia`): a mesma consulta do contador do menu.
+  'GET /reading/mine': { status: 200, body: { items: [] } },
 };
