@@ -37,7 +37,7 @@ Legenda: `pendente` · `proposta` · `em andamento` · `entregue`.
 
 | # | Fatia | Itens da demanda | Situação | Depende de | Change |
 | :-- | :--- | :--- | :--- | :--- | :--- |
-| A | Identidade ISETES e menu compacto | 1, 2, 3, 4 | **proposta** | — | `identidade-isetes-e-menu-compacto` |
+| A | Identidade ISETES e menu compacto | 1, 2, 3, 4 | **entregue** | — | `identidade-isetes-e-menu-compacto` |
 | B | Marca d'água e Início (rodada 3) | 5, 6, 8, 9, 10, 11, 12 | pendente | A (ativo do símbolo) | — |
 | C | Contagem de documentos nas pastas | 7 | pendente | — | — |
 
@@ -92,6 +92,25 @@ identidade.
 **Riscos:** contraste do texto sobre a marca d'água (o símbolo claro clareia o
 fundo escuro); a demanda nº 2 pedia 200 px a 14% e esta pede "bem clarinho" —
 valor final decidido por cálculo no design.md.
+
+**Entregue** (change arquivado em
+`openspec/changes/archive/2026-11-10-identidade-isetes-e-menu-compacto/`).
+Desvios e registros:
+
+- **Medição em 1366×768** (`global_admin`, 12 itens, manual configurado, função
+  longa): lista do menu com 576 px num espaço de 582 px — sem rolagem, folga de
+  **6 px**. `collaborator`: 582/582. Em 1366×600 só a lista rola, com marca e
+  cartão visíveis.
+- **Restrição conhecida:** um item de menu a mais para administradores estoura
+  o orçamento de 768 px. Qualquer fatia que acrescente item precisa refazer a
+  medição (ver alavancas em design.md D1 do change).
+- **Cartão do usuário:** função e unidade ficaram em **linhas próprias** (o
+  plano era juntá-las com corte em 2 linhas) — com a função longa do caso real a
+  unidade caía na reticência.
+- **Marca d'água a 8%**, não os 14% da demanda nº 2: 14% reprova o piso de
+  contraste (4,35:1); teste em `contraste.test.ts`.
+- **Para a fatia B:** com a navegação colapsada, os rótulos de grupo aparecem
+  cortados ("NAVEGAÇ…") — comportamento anterior a este change.
 
 ## Fatia B — Marca d'água e Início (rodada 3)
 
