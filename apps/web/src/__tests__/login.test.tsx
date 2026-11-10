@@ -214,11 +214,14 @@ describe('Identidade visual na tela de login (identidade-visual)', () => {
     renderApp(['/login']);
 
     const heading = await screen.findByRole('heading', { name: 'PapelHub' });
-    const logo = document.querySelector('img[src="/logo-papelhub.jpg"]') as HTMLElement;
+    const logo = document.querySelector('img[src="/isetes-logo-branca.png"]') as HTMLElement;
     const campoEscuro = heading.parentElement as HTMLElement;
 
     expect(campoEscuro.contains(logo)).toBe(true);
     expect(logo.closest('.ant-card')).toBeNull();
+    // Decorativa no login (design.md D3): o heading e a identificação do
+    // cliente já estão em texto, e a logo não ganha nome acessível.
+    expect(logo.getAttribute('alt')).toBe('');
   });
 });
 

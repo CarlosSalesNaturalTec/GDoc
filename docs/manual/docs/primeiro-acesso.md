@@ -4,8 +4,8 @@ O PapelHub **não tem autocadastro**. Sua conta é criada pela área administrat
 informa o **e-mail** e a **senha inicial**.
 
 1. Abra o [endereço da aplicação](index.md#o-que-e-o-papelhub) no navegador.
-2. A tela de **login** tem dois lados: à esquerda, a marca do PapelHub e um resumo do
-   que o sistema faz; à direita, o cartão de acesso. Em telas estreitas (celular) os
+2. A tela de **login** tem dois lados: à esquerda, a logo do Instituto SETES, o nome
+   PapelHub e um resumo do que o sistema faz; à direita, o cartão de acesso. Em telas estreitas (celular) os
    dois lados ficam empilhados, com o cartão logo abaixo da marca.
 3. No cartão de acesso, informe seu **e-mail** e **senha**. O campo de senha tem um
    botão para mostrar o que você digitou, se quiser conferir.
@@ -44,4 +44,5 @@ pode ser refeito pelo menu, em **AJUDA**.
 
 ## Sair
 
-No pé do menu lateral, clique em **Sair**.
+No pé do menu lateral, ao lado do seu cartão, clique no botão **Sair** (o ícone de
+porta com seta).

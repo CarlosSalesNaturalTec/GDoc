@@ -52,7 +52,9 @@ describe('Identidade do shell vive no rodapé da navegação (web-shell-e-auth)'
     const rodape = navegacao();
     expect(within(rodape).getByText('Maria Silva')).toBeInTheDocument();
     expect(within(rodape).getByText('MS')).toBeInTheDocument();
-    expect(within(rodape).getByText('Colaborador · Unidade Centro')).toBeInTheDocument();
+    // Função e unidade em linhas próprias (identidade-isetes-e-menu-compacto, D5).
+    expect(within(rodape).getByText('Colaborador')).toBeInTheDocument();
+    expect(within(rodape).getByText('Unidade Centro')).toBeInTheDocument();
 
     // Nem o identificador inteiro, nem o fragmento que era exibido antes.
     expect(document.body.textContent).not.toContain(IDENTIFICADOR);
@@ -78,10 +80,10 @@ describe('Identidade do shell vive no rodapé da navegação (web-shell-e-auth)'
     await screen.findByText('Pastas da unidade');
 
     const rodape = navegacao();
-    // Linha visível: função · unidade. O setor **não** entra nela — a segunda
-    // linha do cartão de 264px já trunca com dois termos ao lado do avatar
-    // (design.md D7).
-    expect(within(rodape).getByText('Gerente de Governança · Unidade Centro')).toBeInTheDocument();
+    // Linhas visíveis: função e unidade, cada uma na sua. O setor **não**
+    // entra — não há linha livre no cartão de 264px (design.md D7).
+    expect(within(rodape).getByText('Gerente de Governança')).toBeInTheDocument();
+    expect(within(rodape).getByText('Unidade Centro')).toBeInTheDocument();
     expect(
       within(rodape).queryByText(/Gerente de Governança · Governança/),
     ).not.toBeInTheDocument();
@@ -107,7 +109,7 @@ describe('Identidade do shell vive no rodapé da navegação (web-shell-e-auth)'
 
     // Mesmo texto que a listagem de colaboradores e o perfil da própria conta
     // exibem — a origem única é o que `nomenclatura-interface` exige.
-    expect(within(navegacao()).getByText('Colaborador · Unidade Centro')).toBeInTheDocument();
+    expect(within(navegacao()).getByText('Colaborador')).toBeInTheDocument();
   });
 
   it('a identidade não ocupa a barra superior', async () => {
@@ -154,6 +156,24 @@ describe('Identidade do shell vive no rodapé da navegação (web-shell-e-auth)'
     expect(within(rodape).getByRole('button', { name: 'Sair' })).toBeInTheDocument();
   });
 
+  it('Sair é controle compacto próprio, fora do link de Minha conta, com o alvo de 44 px', async () => {
+    mockViewportWidth(WIDE_VIEWPORT);
+    mockFetch({ ...ROTAS_DA_TELA_INICIAL, 'GET /auth/me': { status: 200, body: COLABORADOR } });
+
+    renderApp(['/']);
+    await screen.findByText('Pastas da unidade');
+
+    const rodape = navegacao();
+    const sair = within(rodape).getByRole('button', { name: 'Sair' });
+    const minhaConta = within(rodape).getByRole('link', { name: /Minha conta/ });
+    // Irmão do link, nunca dentro dele (design.md D5).
+    expect(minhaConta.contains(sair)).toBe(false);
+    // Só ícone: o nome vem do `aria-label`, não de texto visível.
+    expect(sair.textContent?.trim()).toBe('');
+    expect(sair.style.height).toBe('44px');
+    expect(sair.style.width).toBe('44px');
+  });
+
   it('nome mais longo que o cartão preserva o valor íntegro no nome acessível', async () => {
     mockViewportWidth(WIDE_VIEWPORT);
     const nomeLongo = 'Maria Aparecida Conceição de Albuquerque Mendonça Filha';
@@ -179,9 +199,8 @@ describe('Identidade do shell vive no rodapé da navegação (web-shell-e-auth)'
     renderApp(['/']);
     await screen.findByText('Pastas da unidade');
 
-    const trigger = document.querySelector('.ant-layout-sider-trigger') as HTMLElement;
-    await userEvent.click(trigger);
-    await screen.findByText('PH');
+    await userEvent.click(screen.getByRole('button', { name: 'Recolher navegação' }));
+    await screen.findByRole('button', { name: 'Expandir navegação' });
 
     const rodape = navegacao();
     expect(within(rodape).getByRole('link', { name: /Minha conta/ })).toBeInTheDocument();

@@ -7,8 +7,8 @@ strict: true
 theme:
   name: material
   language: pt-BR
-  logo: assets/logo-papelhub.png
-  favicon: assets/logo-papelhub.png
+  logo: assets/isetes-simbolo.png
+  favicon: assets/isetes-simbolo.png
   palette:
     - media: "(prefers-color-scheme: light)"
       scheme: default

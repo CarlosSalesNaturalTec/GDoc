@@ -111,12 +111,14 @@ export function LoginPage() {
       }}
     >
       <div style={{ display: 'flex', justifyContent: isNarrow ? 'center' : 'flex-start' }}>
-        {/* Logomarca em modo decorativo: o heading logo abaixo é o nome
-            acessível (`BrandMark` sem `alt`), garantia que esta recomposição
-            preserva — o requisito "Identificação do cliente não contamina o
-            nome acessível do título" exige que o nome acessível do heading
-            seja exatamente o da aplicação. */}
-        <BrandMark height={isNarrow ? 56 : 72} />
+        {/* Logo branca do Instituto SETES, **decorativa**: o heading logo
+            abaixo é o nome acessível, e a identificação do cliente segue em
+            texto — o requisito "Identificação do cliente não contamina o nome
+            acessível do título" exige que o nome acessível do heading seja
+            exatamente o da aplicação. Sem moldura: o ativo é transparente e
+            este campo já é escuro (change `identidade-isetes-e-menu-compacto`,
+            design.md D3). */}
+        <BrandMark variante="logo" height={isNarrow ? 56 : 72} />
       </div>
       {/* O nome da aplicação continua sendo o **cabeçalho** da tela
           (requisito "Tela de login apresenta o nome da aplicação"), agora no

@@ -7,6 +7,7 @@ import {
   IconeColaboradores,
   IconeCompartilhados,
   IconeEnviar,
+  IconeExpandirNavegacao,
   IconeFavorito,
   IconeInicio,
   IconeLeituraObrigatoria,
@@ -16,15 +17,23 @@ import {
   IconeTour,
   IconePainel,
   IconeRecentes,
+  IconeRecolherNavegacao,
   IconeUnidades,
 } from '../app/icons';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { UserRole } from '@gdoc/shared';
 import { useSession } from '../auth/session-context';
 import { useNarrowMode } from '../app/responsive';
-import { DEGRADE_NAVEGACAO, LARGURA_NAVEGACAO, paleta } from '../app/theme';
+import {
+  ALTURA_MINIMA_ACIONAMENTO,
+  DEGRADE_NAVEGACAO,
+  LARGURA_NAVEGACAO,
+  paleta,
+} from '../app/theme';
 import { DESTINO_PEDIDO_DE_ENVIO } from '../navegacao/pedido-de-envio';
 import { MarcaDoProduto } from './MarcaDoProduto';
+import { BrandMark } from './BrandMark';
+import { MarcaDaguaDaNavegacao } from './MarcaDaguaDaNavegacao';
 import { CartaoDoUsuario } from './CartaoDoUsuario';
 import { NotificationCenter } from './NotificationCenter';
 import { BuscaNoCabecalho } from './BuscaNoCabecalho';
@@ -43,9 +52,6 @@ const MANUAL_KEY = 'manual-do-usuario';
  * corrente; e, por navegar, fecha o painel sobreposto como um destino.
  */
 const TOUR_KEY = 'tour-guiado';
-
-/** Altura do gatilho de recolher do design system, reservada no rodapé da coluna. */
-const ALTURA_GATILHO_RECOLHER = 64;
 
 /** Shell de layout (design.md D6): itens de administração só aparecem para `unit_admin`/`global_admin`. */
 export function AppShell() {
@@ -228,38 +234,98 @@ export function AppShell() {
   // menu agrupado e identidade no rodapé, nessa ordem. É esta função que
   // sustenta o requisito "Painel sobreposto oferece os mesmos itens do modo
   // largo", agora incluindo a identidade.
-  function navegacao(modoColapsado: boolean, reservaDoGatilho = false) {
+  //
+  // Altura (change `identidade-isetes-e-menu-compacto`, design.md D1/D2): em
+  // 768 px de área visível tudo cabe sem rolagem, para qualquer papel. A
+  // rolagem do `Menu` fica como **último recurso**, só abaixo disso, e só na
+  // lista: marca e cartão estão fora do contêiner rolável e seguem visíveis.
+  //
+  // `comRecolher`: o controle de recolher fica no **topo** da coluna, junto
+  // da marca (design.md D4) — no pé, o gatilho do design system ocupava 64 px
+  // que o orçamento não tem. O painel sobreposto não recolhe, então não o tem.
+  function navegacao(modoColapsado: boolean, comRecolher = false) {
+    const controleDeRecolher = comRecolher && (
+      <Tooltip
+        title={modoColapsado ? 'Expandir navegação' : 'Recolher navegação'}
+        placement="right"
+      >
+        <Button
+          type="text"
+          aria-label={modoColapsado ? 'Expandir navegação' : 'Recolher navegação'}
+          aria-expanded={!modoColapsado}
+          onClick={() => setCollapsed(!modoColapsado)}
+          icon={
+            modoColapsado ? (
+              <IconeExpandirNavegacao style={{ fontSize: 18 }} />
+            ) : (
+              <IconeRecolherNavegacao style={{ fontSize: 18 }} />
+            )
+          }
+          style={{
+            color: paleta.textoSobreEscuro,
+            width: ALTURA_MINIMA_ACIONAMENTO,
+            height: ALTURA_MINIMA_ACIONAMENTO,
+            flexShrink: 0,
+          }}
+        />
+      </Tooltip>
+    );
+
     return (
       <div
         style={{
           display: 'flex',
           flexDirection: 'column',
           height: '100%',
-          // O gatilho de recolher do design system é **fixo** ao pé da
-          // viewport; sem reservar a altura dele o cartão do rodapé fica por
-          // baixo. O painel sobreposto não tem gatilho, então não reserva.
-          paddingBottom: reservaDoGatilho ? ALTURA_GATILHO_RECOLHER : 0,
+          // Contêiner da marca d'água: ela é absoluta no pé e recortada aqui.
+          position: 'relative',
+          overflow: 'hidden',
         }}
       >
-        <div style={{ margin: 16 }}>
-          {modoColapsado ? (
-            // Colapsado continua com a forma abreviada em **texto**, sem a
-            // logomarca e sem o descritor — não há largura para eles sem
-            // truncar (capability `identidade-visual`).
-            <div style={{ color: paleta.branco, fontWeight: 600, fontSize: 18 }}>PH</div>
-          ) : (
-            <MarcaDoProduto clientName={publicConfig.clientName || undefined} />
-          )}
-        </div>
+        {!modoColapsado && <MarcaDaguaDaNavegacao />}
+        {modoColapsado ? (
+          // Colapsado: o **símbolo** da marca, com nome acessível PapelHub
+          // (`identidade-visual`, "Navegação colapsada apresenta o símbolo da
+          // marca"), e o controle de expandir logo abaixo.
+          <div
+            data-marca=""
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: 8,
+              padding: '12px 0 4px',
+            }}
+          >
+            <BrandMark variante="simbolo" height={40} informativa />
+            {controleDeRecolher}
+          </div>
+        ) : (
+          <div
+            data-marca=""
+            style={{
+              display: 'flex',
+              alignItems: 'flex-start',
+              justifyContent: 'space-between',
+              gap: 4,
+              padding: '12px 8px 8px 16px',
+            }}
+          >
+            <MarcaDoProduto />
+            {controleDeRecolher}
+          </div>
+        )}
         <Menu
           theme="dark"
           mode="inline"
           selectedKeys={[selectedKey]}
           items={items}
           onClick={handleNavClick}
-          style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}
+          style={{ flex: 1, minHeight: 0, overflowY: 'auto', position: 'relative', zIndex: 1 }}
         />
-        <CartaoDoUsuario identity={identity!} collapsed={modoColapsado} onLogout={handleLogout} />
+        <div style={{ position: 'relative', zIndex: 1 }}>
+          <CartaoDoUsuario identity={identity!} collapsed={modoColapsado} onLogout={handleLogout} />
+        </div>
       </div>
     );
   }
@@ -275,6 +341,7 @@ export function AppShell() {
           collapsible
           collapsed={collapsed}
           onCollapse={setCollapsed}
+          trigger={null}
           width={LARGURA_NAVEGACAO}
           /* A coluna é **fixa à viewport**, não ao documento. Sem isto ela
              cresce junto com o conteúdo da página, e o cartão do rodapé vai
