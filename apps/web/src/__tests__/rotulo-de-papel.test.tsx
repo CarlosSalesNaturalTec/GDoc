@@ -67,7 +67,8 @@ describe('Rótulo do papel de acesso (nomenclatura-interface)', () => {
     renderApp(['/admin/pessoas']);
 
     await screen.findByText('Novo colaborador');
-    expect(screen.getByText(ROLE_LABEL[UserRole.UNIT_ADMIN])).toBeInTheDocument();
+    const rodape = document.querySelector('.ant-layout-sider') as HTMLElement;
+    expect(within(rodape).getAllByText(ROLE_LABEL[UserRole.UNIT_ADMIN]).length).toBeGreaterThan(0);
   });
 
   it('o perfil da própria conta exibe o mesmo rótulo do shell', async () => {
@@ -137,7 +138,7 @@ describe('Rótulo do papel de acesso (nomenclatura-interface)', () => {
     // O shell apresenta a função. Os dois textos divergem de propósito, e
     // essa divergência não é rótulo de papel inconsistente.
     const rodape = document.querySelector('.ant-layout-sider') as HTMLElement;
-    expect(within(rodape).getByText(/^Coordenação ·/)).toBeInTheDocument();
+    expect(within(rodape).getByText('Coordenação')).toBeInTheDocument();
   });
 
   it('o rótulo anterior não aparece em texto visível em nenhuma das telas', async () => {

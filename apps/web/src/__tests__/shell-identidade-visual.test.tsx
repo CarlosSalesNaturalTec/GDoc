@@ -4,112 +4,156 @@ import { describe, expect, it } from 'vitest';
 import { UserRole } from '@gdoc/shared';
 import { mockFetch, ROTAS_DA_TELA_INICIAL } from './mock-fetch';
 import { renderApp } from './render-app';
-import { mockViewportWidth, WIDE_VIEWPORT } from './viewport';
+import { mockViewportWidth, NARROW_VIEWPORT, WIDE_VIEWPORT } from './viewport';
+import { ATIVOS_DA_MARCA } from '../shell/BrandMark';
 
 /**
- * Marca do shell (capability `identidade-visual`).
+ * Marca do shell (capability `identidade-visual`), na forma da change
+ * `identidade-isetes-e-menu-compacto`:
  *
- * `marca()` só pode ser chamada **depois** de esperar o nome pela árvore
- * inteira: a coluna lateral não existe antes de `GET /auth/me` resolver, e
- * escopar a uma referência nula falha antes de exercitar nada.
+ * - expandida: a logo branca do Instituto SETES (anunciada pelo nome da
+ *   organização, por ter texto escrito), "PapelHub" e o descritor em texto,
+ *   sem a linha da identificação do cliente (design.md D3);
+ * - colapsada: o símbolo, anunciado como PapelHub;
+ * - controle de recolher no **topo** da coluna, não no pé (design.md D4);
+ * - marca d'água decorativa no pé, só na expandida (design.md D6).
  *
- * A change `menu-lateral-e-barra-superior` move o **nome acessível** da marca
- * da imagem para o texto: com "PapelHub" escrito na navegação, manter o `alt`
- * na logomarca faria leitor de tela anunciar a marca duas vezes em sequência
- * (design.md D5). Os casos abaixo travam a forma nova — a imagem decorativa, o
- * nome e o descritor em texto — e preservam o que não mudou: o colapsado sem
- * logomarca e sem descritor, com a abreviação em texto.
+ * `coluna()` só pode ser chamada **depois** de esperar o nome pela árvore
+ * inteira: a coluna lateral não existe antes de `GET /auth/me` resolver.
  */
-function marca(): HTMLElement {
+function coluna(): HTMLElement {
   return document.querySelector('.ant-layout-sider') as HTMLElement;
 }
 
-const CONFIG_BASE = {
-  ...ROTAS_DA_TELA_INICIAL,
-  'GET /auth/me': {
-    status: 200,
-    body: { id: 'user-1', unitId: 'unit-1', role: UserRole.COLLABORATOR },
-  },
-};
+function marca(): HTMLElement {
+  return coluna().querySelector('[data-marca]') as HTMLElement;
+}
+
+function configComCliente(clientName: string) {
+  return {
+    ...ROTAS_DA_TELA_INICIAL,
+    'GET /auth/me': {
+      status: 200,
+      body: { id: 'user-1', unitId: 'unit-1', role: UserRole.COLLABORATOR },
+    },
+    'GET /auth/public-config': {
+      status: 200,
+      body: { appName: 'PapelHub', clientName, manualUrl: '' },
+    },
+  };
+}
+
+async function recolher() {
+  await userEvent.click(screen.getByRole('button', { name: 'Recolher navegação' }));
+  await screen.findByRole('button', { name: 'Expandir navegação' });
+}
 
 describe('Identidade visual no shell (identidade-visual)', () => {
-  it('identificação do cliente aparece no estado expandido e some no colapsado, mantendo a marca abreviada', async () => {
+  it('expandida: logo da organização, nome do produto uma vez e descritor, sem repetir o cliente', async () => {
     mockViewportWidth(WIDE_VIEWPORT);
-    mockFetch({
-      ...CONFIG_BASE,
-      'GET /auth/public-config': {
-        status: 200,
-        body: { appName: 'PapelHub', clientName: 'SETES', manualUrl: '' },
-      },
-    });
+    mockFetch(configComCliente('SETES'));
     renderApp(['/']);
 
     await screen.findByText('PapelHub');
-    expect(within(marca()).getByText('SETES')).toBeInTheDocument();
 
-    const trigger = document.querySelector('.ant-layout-sider-trigger') as HTMLElement;
-    await userEvent.click(trigger);
-
-    await screen.findByText('PH');
+    const logo = within(marca()).getByRole('img', { name: 'Instituto SETES' });
+    expect(logo).toHaveAttribute('src', ATIVOS_DA_MARCA.logo.src);
+    // 150 px de largura (demanda nº 2), altura pela proporção do ativo.
+    expect(logo).toHaveAttribute('width', '150');
+    // O nome do produto é anunciado uma única vez — pelo texto.
+    expect(within(marca()).getAllByText('PapelHub')).toHaveLength(1);
+    expect(within(marca()).queryByRole('img', { name: 'PapelHub' })).not.toBeInTheDocument();
+    expect(within(marca()).getByText('Gestão de Documentos')).toBeInTheDocument();
+    // A logo já identifica a organização: a linha "SETES" não se repete.
     expect(within(marca()).queryByText('SETES')).not.toBeInTheDocument();
   });
 
-  it('no shell expandido, o nome acessível da marca é o texto, e a logomarca é decorativa', async () => {
+  it('a logomarca não tem moldura própria: é a imagem transparente, direto sobre o degradê', async () => {
     mockViewportWidth(WIDE_VIEWPORT);
-    mockFetch({
-      ...CONFIG_BASE,
-      'GET /auth/public-config': {
-        status: 200,
-        body: { appName: 'PapelHub', clientName: '', manualUrl: '' },
-      },
-    });
-    renderApp(['/']);
-
-    // O nome vem do texto…
-    expect(await screen.findByText('PapelHub')).toBeInTheDocument();
-    // …e a logomarca não o repete: nenhuma imagem com nome acessível na marca.
-    expect(within(marca()).queryByRole('img', { name: 'PapelHub' })).not.toBeInTheDocument();
-  });
-
-  it('a marca expandida apresenta o descritor do produto, constante em qualquer implantação', async () => {
-    mockViewportWidth(WIDE_VIEWPORT);
-    mockFetch({
-      ...CONFIG_BASE,
-      'GET /auth/public-config': {
-        status: 200,
-        body: { appName: 'PapelHub', clientName: 'SETES', manualUrl: '' },
-      },
-    });
+    mockFetch(configComCliente(''));
     renderApp(['/']);
 
     await screen.findByText('PapelHub');
-    // Descritor e identificação do cliente são informações distintas: o
-    // primeiro é constante do produto, a segunda vem da implantação.
-    expect(within(marca()).getByText('Gestão de Documentos')).toBeInTheDocument();
-    expect(within(marca()).getByText('SETES')).toBeInTheDocument();
+    const logo = within(marca()).getByRole('img', { name: 'Instituto SETES' });
+    expect(logo.parentElement?.style.background ?? '').toBe('');
+    expect(document.querySelector('img[src="/logo-papelhub.jpg"]')).toBeNull();
   });
 
-  it('no shell colapsado, nem logomarca nem descritor — só a abreviação em texto', async () => {
+  it('colapsada: só o símbolo, anunciado como PapelHub, sem logo, descritor nem cliente', async () => {
     mockViewportWidth(WIDE_VIEWPORT);
-    mockFetch({
-      ...CONFIG_BASE,
-      'GET /auth/public-config': {
-        status: 200,
-        body: { appName: 'PapelHub', clientName: '', manualUrl: '' },
-      },
-    });
+    mockFetch(configComCliente('SETES'));
     renderApp(['/']);
 
     await screen.findByText('PapelHub');
+    await recolher();
 
-    const trigger = document.querySelector('.ant-layout-sider-trigger') as HTMLElement;
-    await userEvent.click(trigger);
+    const simbolo = within(marca()).getByRole('img', { name: 'PapelHub' });
+    expect(simbolo).toHaveAttribute('src', ATIVOS_DA_MARCA.simbolo.src);
+    expect(
+      within(coluna()).queryByRole('img', { name: 'Instituto SETES' }),
+    ).not.toBeInTheDocument();
+    expect(within(coluna()).queryByText('Gestão de Documentos')).not.toBeInTheDocument();
+    expect(within(coluna()).queryByText('SETES')).not.toBeInTheDocument();
+  });
+});
 
-    await screen.findByText('PH');
-    // `queryByRole('img')` casaria com o próprio chevron do controle de
-    // recolher (ícone do design system, `role="img"`): o que se afirma aqui é
-    // a ausência da **logomarca**, que é um elemento `img`.
-    expect(marca().querySelector('img')).toBeNull();
-    expect(within(marca()).queryByText('Gestão de Documentos')).not.toBeInTheDocument();
+describe('Controle de recolher no topo da navegação (web-shell-e-auth)', () => {
+  it('fica junto da marca, alterna o nome com o estado e o gatilho do pé não existe', async () => {
+    mockViewportWidth(WIDE_VIEWPORT);
+    mockFetch(configComCliente(''));
+    renderApp(['/']);
+
+    await screen.findByText('PapelHub');
+    const recolherBotao = screen.getByRole('button', { name: 'Recolher navegação' });
+    expect(marca().contains(recolherBotao)).toBe(true);
+    expect(document.querySelector('.ant-layout-sider-trigger')).toBeNull();
+
+    await recolher();
+    const expandir = screen.getByRole('button', { name: 'Expandir navegação' });
+    expect(marca().contains(expandir)).toBe(true);
+    await userEvent.click(expandir);
+    expect(await screen.findByRole('button', { name: 'Recolher navegação' })).toBeInTheDocument();
+  });
+
+  it('o painel sobreposto (modo estreito) não oferece o controle de recolher', async () => {
+    mockViewportWidth(NARROW_VIEWPORT);
+    mockFetch(configComCliente(''));
+    renderApp(['/']);
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Abrir navegação' }));
+    await screen.findByText('Gestão de Documentos');
+    expect(screen.queryByRole('button', { name: 'Recolher navegação' })).not.toBeInTheDocument();
+  });
+
+  it('só a lista de itens rola: marca e cartão ficam fora do contêiner rolável', async () => {
+    mockViewportWidth(WIDE_VIEWPORT);
+    mockFetch(configComCliente(''));
+    renderApp(['/']);
+
+    await screen.findByText('PapelHub');
+    const menu = coluna().querySelector('.ant-menu') as HTMLElement;
+    expect(menu.style.overflowY).toBe('auto');
+    expect(menu.contains(marca())).toBe(false);
+    const minhaConta = within(coluna()).getByRole('link', { name: /Minha conta/ });
+    expect(menu.contains(minhaConta)).toBe(false);
+  });
+});
+
+describe("Marca d'água no pé da navegação (identidade-visual)", () => {
+  it('é decorativa, não captura o ponteiro e some na navegação colapsada', async () => {
+    mockViewportWidth(WIDE_VIEWPORT);
+    mockFetch(configComCliente(''));
+    renderApp(['/']);
+
+    await screen.findByText('PapelHub');
+    const marcaDagua = coluna().querySelector('[data-marca-dagua]') as HTMLImageElement;
+    expect(marcaDagua).not.toBeNull();
+    expect(marcaDagua.getAttribute('alt')).toBe('');
+    expect(marcaDagua).toHaveAttribute('aria-hidden', 'true');
+    expect(marcaDagua.style.pointerEvents).toBe('none');
+    expect(marcaDagua.getAttribute('src')).toBe(ATIVOS_DA_MARCA.simbolo.src);
+
+    await recolher();
+    expect(coluna().querySelector('[data-marca-dagua]')).toBeNull();
   });
 });

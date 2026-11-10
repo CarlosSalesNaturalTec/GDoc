@@ -140,17 +140,21 @@ coisa que ele controla, e a barra superior já disputa largura em tela estreita.
 
 Uma linha: `[avatar 32] [nome / função · unidade] [Sair]`.
 
-- O texto da segunda linha continua com até **2 linhas** antes do corte, e o
-  texto íntegro segue no `title` e no nome acessível — a spec exige função e
-  unidade visíveis, e cortar em 1 linha esconderia a unidade com função longa
-  (o caso real: "Gerente de Governança e Performance Corporativa · SEDE").
+- **Função e unidade em linhas próprias**, uma linha cada, com corte por
+  reticência; o texto íntegro segue no `title` e no nome acessível. *Ajustado
+  na implementação:* o plano era manter "função · unidade" juntas com corte em
+  2 linhas, mas a medição na app mostrou que, com a função longa do caso real
+  ("Gerente de Governança e Performance Corporativa"), a **unidade** caía dentro
+  da reticência — e a spec exige a unidade visível. Separadas, a altura é a
+  mesma (20 + 18 + 18) e a unidade nunca disputa espaço com a função.
 - **Sair** vira `Button type="text"` só com ícone, 44×44, `aria-label="Sair"` e
   `Tooltip`, **irmão** do link de "Minha conta", nunca dentro dele. O comentário
   atual que justifica a linha própria ("disputaria largura com o nome") perde a
   premissa: o mockup do cliente pede o ícone, e o nome tem `minWidth: 0` com
   corte.
-- Avatar de 32 px (antes, 32 implícito do design system; fixar evita surpresa).
-- Altura resultante: 12 + 2×18 + 4 + 12 ≈ 64–76 px, conforme a função quebre.
+- Avatar de 32 px com `flexShrink: 0` — sem isso o flex do cartão o encolhia
+  e as iniciais ficavam ilegíveis (visto na medição).
+- Altura resultante: 10 + 56 + 10 = 76 px, fixa.
 
 ### D6 — Marca d'água: 8%, posicionada atrás, fora da árvore acessível
 

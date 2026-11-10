@@ -1,12 +1,12 @@
 # Conhecendo a tela
 
-A tela de **login** traz a marca do PapelHub em destaque: um fundo azul cobre
-toda a tela, com o cartão de acesso branco centralizado — logomarca, nome
-**PapelHub** e o formulário de e-mail e senha.
+A tela de **login** traz a marca em destaque: um fundo azul cobre toda a tela,
+com a logo branca do **Instituto SETES**, o nome **PapelHub** e o cartão de
+acesso branco, com o formulário de e-mail e senha.
 
-Na tela de **login** e no menu lateral, logo abaixo do nome **PapelHub**, aparece a
-identificação da sua organização (por exemplo, "SETES") — ela confirma que você
-está na implantação correta quando existe mais de uma.
+Na tela de **login**, logo abaixo do nome **PapelHub**, aparece a identificação
+da sua organização (por exemplo, "SETES") — ela confirma que você está na
+implantação correta quando existe mais de uma.
 
 ## Tela inicial
 
@@ -112,9 +112,14 @@ perfil, reunidos em dois grupos — **NAVEGAÇÃO** e **AJUDA**:
 
 O título do grupo é só um rótulo: ele não é clicável e não leva a nenhuma tela.
 
-No alto do menu fica a marca — a logomarca com **PapelHub** e **Gestão de
-Documentos** abaixo; se a sua organização estiver identificada na implantação,
-o nome dela aparece em seguida (por exemplo, "SETES").
+No alto do menu fica a marca — a logo branca do **Instituto SETES** e, logo
+abaixo, **PapelHub · Gestão de Documentos**. No pé do menu, bem clarinho, fica o
+símbolo do ISETES como marca d'água: é só decoração, e clicar sobre ele aciona
+normalmente o item ou o cartão que está por cima.
+
+Todos os itens cabem no menu sem barra de rolagem numa tela de computador
+comum (a partir de 768 px de altura visível). Numa janela mais baixa que isso,
+só a lista de itens rola — a marca e o seu cartão continuam sempre à vista.
 
 A **busca não é item de menu**: ela mora na barra superior, ao alcance de
 qualquer tela — ver abaixo.
@@ -127,17 +132,18 @@ e na mesma ordem. Tocar num item leva até a tela correspondente e fecha o
 painel; tocar no Manual do usuário abre a nova aba e mantém o painel como
 estava — é o único item que leva para fora da aplicação.
 
-Você pode **recolher** o menu pelo controle no pé da coluna, para ganhar
-largura: ficam só os ícones e o seu avatar, e o nome de cada item aparece ao
-apontá-lo.
+Você pode **recolher** o menu pelo controle no **topo** da coluna, ao lado da
+logo, para ganhar largura: ficam só o símbolo do ISETES, os ícones e o seu
+avatar, e o nome de cada item aparece ao apontá-lo. O mesmo controle, logo
+abaixo do símbolo, expande o menu de novo.
 
 ## Seu cartão no pé do menu
 
 No **pé do menu** fica o seu cartão: as **iniciais** do seu nome no avatar, o
 seu **nome**, a sua **função/cargo** e a sua **unidade**, sempre visíveis — você
 não precisa abrir nada para lê-los. Clicando no cartão você vai para
-[Minha conta](colaborador/minha-conta.md); logo abaixo dele fica o botão
-**Sair**.
+[Minha conta](colaborador/minha-conta.md). Ao lado dele fica o botão **Sair**,
+o ícone de porta com seta — ao apontá-lo, aparece a dica "Sair".
 
 Sem cargo preenchido no cadastro, aparece no lugar o nome do seu **perfil de
 acesso** (por exemplo, "Colaborador"). O seu **setor** não ocupa a linha do

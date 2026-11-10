@@ -2,7 +2,7 @@ import { Avatar, Button, Tooltip } from 'antd';
 import { Link } from 'react-router-dom';
 import type { AuthenticatedIdentity } from '@gdoc/shared';
 import { IconeConta, IconeSair } from '../app/icons';
-import { paleta, TAMANHO_MINIMO_TEXTO } from '../app/theme';
+import { ALTURA_MINIMA_ACIONAMENTO, paleta, TAMANHO_MINIMO_TEXTO } from '../app/theme';
 import { funcaoExibida, iniciaisDoNome, nomeExibido, setorExibido } from './identidade';
 
 /**
@@ -33,12 +33,24 @@ import { funcaoExibida, iniciaisDoNome, nomeExibido, setorExibido } from './iden
  * sentido; 'Colaborador' ou 'Gestor' é coisa interna do sistema"*.
  *
  * **O setor fica no texto íntegro, não na linha visível** (change
- * `funcao-e-setor-na-identidade`, design.md D7). A segunda linha deste cartão
- * já trunca com dois termos ao lado do avatar, nos 264 px medidos na change
- * `menu-lateral-e-barra-superior`; um terceiro termo não acrescentaria
- * informação, acrescentaria elipse. A demanda pede o setor na linha abaixo da
- * saudação (seção 1.3), e é lá que ele aparece.
+ * `funcao-e-setor-na-identidade`, design.md D7). O cartão compacto tem uma
+ * linha para a função e outra para a unidade (change
+ * `identidade-isetes-e-menu-compacto`, design.md D5), e uma terceira não cabe
+ * no orçamento de altura da navegação. A demanda pede o setor na linha abaixo
+ * da saudação (seção 1.3), e é lá que ele aparece.
  */
+
+/** Linha secundária do cartão: uma linha, com corte por reticência. */
+const ESTILO_LINHA_SECUNDARIA = {
+  display: 'block',
+  color: paleta.textoSobreEscuro,
+  fontSize: TAMANHO_MINIMO_TEXTO,
+  lineHeight: '18px',
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+  whiteSpace: 'nowrap',
+} as const;
+
 export function CartaoDoUsuario({
   identity,
   collapsed,
@@ -61,14 +73,24 @@ export function CartaoDoUsuario({
   const avatar =
     nome === null ? (
       <Avatar
+        size={32}
         icon={<IconeConta />}
-        style={{ background: paleta.azulAvatar, color: paleta.texto }}
+        style={{ background: paleta.azulAvatar, color: paleta.texto, flexShrink: 0 }}
       />
     ) : (
       // Iniciais em `texto`, nunca em branco: o par branco × azulAvatar mede
       // 1,54:1 (theme.ts, design.md D7), e o `Avatar` escreve em branco por
       // padrão — sem fixar a cor aqui, o piso de 4,5:1 cairia.
-      <Avatar style={{ background: paleta.azulAvatar, color: paleta.texto, fontWeight: 600 }}>
+      <Avatar
+        size={32}
+        style={{
+          background: paleta.azulAvatar,
+          color: paleta.texto,
+          fontWeight: 600,
+          // Sem isto o flex do cartão encolhe o avatar e as iniciais somem.
+          flexShrink: 0,
+        }}
+      >
         {iniciaisDoNome(nome)}
       </Avatar>
     );
@@ -90,9 +112,9 @@ export function CartaoDoUsuario({
   return (
     <div
       style={{
-        padding: 12,
+        padding: '10px 8px 10px 12px',
         display: 'flex',
-        flexDirection: 'column',
+        alignItems: 'center',
         gap: 4,
         borderTop: `1px solid ${paleta.textoSobreEscuro}33`,
       }}
@@ -105,6 +127,7 @@ export function CartaoDoUsuario({
           display: 'flex',
           alignItems: 'center',
           gap: 8,
+          flex: 1,
           minWidth: 0,
           color: 'inherit',
         }}
@@ -119,6 +142,7 @@ export function CartaoDoUsuario({
               display: 'block',
               color: paleta.branco,
               fontWeight: 600,
+              lineHeight: '20px',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap',
@@ -126,41 +150,35 @@ export function CartaoDoUsuario({
           >
             {nome ?? funcao}
           </span>
-          <span
-            style={{
-              color: paleta.textoSobreEscuro,
-              fontSize: TAMANHO_MINIMO_TEXTO,
-              lineHeight: '18px',
-              // Até **duas** linhas antes de cortar (change
-              // `rotulo-administrador-da-unidade`): com o rótulo
-              // "Administrador da unidade", uma linha só cortava o nome da
-              // unidade — medido: 191px de largura para o texto. Acima de duas
-              // linhas o corte volta, e o texto íntegro segue no `title` e no
-              // nome acessível.
-              overflow: 'hidden',
-              display: '-webkit-box',
-              WebkitBoxOrient: 'vertical',
-              WebkitLineClamp: 2,
-              overflowWrap: 'anywhere',
-            }}
-          >
-            {funcao} · {identity.unitName}
-          </span>
+          {/* Função e unidade em **linhas próprias**, uma linha cada (change
+              `identidade-isetes-e-menu-compacto`, design.md D5). Juntas, com
+              corte em duas linhas, a função longa do caso real — "Gerente de
+              Governança e Performance Corporativa" — empurrava a unidade para
+              dentro da reticência, e o requisito exige a unidade visível.
+              Separadas, a unidade nunca disputa espaço com a função; o texto
+              íntegro de ambas segue no `title` e no nome acessível. */}
+          <span style={ESTILO_LINHA_SECUNDARIA}>{funcao}</span>
+          <span style={ESTILO_LINHA_SECUNDARIA}>{identity.unitName}</span>
         </span>
       </Link>
-      {/* Sair em linha própria, com rótulo **visível** — a demanda pede
-          "cartão do usuário + botão Sair", e um botão só de ícone ao lado do
-          nome disputaria com ele a largura de 264px. Fora do link acima:
+      {/* Sair **compacto**, ao lado da identidade (`docs/demanda_cliente_3.md`,
+          item 4; design.md D5): só ícone, mas com nome acessível, dica e os
+          44 px de alvo do design system. Irmão do link, nunca dentro dele —
           controle acionável dentro de link é alvo ambíguo para teclado. */}
-      <Button
-        type="text"
-        onClick={onLogout}
-        icon={<IconeSair />}
-        style={{ color: paleta.branco, justifyContent: 'flex-start' }}
-        block
-      >
-        Sair
-      </Button>
+      <Tooltip title="Sair" placement="top">
+        <Button
+          type="text"
+          onClick={onLogout}
+          aria-label="Sair"
+          icon={<IconeSair style={{ fontSize: 18 }} />}
+          style={{
+            color: paleta.branco,
+            width: ALTURA_MINIMA_ACIONAMENTO,
+            height: ALTURA_MINIMA_ACIONAMENTO,
+            flexShrink: 0,
+          }}
+        />
+      </Tooltip>
     </div>
   );
 }

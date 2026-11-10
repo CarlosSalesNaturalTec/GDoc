@@ -18,6 +18,10 @@ import {
 } from '../app/theme';
 import { DOCUMENT_TYPES } from '@gdoc/shared';
 import { LOGIN_BACKGROUND_COLOR } from '../auth/LoginPage';
+import {
+  COR_MAIS_CLARA_DO_SIMBOLO,
+  OPACIDADE_MARCA_DAGUA_NAVEGACAO,
+} from '../shell/MarcaDaguaDaNavegacao';
 
 describe('Razão de contraste (sistema-de-design, apuração por cálculo)', () => {
   it('é 21:1 entre preto e branco e 1:1 entre a cor e ela mesma', () => {
@@ -246,5 +250,48 @@ describe('Piso de acessibilidade dos tokens (sistema-de-design)', () => {
     expect(ALTURA_MINIMA_ACIONAMENTO).toBeGreaterThanOrEqual(44);
     expect(theme.token?.controlHeight).toBeGreaterThanOrEqual(ALTURA_MINIMA_ACIONAMENTO);
     expect(theme.token?.controlHeightSM).toBeGreaterThanOrEqual(ALTURA_MINIMA_ACIONAMENTO);
+  });
+});
+
+/**
+ * Mistura `frente` sobre `fundo` com a opacidade dada, canal a canal — é a
+ * cor que o texto vê quando passa sobre a marca d'água.
+ */
+function misturar(frente: string, fundo: string, opacidade: number): string {
+  const canais = (cor: string) => [1, 3, 5].map((i) => parseInt(cor.slice(i, i + 2), 16));
+  const [f, b] = [canais(frente), canais(fundo)];
+  return (
+    '#' +
+    f
+      .map((v, i) => Math.round(v * opacidade + (b[i] ?? 0) * (1 - opacidade)))
+      .map((v) => v.toString(16).padStart(2, '0'))
+      .join('')
+  );
+}
+
+describe("Marca d'água da navegação (identidade-isetes-e-menu-compacto, design.md D6)", () => {
+  // Pior caso: o pixel mais luminoso do símbolo sobre a base do degradê, que é
+  // o trecho mais claro da coluna, contra o texto mais fraco da navegação.
+  const fundoSobAMarca = (opacidade: number) =>
+    misturar(COR_MAIS_CLARA_DO_SIMBOLO, paleta.marinhoClaro, opacidade);
+
+  it('na opacidade adotada, o texto da navegação mantém o piso de 4,5:1', () => {
+    const fundo = fundoSobAMarca(OPACIDADE_MARCA_DAGUA_NAVEGACAO);
+    expect(atendeAoPiso(paleta.textoSobreEscuro, fundo, PISO_CONTRASTE_TEXTO)).toBe(true);
+    expect(atendeAoPiso(paleta.branco, fundo, PISO_CONTRASTE_TEXTO)).toBe(true);
+  });
+
+  it('os 14% da demanda nº 2 reprovariam o piso — o teto não é arbitrário', () => {
+    expect(atendeAoPiso(paleta.textoSobreEscuro, fundoSobAMarca(0.14), PISO_CONTRASTE_TEXTO)).toBe(
+      false,
+    );
+  });
+});
+
+describe('Orçamento de altura da navegação (identidade-isetes-e-menu-compacto, design.md D1)', () => {
+  it('compacta a folga entre itens, nunca o alvo de 44 px', () => {
+    const menu = theme.components?.Menu;
+    expect(menu?.itemHeight).toBe(ALTURA_MINIMA_ACIONAMENTO);
+    expect(menu?.itemMarginBlock).toBe(0);
   });
 });

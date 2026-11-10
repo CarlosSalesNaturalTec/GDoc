@@ -140,6 +140,14 @@ export const TAMANHO_MINIMO_TEXTO = 13;
 export const ALTURA_MINIMA_ACIONAMENTO = 44;
 
 /**
+ * Rótulo de grupo da navegação (NAVEGAÇÃO / AJUDA): linha de 16 px com 4 px
+ * acima e abaixo = 24 px. Não é acionável, então o piso de 44 px não se aplica
+ * (change `identidade-isetes-e-menu-compacto`, design.md D1).
+ */
+export const ALTURA_LINHA_ROTULO_DE_GRUPO = 16;
+export const PREENCHIMENTO_ROTULO_DE_GRUPO = 4;
+
+/**
  * Largura da navegação expandida (demanda do cliente nº 2, seção 1.1; change
  * `menu-lateral-e-barra-superior`, design.md D1).
  *
@@ -219,6 +227,17 @@ export const theme: ThemeConfig = {
       // Compactar é reduzir folga até o piso de acionamento, nunca abaixo
       // dele — 44px é requisito de `sistema-de-design`.
       itemHeight: ALTURA_MINIMA_ACIONAMENTO,
+      // Orçamento de altura da navegação (change
+      // `identidade-isetes-e-menu-compacto`, design.md D1): em 768 px de área
+      // visível a navegação do pior caso — `global_admin`, 12 itens com o
+      // manual — cabe sem rolagem. Marca ~110 + 2 rótulos × 24 + 12 itens ×
+      // 44 + cartão ~76 ≈ 762. Por isso a folga **entre** itens é zero: o alvo
+      // de 44 px não muda, some só a margem de 4 px que o design system põe
+      // entre eles. Rótulo de grupo: ver `ESTILO_GLOBAL` (o preenchimento dele
+      // não é token do design system).
+      itemMarginBlock: 0,
+      groupTitleFontSize: TAMANHO_MINIMO_TEXTO,
+      groupTitleLineHeight: ALTURA_LINHA_ROTULO_DE_GRUPO / TAMANHO_MINIMO_TEXTO,
       darkItemSelectedBg: paleta.verdeMarca,
       darkItemSelectedColor: paleta.texto,
       darkItemColor: paleta.branco,
@@ -282,6 +301,12 @@ a:focus-visible {
   outline: 3px solid ${paleta.azulLink};
   outline-offset: 2px;
   border-radius: 4px;
+}
+
+/* Rótulo de grupo compacto (ver PREENCHIMENTO_ROTULO_DE_GRUPO). Três classes
+   para vencer o seletor do design system, que tem duas. */
+.ant-menu.ant-menu-dark .ant-menu-item-group-title {
+  padding-block: ${PREENCHIMENTO_ROTULO_DE_GRUPO}px;
 }
 
 .ant-menu-dark a:focus-visible,

@@ -25,6 +25,8 @@ import {
   LogOut,
   Mail,
   Menu,
+  PanelLeftClose,
+  PanelLeftOpen,
   EllipsisVertical,
   Pencil,
   Plus,
@@ -133,3 +135,6 @@ export const IconeEmail = criarIcone(Mail, 'IconeEmail');
 export const IconeSenha = criarIcone(Lock, 'IconeSenha');
 export const IconeCopiar = criarIcone(Copy, 'IconeCopiar');
 export const IconeLimparFiltros = criarIcone(Eraser, 'IconeLimparFiltros');
+/** Recolher / expandir a navegação lateral — controle no topo da coluna. */
+export const IconeRecolherNavegacao = criarIcone(PanelLeftClose, 'IconeRecolherNavegacao');
+export const IconeExpandirNavegacao = criarIcone(PanelLeftOpen, 'IconeExpandirNavegacao');
