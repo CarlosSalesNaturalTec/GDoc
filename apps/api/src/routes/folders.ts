@@ -11,6 +11,7 @@ import type {
   FolderDownloadManifestLimitExceededResponse,
   FolderDownloadManifestResponse,
   FolderNameConflictResponse,
+  FolderListItemResponse,
   FolderResponse,
   FolderRestoreResponse,
   MoveBatchItemResult,
@@ -51,6 +52,13 @@ function toFolderResponse(row: FolderRow): FolderResponse {
     name: row.name,
     createdAt: new Date(row.created_at).toISOString(),
   };
+}
+
+/** Subpasta da listagem já com a contagem filtrada (design.md D1/D3 de `contagem-de-documentos-nas-pastas`). */
+type ListedFolderRow = FolderRow & { document_count: number };
+
+function toFolderListItemResponse(row: ListedFolderRow): FolderListItemResponse {
+  return { ...toFolderResponse(row), documentCount: row.document_count };
 }
 
 const MAX_BREADCRUMB_DEPTH = 1000;
@@ -95,7 +103,7 @@ async function listContents(
   client: PoolClient,
   ctx: TenantContext,
   folderId: string | null,
-): Promise<{ folders: FolderRow[]; files: FileSummaryRow[] }> {
+): Promise<{ folders: ListedFolderRow[]; files: FileSummaryRow[] }> {
   // Admin da unidade (design.md D2): o fragmento de visibilidade vira `TRUE`
   // ou um literal de `unit_id`, sem referenciar `ownerIdParam` — por isso o
   // placeholder do dono só entra nos parâmetros quando não-admin, senão o
@@ -131,7 +139,39 @@ async function listContents(
     params,
   );
 
-  return { folders, files };
+  // Contagem de documentos **diretos** de cada subpasta listada (change
+  // `contagem-de-documentos-nas-pastas`, design.md D1/D2; US 11.1, cenário 3;
+  // `docs/demanda_cliente_3.md`, item 7). Os fragmentos e o placeholder do
+  // dono são **os mesmos** da consulta de arquivos acima, de propósito: o
+  // número da subpasta X é, por construção, o `files.length` que
+  // `GET /folders/X/contents` devolveria a este solicitante agora — nem mais
+  // (não vaza a existência de item sem `view`, sem herança da pasta), nem
+  // menos. Os ids vêm só da lista que a cláusula de pastas acabou de liberar:
+  // não existe contagem para pasta que a pessoa não pode abrir. A vigência
+  // das concessões é a do relógio do Postgres (`now()` no fragmento), e o ramo
+  // `global_admin` de `resourceScopeClause` fixa `unit_id` na própria unidade
+  // — o bypass de RLS não vira soma de outra unidade.
+  const counts = new Map<string, number>();
+  if (folders.length > 0) {
+    // Só o placeholder do dono (quando não-admin) é reaproveitado; a âncora
+    // da pasta corrente não entra — o driver recusaria um `$n` sem uso.
+    const countParams: unknown[] = admin ? [] : [ctx.userId];
+    countParams.push(folders.map((f) => f.id));
+    const { rows } = await client.query<{ folder_id: string; n: number }>(
+      `SELECT folder_id, count(*)::int AS n
+       FROM files WHERE ${visibleResourceClause(GrantResourceType.FILE, ownerPlaceholder, ctx)}
+         AND ${nonObsoleteClause(ctx)} AND ${visibleRegistrationClause(ctx, ownerPlaceholder)}
+         AND folder_id = ANY($${countParams.length}::uuid[])
+       GROUP BY folder_id`,
+      countParams,
+    );
+    for (const row of rows) counts.set(row.folder_id, row.n);
+  }
+
+  return {
+    folders: folders.map((f) => ({ ...f, document_count: counts.get(f.id) ?? 0 })),
+    files,
+  };
 }
 
 async function recordFileAudits(
@@ -302,7 +342,7 @@ export function foldersRouter(ports: Ports): Router {
       res.json({
         folder: null,
         breadcrumb: [],
-        folders: folders.map(toFolderResponse),
+        folders: folders.map(toFolderListItemResponse),
         files: files.map(toFileSummaryResponse),
         // A raiz da unidade não é recurso concedível (design.md D9, US 3.3):
         // enviar para ela é livre a qualquer pessoa autenticada, então não há
@@ -370,7 +410,7 @@ export function foldersRouter(ports: Ports): Router {
       res.json({
         folder: toFolderResponse(outcome.folder),
         breadcrumb: outcome.breadcrumb.map(toFolderResponse),
-        folders: outcome.folders.map(toFolderResponse),
+        folders: outcome.folders.map(toFolderListItemResponse),
         files: outcome.files.map(toFileSummaryResponse),
         canUpload: outcome.canUpload,
         ...outcome.favoritos,

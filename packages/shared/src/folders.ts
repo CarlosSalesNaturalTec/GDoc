@@ -16,6 +16,18 @@ export interface FolderResponse {
 }
 
 /**
+ * Subpasta como aparece na listagem de conteúdo (`FolderContentsResponse.folders`),
+ * com a contagem de documentos **diretos** que o solicitante veria ao abri-la
+ * (change `contagem-de-documentos-nas-pastas`, design.md D1/D3; US 11.1,
+ * cenário 3). A API desta versão sempre envia o campo; ele é opcional no
+ * contrato pela mesma razão de `favoriteFolderIds` — uma API anterior não o
+ * envia, e ausência é "contagem desconhecida" (a SPA omite a linha), nunca zero.
+ */
+export interface FolderListItemResponse extends FolderResponse {
+  documentCount?: number;
+}
+
+/**
  * `POST /files/:id/move` e `POST /folders/:id/move` (US 2.3, design.md D1).
  * `destinationFolderId` é sempre **presente**, nunca opcional: `null` SHALL
  * significar a raiz da unidade, e o servidor precisa distinguir esse caso de
@@ -104,7 +116,7 @@ export interface FolderContentsResponse {
   folder: FolderResponse | null;
   /** Da raiz até a pasta corrente; vazio na raiz. */
   breadcrumb: FolderResponse[];
-  folders: FolderResponse[];
+  folders: FolderListItemResponse[];
   files: FileSummaryResponse[];
   /**
    * Veredito do verbo `upload` sobre a pasta corrente, **resolvido pelo

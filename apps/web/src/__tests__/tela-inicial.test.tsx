@@ -342,6 +342,50 @@ describe('Tela inicial (US 11.1 e 11.2)', () => {
     expect(within(cartoes).queryByRole('link', { name: 'Reservada' })).not.toBeInTheDocument();
   });
 
+  it('cartão de pasta mostra a contagem do servidor, com o nome da pasta como nome acessível (demanda nº 3, item 7)', async () => {
+    mockViewportWidth(WIDE_VIEWPORT);
+    mockFetch({
+      ...ROTAS_DA_TELA_INICIAL,
+      'GET /auth/me': { status: 200, body: COLABORADOR },
+      'GET /folders/root/contents': {
+        status: 200,
+        body: {
+          folder: null,
+          breadcrumb: [],
+          folders: [
+            { ...pasta('folder-1', 'Geral'), documentCount: 12 },
+            { ...pasta('folder-2', 'Governança'), documentCount: 1 },
+            { ...pasta('folder-3', 'Setores'), documentCount: 0 },
+            // API anterior a esta change: sem o campo, a linha é omitida.
+            pasta('folder-4', 'Antiga'),
+          ],
+          files: [],
+          canUpload: true,
+        },
+      },
+    });
+
+    renderApp(['/']);
+
+    const cartoes = (await screen.findByText('Pastas da unidade')).closest(
+      '.ant-card',
+    ) as HTMLElement;
+    const geral = await within(cartoes).findByRole('link', { name: 'Geral' });
+    expect(geral).toHaveAttribute('href', '/pastas/folder-1');
+    expect(geral).toHaveAccessibleDescription('12 documentos');
+    expect(within(cartoes).getByRole('link', { name: 'Governança' })).toHaveAccessibleDescription(
+      '1 documento',
+    );
+    expect(within(cartoes).getByRole('link', { name: 'Setores' })).toHaveAccessibleDescription(
+      'Nenhum documento',
+    );
+    const antiga = within(cartoes).getByRole('link', { name: 'Antiga' });
+    expect(antiga).not.toHaveAttribute('aria-describedby');
+    expect(within(antiga).queryByText(/documento/)).not.toBeInTheDocument();
+    // O ícone colorido é decorativo: não entra no nome nem é anunciado.
+    expect(geral.querySelector('svg')).toHaveAttribute('aria-hidden', 'true');
+  });
+
   it('sem pastas acessíveis a área orienta, em vez de ficar vazia sem explicação', async () => {
     mockViewportWidth(WIDE_VIEWPORT);
     mockFetch({ ...ROTAS_DA_TELA_INICIAL, 'GET /auth/me': { status: 200, body: COLABORADOR } });
