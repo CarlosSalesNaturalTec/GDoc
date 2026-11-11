@@ -38,7 +38,7 @@ Legenda: `pendente` · `proposta` · `em andamento` · `entregue`.
 | # | Fatia | Itens da demanda | Situação | Depende de | Change |
 | :-- | :--- | :--- | :--- | :--- | :--- |
 | A | Identidade ISETES e menu compacto | 1, 2, 3, 4 | **entregue** | — | `identidade-isetes-e-menu-compacto` |
-| B | Marca d'água e Início (rodada 3) | 5, 6, 8, 9, 10, 11, 12 | pendente | A (ativo do símbolo) | — |
+| B | Marca d'água e Início (rodada 3) | 5, 6, 8, 9, 10, 11, 12 | **proposta** | A (ativo do símbolo) | `marca-dagua-e-inicio-rodada-3` |
 | C | Contagem de documentos nas pastas | 7 | pendente | — | — |
 
 Ordem sugerida: **A → B → C**. B só depende de A pelo ativo do símbolo em
