@@ -38,7 +38,7 @@ Legenda: `pendente` · `proposta` · `em andamento` · `entregue`.
 | # | Fatia | Itens da demanda | Situação | Depende de | Change |
 | :-- | :--- | :--- | :--- | :--- | :--- |
 | A | Identidade ISETES e menu compacto | 1, 2, 3, 4 | **entregue** | — | `identidade-isetes-e-menu-compacto` |
-| B | Marca d'água e Início (rodada 3) | 5, 6, 8, 9, 10, 11, 12 | **proposta** | A (ativo do símbolo) | `marca-dagua-e-inicio-rodada-3` |
+| B | Marca d'água e Início (rodada 3) | 5, 6, 8, 9, 10, 11, 12 | **entregue** | A (ativo do símbolo) | `marca-dagua-e-inicio-rodada-3` |
 | C | Contagem de documentos nas pastas | 7 | pendente | — | — |
 
 Ordem sugerida: **A → B → C**. B só depende de A pelo ativo do símbolo em
@@ -133,6 +133,30 @@ Desvios e registros:
   `RotuloDeTipoDocumental` já existe).
 - **12** Título limpo (sem extensão e sem o prefixo igual ao `documentCode`),
   em negrito, código embaixo; nome do arquivo íntegro no nome acessível.
+
+**Entregue** (change arquivado em
+`openspec/changes/archive/2026-11-11-marca-dagua-e-inicio-rodada-3/`).
+Desvios e registros:
+
+- **Busca (item 9), medida antes de mexer:** o campo tinha **66 px** contra os
+  44 do botão — o acionador interno herdava o piso de 44 px e a caixa somava o
+  preenchimento. Agora 44 px, com o acionador mantendo 44×44 sobre a borda.
+- **Atalhos (item 6):** saudação, convite e atalhos passaram a ocupar a largura
+  inteira, acima da divisão com a coluna direita (como no mockup). Grade por
+  container query com limiares **medidos**: 4 colunas a partir de 880 px de
+  área, 2 a partir de 440. O ícone foi para **acima** do texto — ao lado, a
+  descrição quebrava em 1366 px.
+- **Descrições fiéis:** "Por nome ou código" (o mockup prometia busca no
+  conteúdo, que não existe) e "Passo a passo de cada tela" (o manual não tem
+  imagens).
+- **Etiqueta de tipo (item 11):** o mockup escreve "FOR"; a sigla do formulário
+  continua **FRM**, da Matriz do cliente.
+- **Marca d'água a 6%** atrás do conteúdo, com os cartões opacos — não
+  atravessa o cartão de Avisos como o mockup insinua. 10% reprovaria o verde de
+  ação como texto (4,39:1).
+- **Sino (item 10):** `#CF1322` (5,57:1 com o número branco).
+- **Menu colapsado:** rótulos de grupo viraram traço (pendência da fatia A); o
+  orçamento de 768 px segue em 582/582 px para `global_admin`.
 
 ## Fatia C — Contagem de documentos nas pastas
 
