@@ -6,6 +6,7 @@ import {
   BookOpen,
   Building2,
   CircleHelp,
+  CirclePlay,
   ClipboardList,
   Compass,
   Clock,
@@ -125,6 +126,8 @@ export const IconeControleDocumental = criarIcone(ClipboardList, 'IconeControleD
 // Envio
 export const IconeAjuda = criarIcone(CircleHelp, 'IconeAjuda');
 export const IconeTour = criarIcone(Compass, 'IconeTour');
+/** Convite ao tour na tela inicial (demanda nº 3, item 8: "ícone de play"). */
+export const IconeIniciarTour = criarIcone(CirclePlay, 'IconeIniciarTour');
 export const IconeEnviar = criarIcone(Upload, 'IconeEnviar');
 export const IconeEnviarPasta = criarIcone(FolderOpen, 'IconeEnviarPasta');
 export const IconeArrastarSoltar = criarIcone(Inbox, 'IconeArrastarSoltar');

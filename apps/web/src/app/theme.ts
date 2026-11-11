@@ -66,6 +66,14 @@ export const paleta = {
    * piso de 3:1 de elemento de interface.
    */
   azulAvatar: '#9ED8F6',
+  /**
+   * Vermelho do **indicador numérico** do sino (`docs/demanda_cliente_3.md`,
+   * item 10; change `marca-dagua-e-inicio-rodada-3`, design.md D7). Carrega o
+   * número em branco a 5,57:1. O vermelho padrão do design system (`#ff4d4f`)
+   * mede 3,27:1 com o mesmo branco e reprova no piso de 4,5:1 — a mesma
+   * armadilha de `verdeMarca`.
+   */
+  vermelhoIndicador: '#CF1322',
 } as const;
 
 /**
@@ -118,6 +126,24 @@ export const tonsDeTipoDocumental = {
   general_file: { texto: '#54595E', fundo: '#F1F2F3', borda: '#C5C9CD' },
 } as const;
 
+/**
+ * Tons dos ícones dos atalhos da tela inicial (`docs/demanda_cliente_3.md`,
+ * item 6: "ícones coloridos"; change `marca-dagua-e-inicio-rodada-3`,
+ * design.md D3). Quatro **matizes distintos** — antes, dois dos quatro eram
+ * marinhos. Reaproveitam pares já apurados de `tonsDeTipoDocumental`; o ícone
+ * é elemento gráfico, então o par ícone/fundo é travado em
+ * `__tests__/contraste.test.ts` contra o piso de 3:1 (na prática, passa também
+ * no de 4,5:1).
+ */
+export const tonsDeAtalho = {
+  verde: { icone: '#067A52', fundo: '#E6F5EF' },
+  azul: { icone: '#025484', fundo: '#E8F1F7' },
+  roxo: { icone: '#5B3A9B', fundo: '#EFE9FA' },
+  laranja: { icone: '#8A4B00', fundo: '#FDF2E2' },
+} as const;
+
+export type TomDeAtalho = keyof typeof tonsDeAtalho;
+
 /** Família dos títulos (guia do cliente); auto-hospedada via `@fontsource` — design.md D5. */
 export const FAMILIA_TITULO = "Lexend, 'Segoe UI', Roboto, Arial, sans-serif";
 
@@ -161,6 +187,31 @@ export const PREENCHIMENTO_ROTULO_DE_GRUPO = 4;
  * comigo", fatia A5) com folga, descontados ícone, recuo e espaçamento.
  */
 export const LARGURA_NAVEGACAO = 264;
+
+/** Largura da navegação colapsada — a do design system, agora declarada. */
+export const LARGURA_NAVEGACAO_COLAPSADA = 80;
+
+/** Altura da barra superior — a do design system, declarada para quem se posiciona abaixo dela. */
+export const ALTURA_CABECALHO = 64;
+
+/**
+ * Limiares, em largura **da área dos atalhos** (container query, não janela),
+ * para a grade da tela inicial passar a 2 e a 4 colunas
+ * (`docs/demanda_cliente_3.md`, item 6; change `marca-dagua-e-inicio-rodada-3`,
+ * design.md D3). Medidos na app com Playwright (tasks 3.4): a descrição mais
+ * longa ("Arraste ou selecione o arquivo") ocupa 176 px, e o cartão precisa de
+ * 176 + 24 de preenchimento + 2 de borda = 202 px para mantê-la numa linha.
+ * Quatro colunas: 4 × 202 + 3 × 16 = 856 → 880 com folga de renderização de
+ * fonte; duas: 2 × 202 + 16 = 420 → 440.
+ */
+export const LIMIAR_ATALHOS_DUAS_COLUNAS = 440;
+export const LIMIAR_ATALHOS_QUATRO_COLUNAS = 880;
+
+/** Classe do contêiner da grade de atalhos (ver `ESTILO_GLOBAL`). */
+export const CLASSE_GRADE_ATALHOS = 'grade-de-atalhos';
+
+/** Classe de texto presente só para tecnologia assistiva (ver `ESTILO_GLOBAL`). */
+export const CLASSE_SOMENTE_LEITOR = 'somente-leitor-de-tela';
 
 /** Raio de botões e campos (guia do cliente, bloco 06). */
 export const RAIO_CONTROLE = 10;
@@ -279,6 +330,12 @@ export const theme: ThemeConfig = {
  *    proíbe. O anel é declarado por superfície: azul sobre fundo claro
  *    (8,06:1) e verde da marca sobre a navegação escura (7,77:1) — nenhuma
  *    cor única alcança o piso de 3:1 nos dois fundos ao mesmo tempo.
+ * 4. **Container query.** A grade dos atalhos da tela inicial decide as
+ *    colunas pela largura da própria área; estilo em linha não declara
+ *    `@container`.
+ * 5. **Texto só para tecnologia assistiva** e o traço que substitui o rótulo
+ *    de grupo na navegação colapsada, que o design system corta com
+ *    reticência.
  *
  * Fora disto não há folha de estilo na aplicação, e nenhuma tela acrescenta
  * uma.
@@ -307,6 +364,51 @@ a:focus-visible {
    para vencer o seletor do design system, que tem duas. */
 .ant-menu.ant-menu-dark .ant-menu-item-group-title {
   padding-block: ${PREENCHIMENTO_ROTULO_DE_GRUPO}px;
+}
+
+/* Atalhos da tela inicial (change \`marca-dagua-e-inicio-rodada-3\`, design.md
+   D3): a grade decide as colunas pela largura da **própria área**, não da
+   janela — a área muda com a navegação expandida, colapsada ou no painel. */
+.${CLASSE_GRADE_ATALHOS} { container-type: inline-size; }
+.${CLASSE_GRADE_ATALHOS} > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+}
+@container (min-width: ${LIMIAR_ATALHOS_DUAS_COLUNAS}px) {
+  .${CLASSE_GRADE_ATALHOS} > div { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@container (min-width: ${LIMIAR_ATALHOS_QUATRO_COLUNAS}px) {
+  .${CLASSE_GRADE_ATALHOS} > div { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
+/* Texto só para tecnologia assistiva: fora da tela, mas na árvore acessível. */
+.${CLASSE_SOMENTE_LEITOR} {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Navegação colapsada (design.md D10): o rótulo de grupo vira um traço; o
+   texto continua no DOM, oculto só visualmente. Mesma altura de 24 px. */
+.ant-menu-inline-collapsed .ant-menu-item-group-title {
+  position: relative;
+  min-height: ${ALTURA_LINHA_ROTULO_DE_GRUPO + 2 * PREENCHIMENTO_ROTULO_DE_GRUPO}px;
+}
+.ant-menu-inline-collapsed .ant-menu-item-group-title::after {
+  content: '';
+  position: absolute;
+  left: 24px;
+  right: 24px;
+  top: 50%;
+  border-top: 1px solid ${paleta.textoSobreEscuro};
+  opacity: 0.4;
 }
 
 .ant-menu-dark a:focus-visible,

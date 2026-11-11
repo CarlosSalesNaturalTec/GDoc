@@ -142,10 +142,13 @@ conhece a janela.
   não acrescenta). Os limiares são constantes TypeScript interpoladas no CSS,
   como `PREENCHIMENTO_ROTULO_DE_GRUPO`.
 - **Valores dos limiares:** derivados da largura mínima de um cartão que mostra o
-  rótulo mais longo ("Manual do usuário") e a descrição mais longa numa linha —
-  ícone 40 + espaço 16 + texto + preenchimento do cartão. Estimativa: ~210 px por
-  cartão, logo 4 × 210 + 3 × 16 ≈ **890 px** e 2 × 210 + 16 ≈ **440 px**. O
-  número final sai da medição com Playwright (tarefa 3.4), não desta conta.
+  rótulo e a descrição mais longos numa linha. *Ajustado na implementação:* a
+  estimativa inicial (ícone ao lado do texto, ~210 px por cartão, 890 px) foi
+  substituída pela medição — com o ícone ao lado, a descrição "Arraste ou
+  selecione o arquivo" quebrava em 1366 px. O cartão passou a ter o ícone
+  **acima** do texto, como no mockup; a descrição mais longa mede 176 px, o
+  cartão mínimo 202 px, e os limiares finais são **880 px** (4 colunas) e
+  **440 px** (2 colunas). Medições em tasks.md.
 - O jsdom não avalia container queries: os testes de componente afirmam a
   estrutura (classe do contêiner, quatro filhos na grade), e a disposição real é
   medida na app.

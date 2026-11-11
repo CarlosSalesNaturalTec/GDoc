@@ -6,6 +6,13 @@ import { mockFetch, ROTAS_DA_TELA_INICIAL } from './mock-fetch';
 import { renderApp } from './render-app';
 import { mockViewportWidth, NARROW_VIEWPORT, WIDE_VIEWPORT } from './viewport';
 import { ATIVOS_DA_MARCA } from '../shell/BrandMark';
+import { OPACIDADE_MARCA_DAGUA_AREA_PRINCIPAL } from '../shell/MarcaDaguaDaAreaPrincipal';
+import {
+  CLASSE_SOMENTE_LEITOR,
+  ESTILO_GLOBAL,
+  LARGURA_NAVEGACAO,
+  LARGURA_NAVEGACAO_COLAPSADA,
+} from '../app/theme';
 
 /**
  * Marca do shell (capability `identidade-visual`), na forma da change
@@ -155,5 +162,88 @@ describe("Marca d'água no pé da navegação (identidade-visual)", () => {
 
     await recolher();
     expect(coluna().querySelector('[data-marca-dagua]')).toBeNull();
+  });
+});
+
+/**
+ * Change `marca-dagua-e-inicio-rodada-3` (`identidade-visual`, "Marca d'água do
+ * símbolo na área principal"; design.md D1).
+ */
+describe("Marca d'água da área principal (identidade-visual)", () => {
+  function marcaDagua(): HTMLElement | null {
+    return document.querySelector('[data-marca-dagua-area-principal]');
+  }
+
+  it('aparece em mais de uma tela, decorativa, sem capturar o ponteiro e a 6%', async () => {
+    mockViewportWidth(WIDE_VIEWPORT);
+    mockFetch(configComCliente('SETES'));
+    const inicio = renderApp(['/']);
+    await screen.findByText('Pastas da unidade');
+
+    const camada = marcaDagua()!;
+    expect(camada).not.toBeNull();
+    expect(camada).toHaveAttribute('aria-hidden', 'true');
+    expect(camada.style.pointerEvents).toBe('none');
+    expect(camada.style.position).toBe('fixed');
+    expect(camada.style.overflow).toBe('hidden');
+    const img = camada.querySelector('img')!;
+    expect(img).toHaveAttribute('alt', '');
+    expect(img).toHaveAttribute('src', ATIVOS_DA_MARCA.simbolo.src);
+    expect(img.style.opacity).toBe(String(OPACIDADE_MARCA_DAGUA_AREA_PRINCIPAL));
+    // Atrás do conteúdo.
+    const conteudo = document.querySelector('.ant-layout-content') as HTMLElement;
+    expect(Number(conteudo.style.zIndex)).toBeGreaterThan(Number(camada.style.zIndex));
+    inicio.unmount();
+
+    mockFetch(configComCliente('SETES'));
+    renderApp(['/pastas']);
+    await screen.findByRole('button', { name: /^Notificações/ });
+    expect(marcaDagua()).not.toBeNull();
+  });
+
+  it('acompanha a largura da navegação: expandida, colapsada e modo estreito', async () => {
+    mockViewportWidth(WIDE_VIEWPORT);
+    mockFetch(configComCliente('SETES'));
+    const largo = renderApp(['/']);
+    await screen.findByText('Pastas da unidade');
+    expect(marcaDagua()!.style.left).toBe(`${LARGURA_NAVEGACAO}px`);
+    await userEvent.click(screen.getByRole('button', { name: 'Recolher navegação' }));
+    expect(marcaDagua()!.style.left).toBe(`${LARGURA_NAVEGACAO_COLAPSADA}px`);
+    largo.unmount();
+
+    mockViewportWidth(NARROW_VIEWPORT);
+    mockFetch(configComCliente('SETES'));
+    renderApp(['/']);
+    await screen.findByText('Pastas da unidade');
+    expect(marcaDagua()!.style.left).toBe('0px');
+  });
+});
+
+/**
+ * Change `marca-dagua-e-inicio-rodada-3` (`web-shell-e-auth`, "Navegação
+ * colapsada não apresenta rótulo de grupo cortado"; design.md D10).
+ */
+describe('Rótulo de grupo na navegação colapsada (web-shell-e-auth)', () => {
+  it('colapsada, o rótulo fica só para tecnologia assistiva; expandida, volta inteiro', async () => {
+    mockViewportWidth(WIDE_VIEWPORT);
+    mockFetch(configComCliente('SETES'));
+    renderApp(['/']);
+    await screen.findByText('Pastas da unidade');
+
+    const titulos = () =>
+      Array.from(coluna().querySelectorAll('.ant-menu-item-group-title')) as HTMLElement[];
+    expect(titulos().map((t) => t.textContent)).toEqual(['NAVEGAÇÃO', 'AJUDA']);
+    expect(titulos().some((t) => t.querySelector(`.${CLASSE_SOMENTE_LEITOR}`))).toBe(false);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Recolher navegação' }));
+    // O texto continua no DOM (nome do grupo), oculto só visualmente.
+    expect(titulos().map((t) => t.textContent)).toEqual(['NAVEGAÇÃO', 'AJUDA']);
+    for (const titulo of titulos()) {
+      expect(titulo.querySelector(`.${CLASSE_SOMENTE_LEITOR}`)).not.toBeNull();
+    }
+    expect(ESTILO_GLOBAL).toContain('.ant-menu-inline-collapsed .ant-menu-item-group-title::after');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Expandir navegação' }));
+    expect(titulos().some((t) => t.querySelector(`.${CLASSE_SOMENTE_LEITOR}`))).toBe(false);
   });
 });

@@ -1,13 +1,18 @@
 import type { ComponentType, CSSProperties } from 'react';
 import { UserRole } from '@gdoc/shared';
 import { IconeBuscar, IconeEnviar, IconeManual, IconeNovaPasta } from '../app/icons';
-import { paleta } from '../app/theme';
+import type { TomDeAtalho } from '../app/theme';
 import { DESTINO_PEDIDO_DE_ENVIO } from '../navegacao/pedido-de-envio';
 import { DESTINO_PEDIDO_DE_NOVA_PASTA } from '../navegacao/pedido-de-nova-pasta';
 
 /**
  * Atalhos da tela inicial (US 11.1, cenário 2; demanda nº 2, seção 1.3), com o
  * papel que cada um exige.
+ *
+ * Descrições curtas, do mockup da demanda nº 3 (item 6), **fiéis** ao produto
+ * (design.md D4 de `marca-dagua-e-inicio-rodada-3`): a busca alcança nome e
+ * código, não o conteúdo dos arquivos, e o manual não tem imagens — o mockup
+ * prometia as duas coisas.
  *
  * O conjunto é o da demanda — Enviar documento, Nova pasta, Buscar documento,
  * Manual do usuário (change `conteudo-da-tela-inicio`, design.md D4). Os
@@ -31,8 +36,12 @@ export interface Atalho {
   destino: string;
   externo?: boolean;
   icone: ComponentType<{ style?: CSSProperties }>;
-  /** Cor do ícone — token da paleta, nunca valor escrito aqui. */
-  cor: string;
+  /**
+   * Tom do ícone e do quadrado tingido — token de `tonsDeAtalho`, nunca valor
+   * escrito aqui. Quatro matizes distintos (demanda nº 3, item 6: "ícones
+   * coloridos"; change `marca-dagua-e-inicio-rodada-3`, design.md D3).
+   */
+  tom: TomDeAtalho;
   /** Ausente = qualquer papel autenticado. */
   roles?: readonly UserRole[];
 }
@@ -41,26 +50,26 @@ export const ATALHOS_INTERNOS: readonly Atalho[] = [
   {
     chave: 'enviar',
     rotulo: 'Enviar documento',
-    descricao: 'Publicar arquivos ou uma pasta inteira.',
+    descricao: 'Arraste ou selecione o arquivo',
     destino: DESTINO_PEDIDO_DE_ENVIO,
     icone: IconeEnviar,
-    cor: paleta.verdeAcao,
+    tom: 'verde',
   },
   {
     chave: 'nova-pasta',
     rotulo: 'Nova pasta',
-    descricao: 'Criar uma pasta na sua unidade.',
+    descricao: 'Organize por setor ou tema',
     destino: DESTINO_PEDIDO_DE_NOVA_PASTA,
     icone: IconeNovaPasta,
-    cor: paleta.azulLink,
+    tom: 'azul',
   },
   {
     chave: 'buscar',
     rotulo: 'Buscar documento',
-    descricao: 'Encontrar por nome, tipo, autor ou data.',
+    descricao: 'Por nome ou código',
     destino: '/busca',
     icone: IconeBuscar,
-    cor: paleta.marinhoClaro,
+    tom: 'roxo',
   },
 ];
 
@@ -75,11 +84,11 @@ export function atalhosDoPapel(role: UserRole, manualUrl: string | null | undefi
     atalhos.push({
       chave: 'manual',
       rotulo: 'Manual do usuário',
-      descricao: 'Passo a passo de cada tela do PapelHub.',
+      descricao: 'Passo a passo de cada tela',
       destino: manualUrl,
       externo: true,
       icone: IconeManual,
-      cor: paleta.marinhoEscuro,
+      tom: 'laranja',
     });
   }
   return atalhos.filter((atalho) => !atalho.roles || atalho.roles.includes(role));

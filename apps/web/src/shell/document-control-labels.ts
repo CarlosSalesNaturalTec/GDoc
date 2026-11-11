@@ -122,6 +122,40 @@ export function formatarRevisao(revision: number | null): string {
   return `Rev. ${String(revision).padStart(2, '0')}`;
 }
 
+/** Extensão final do nome do arquivo: ponto seguido de 1 a 5 letras ou dígitos. */
+const EXTENSAO_FINAL = /\.[A-Za-z0-9]{1,5}$/;
+
+/** Separadores entre o código e o título no nome do arquivo. */
+const SEPARADORES_INICIAIS = /^[\s\-–—_.:]+/;
+
+/**
+ * Título "limpo" do documento para a lista de recentes
+ * (`docs/demanda_cliente_3.md`, item 12; change `marca-dagua-e-inicio-rodada-3`,
+ * design.md D9): o nome do arquivo sem a extensão e sem o prefixo **igual** ao
+ * código do documento. É apresentação pura — não há título cadastrado nos
+ * dados de controle —, e o nome íntegro continua no nome acessível e na dica.
+ *
+ * O prefixo só sai se for o código seguido de fim ou de caractere não
+ * alfanumérico: "POP-ASS-005 rascunho" não perde nada quando o código é
+ * POP-ASS-004, nem "POP-ASS-0041" quando é POP-ASS-004. Sem título que sobre,
+ * devolve o nome sem a extensão — a linha nunca fica sem título.
+ */
+export function tituloDoDocumento(fileName: string, documentCode: string | null): string {
+  const semExtensao =
+    EXTENSAO_FINAL.test(fileName) && fileName.replace(EXTENSAO_FINAL, '').trim()
+      ? fileName.replace(EXTENSAO_FINAL, '').trim()
+      : fileName.trim();
+  if (!documentCode) return semExtensao;
+
+  const prefixo = semExtensao.slice(0, documentCode.length);
+  const seguinte = semExtensao.charAt(documentCode.length);
+  if (prefixo.toLowerCase() !== documentCode.toLowerCase() || /[\p{L}\p{N}]/u.test(seguinte)) {
+    return semExtensao;
+  }
+  const titulo = semExtensao.slice(documentCode.length).replace(SEPARADORES_INICIAIS, '').trim();
+  return titulo || semExtensao;
+}
+
 /** Data `YYYY-MM-DD` em pt-BR, sem passar por fuso: o prazo é do dia, não do instante. */
 export function formatarDataDeRevisao(nextReviewAt: string | null): string {
   if (!nextReviewAt) return AUSENTE;

@@ -1,6 +1,7 @@
 import { Badge, Button, Dropdown, Empty, List, Typography } from 'antd';
 import { IconeNotificacoes } from '../app/icons';
 import { RotuloDeEstado } from '../app/RotuloDeEstado';
+import { paleta } from '../app/theme';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { formatDate } from '../navegacao/format';
@@ -16,12 +17,23 @@ import {
 } from '../notificacoes/queries';
 
 /**
+ * Nome acessível do sino com a quantidade de não lidas (change
+ * `marca-dagua-e-inicio-rodada-3`, design.md D7): quem não vê o indicador
+ * ouve o número no próprio controle.
+ */
+export function nomeAcessivelDoSino(naoLidas: number): string {
+  if (naoLidas <= 0) return 'Notificações';
+  return `Notificações, ${naoLidas} ${naoLidas === 1 ? 'não lida' : 'não lidas'}`;
+}
+
+/**
  * Central de notificações do shell (tasks.md 8.3, capability `notificacoes`):
  * contagem de não lidas visível a qualquer momento e marcação de lida ao
  * abrir.
  */
 export function NotificationCenter() {
   const { data: unreadCount } = useUnreadNotificationCount();
+  const naoLidas = unreadCount ?? 0;
   const { data, refetch } = useNotifications(false);
   const markAsRead = useMarkNotificationAsRead();
   const [aberto, setAberto] = useState(false);
@@ -115,16 +127,37 @@ export function NotificationCenter() {
         if (open) refetch();
       }}
     >
-      <Badge count={unreadCount ?? 0} size="small">
+      {/* Indicador **vermelho** sobre o sino (`docs/demanda_cliente_3.md`, item
+          10; design.md D7), no token com o número branco a 5,57:1 — o padrão
+          do design system mede 3,27:1. O indicador é desenho: fica fora da
+          árvore acessível, e a quantidade vai no nome do botão, para não ser
+          anunciada duas vezes. */}
+      <span style={{ position: 'relative', display: 'inline-flex' }}>
         {/* O ícone é `aria-hidden` (módulo único de ícones), então o nome
             acessível tem de vir do próprio controle — sem ele este botão não
             tem nome algum para tecnologia assistiva. */}
         <Button
           type="text"
-          aria-label="Notificações"
+          aria-label={nomeAcessivelDoSino(naoLidas)}
           icon={<IconeNotificacoes style={{ fontSize: 18 }} />}
         />
-      </Badge>
+        {naoLidas > 0 && (
+          <span
+            aria-hidden
+            data-indicador-do-sino=""
+            style={{
+              position: 'absolute',
+              top: 6,
+              right: 6,
+              transform: 'translate(50%, -50%)',
+              pointerEvents: 'none',
+              lineHeight: 0,
+            }}
+          >
+            <Badge count={naoLidas} size="small" color={paleta.vermelhoIndicador} />
+          </span>
+        )}
+      </span>
     </Dropdown>
   );
 }

@@ -7,6 +7,14 @@ import { renderApp } from './render-app';
 import { atalhosDoPapel } from '../inicio/atalhos';
 import { saudacao, saudacaoDoHorario } from '../shell/identidade';
 import { textoDeNovos } from '../inicio/queries';
+import {
+  CLASSE_GRADE_ATALHOS,
+  ESTILO_GLOBAL,
+  LIMIAR_ATALHOS_DUAS_COLUNAS,
+  LIMIAR_ATALHOS_QUATRO_COLUNAS,
+} from '../app/theme';
+import { LARGURA_ROTULO_DE_TIPO } from '../app/RotuloDeTipoDocumental';
+import { DESTINO_PEDIDO_DE_TOUR } from '../tour/pedido-de-tour';
 
 /** Saudação do horário com o primeiro nome — o horário real do teste é qualquer um. */
 const SAUDACAO_MARIA = /^(Bom dia|Boa tarde|Boa noite), Maria!$/;
@@ -384,8 +392,12 @@ describe('Tela inicial (US 11.1 e 11.2)', () => {
     await within(recentes).findByRole('table');
     const linhas = within(recentes).getAllByRole('row').slice(1);
     expect(linhas).toHaveLength(2);
-    expect(linhas[0]!.textContent).toContain('recente.pdf');
-    expect(linhas[1]!.textContent).toContain('antigo.pdf');
+    // Título limpo, sem extensão (demanda nº 3, item 12); o nome íntegro do
+    // arquivo é o nome acessível do link do visualizador.
+    expect(within(linhas[0]!).getByRole('button', { name: 'recente.pdf' })).toHaveTextContent(
+      'recente',
+    );
+    expect(within(linhas[1]!).getByRole('button', { name: 'antigo.pdf' })).toBeInTheDocument();
 
     // Data da alteração, não a da publicação.
     expect(linhas[0]!.textContent).toContain('27/10/2026');
@@ -501,14 +513,14 @@ describe('Tela inicial (US 11.1 e 11.2)', () => {
     const recentes = (await screen.findByText('Documentos recentes')).closest(
       '.ant-card',
     ) as HTMLElement;
-    await within(recentes).findByText('doc-0.pdf');
+    await within(recentes).findByRole('button', { name: 'doc-0.pdf' });
     expect(within(recentes).getAllByRole('row').slice(1)).toHaveLength(5);
-    expect(within(recentes).queryByText('doc-5.pdf')).not.toBeInTheDocument();
+    expect(within(recentes).queryByRole('button', { name: 'doc-5.pdf' })).not.toBeInTheDocument();
     const historico = within(recentes).getByRole('link', { name: 'Ver histórico completo' });
     expect(historico).toHaveAttribute('href', '/recentes');
 
     fireEvent.click(historico);
-    expect(await screen.findByText('doc-5.pdf')).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'doc-5.pdf' })).toBeInTheDocument();
   });
 
   it('"Ver todas as pastas" conduz à raiz do explorador', async () => {
@@ -621,5 +633,112 @@ describe('Tela inicial (US 11.1 e 11.2)', () => {
     expect(
       await within(coluna).findByText(/Nenhum aviso de leitura obrigatória\. Os demais avisos/),
     ).toBeVisible();
+  });
+});
+
+/**
+ * Change `marca-dagua-e-inicio-rodada-3` (demanda nº 3, itens 6, 8, 11 e 12).
+ * A disposição real da grade (container query) é medida na app: o jsdom não
+ * avalia `@container`, então aqui se afirma a estrutura.
+ */
+describe('Tela inicial — rodada 3 (marca-dagua-e-inicio-rodada-3)', () => {
+  it('atalhos em grade por container query, fora do conteúdo principal', async () => {
+    mockViewportWidth(WIDE_VIEWPORT);
+    mockFetch({ ...ROTAS_DA_TELA_INICIAL, 'GET /auth/me': { status: 200, body: COLABORADOR } });
+
+    renderApp(['/']);
+
+    await screen.findByText(SAUDACAO_MARIA);
+    const grade = conteudo().querySelector(`.${CLASSE_GRADE_ATALHOS}`) as HTMLElement;
+    expect(grade).not.toBeNull();
+    expect(grade).toHaveAttribute('data-tour', 'atalhos');
+    // Os cartões são filhos diretos da grade interna (um link por atalho).
+    const celulas = Array.from(grade.firstElementChild!.children);
+    expect(celulas).toHaveLength(atalhosDoPapel(UserRole.COLLABORATOR, '').length);
+    expect(celulas.every((c) => c.tagName === 'A')).toBe(true);
+    // Largura total: a grade não está dentro do conteúdo principal.
+    expect(grade.closest('[data-conteudo-principal]')).toBeNull();
+    // A folha global declara as duas regras de container query.
+    expect(ESTILO_GLOBAL).toContain(`@container (min-width: ${LIMIAR_ATALHOS_DUAS_COLUNAS}px)`);
+    expect(ESTILO_GLOBAL).toContain(`@container (min-width: ${LIMIAR_ATALHOS_QUATRO_COLUNAS}px)`);
+  });
+
+  it('descrições curtas, e a da busca não promete o conteúdo dos arquivos', () => {
+    const descricoes = atalhosDoPapel(UserRole.COLLABORATOR, MANUAL_URL).map((a) => a.descricao);
+    expect(descricoes).toEqual([
+      'Arraste ou selecione o arquivo',
+      'Organize por setor ou tema',
+      'Por nome ou código',
+      'Passo a passo de cada tela',
+    ]);
+    const busca = atalhosDoPapel(UserRole.COLLABORATOR, '').find((a) => a.chave === 'buscar')!;
+    expect(busca.descricao).not.toMatch(/conteúdo/i);
+  });
+
+  it('os quatro atalhos têm matizes distintos', () => {
+    const tons = atalhosDoPapel(UserRole.COLLABORATOR, MANUAL_URL).map((a) => a.tom);
+    expect(new Set(tons).size).toBe(4);
+  });
+
+  it('convite ao tour em cápsula: link pelo texto, ícone decorativo, destino do pedido de tour', async () => {
+    mockViewportWidth(WIDE_VIEWPORT);
+    mockFetch({
+      ...ROTAS_DA_TELA_INICIAL,
+      'GET /auth/me': { status: 200, body: { ...COLABORADOR, tourCompleted: false } },
+    });
+
+    renderApp(['/']);
+
+    const convite = await screen.findByRole('link', {
+      name: 'Primeira vez aqui? Faça o tour de 2 minutos',
+    });
+    expect(convite).toHaveAttribute('data-convite-ao-tour');
+    expect(convite).toHaveAttribute('href', DESTINO_PEDIDO_DE_TOUR);
+    expect(convite.style.borderRadius).toBe('999px');
+    expect(convite.style.minHeight).toBe('44px');
+    const icone = convite.querySelector('svg');
+    expect(icone).not.toBeNull();
+    expect(icone).toHaveAttribute('aria-hidden', 'true');
+  });
+
+  it('linha de recentes: título limpo em destaque, código embaixo, nome íntegro no nome acessível', async () => {
+    mockViewportWidth(WIDE_VIEWPORT);
+    mockFetch({
+      ...ROTAS_DA_TELA_INICIAL,
+      'GET /auth/me': { status: 200, body: COLABORADOR },
+      'GET /files/recent': {
+        status: 200,
+        body: {
+          documents: [
+            documento({
+              fileName: 'POP-ASS-004 - Emissão da declaração de óbito.pdf',
+              documentType: DocumentType.PROCEDURE,
+              documentCode: 'POP-ASS-004',
+              documentRevision: 0,
+              documentStatus: DocumentStatus.CURRENT,
+            }),
+          ],
+        },
+      },
+    });
+
+    renderApp(['/']);
+
+    const titulo = await screen.findByRole('button', {
+      name: 'POP-ASS-004 - Emissão da declaração de óbito.pdf',
+    });
+    expect(titulo).toHaveTextContent(/^Emissão da declaração de óbito$/);
+    expect(titulo).toHaveAttribute('title', 'POP-ASS-004 - Emissão da declaração de óbito.pdf');
+    const linha = titulo.closest('tr') as HTMLElement;
+    expect(within(linha).getByText('POP-ASS-004')).toBeInTheDocument();
+
+    // Etiqueta do tipo com largura uniforme e nome completo na dica.
+    const etiqueta = within(linha).getByText('POP');
+    expect(etiqueta.style.minWidth).toBe(`${LARGURA_ROTULO_DE_TIPO}px`);
+    expect(etiqueta.style.fontWeight).toBe('600');
+    expect(etiqueta).toHaveAttribute('title');
+
+    fireEvent.click(titulo);
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
   });
 });

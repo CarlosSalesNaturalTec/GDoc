@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Button, Input } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import { IconeBuscar } from '../app/icons';
+import { ALTURA_MINIMA_ACIONAMENTO, RAIO_CONTROLE } from '../app/theme';
 import { useNarrowMode } from '../app/responsive';
 
 /**
@@ -48,6 +49,35 @@ export const TETO_LARGURA_BUSCA = 600;
 /** Piso de largura útil do campo no modo estreito (medido em 375px). */
 export const PISO_LARGURA_BUSCA = 120;
 
+/**
+ * **Altura do campo = altura do botão de envio** (`docs/demanda_cliente_3.md`,
+ * item 9; change `marca-dagua-e-inicio-rodada-3`, design.md D6).
+ *
+ * Medido na app antes da correção: o campo tinha **66 px** e o botão "Enviar
+ * documento" 44. O acionador interno herda o piso de 44 px
+ * (`controlHeightSM`), e a caixa do campo somava a ele o seu preenchimento
+ * vertical e a borda. A caixa passa a ter os 44 px exatos, sem preenchimento
+ * vertical, e o acionador **mantém 44 px** estendendo-se sobre a borda de 1 px
+ * em cima, embaixo e à direita — a área sensível não cai abaixo do piso, que
+ * `sistema-de-design` não deixa relaxar.
+ */
+const ESTILO_CAIXA_DA_BUSCA = {
+  height: ALTURA_MINIMA_ACIONAMENTO,
+  paddingBlock: 0,
+  paddingInlineEnd: 0,
+} as const;
+
+const ESTILO_ACIONADOR_DA_BUSCA = {
+  height: ALTURA_MINIMA_ACIONAMENTO,
+  width: ALTURA_MINIMA_ACIONAMENTO,
+  marginBlock: -1,
+  marginInlineEnd: -1,
+  borderStartStartRadius: 0,
+  borderEndStartRadius: 0,
+  borderStartEndRadius: RAIO_CONTROLE,
+  borderEndEndRadius: RAIO_CONTROLE,
+} as const;
+
 export const APOIO_BUSCA = 'Buscar por nome, código (ex.: PRT-NSP-001) ou palavra-chave';
 
 export function BuscaNoCabecalho() {
@@ -67,7 +97,12 @@ export function BuscaNoCabecalho() {
       allowClear
       placeholder={APOIO_BUSCA}
       aria-label="Buscar documentos"
-      style={{ flex: 1, maxWidth: TETO_LARGURA_BUSCA, minWidth: isNarrow ? PISO_LARGURA_BUSCA : 0 }}
+      style={{
+        ...ESTILO_CAIXA_DA_BUSCA,
+        flex: 1,
+        maxWidth: TETO_LARGURA_BUSCA,
+        minWidth: isNarrow ? PISO_LARGURA_BUSCA : 0,
+      }}
       value={termo}
       onChange={(e) => setTermo(e.target.value)}
       onPressEnter={handleSearch}
@@ -77,6 +112,7 @@ export function BuscaNoCabecalho() {
           size="small"
           aria-label="Buscar"
           icon={<IconeBuscar />}
+          style={ESTILO_ACIONADOR_DA_BUSCA}
           onClick={handleSearch}
         />
       }

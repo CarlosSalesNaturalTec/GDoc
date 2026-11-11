@@ -1,7 +1,13 @@
 import { Card, Col, Empty, Result, Row, Space, Spin, Typography } from 'antd';
 import { Link } from 'react-router-dom';
-import { IconePasta } from '../app/icons';
-import { paleta } from '../app/theme';
+import { IconeIniciarTour, IconePasta } from '../app/icons';
+import {
+  ALTURA_MINIMA_ACIONAMENTO,
+  CLASSE_GRADE_ATALHOS,
+  paleta,
+  tonsDeAtalho,
+  tonsDeEstado,
+} from '../app/theme';
 import { useSession } from '../auth/session-context';
 import { funcaoExibida, nomeExibido, saudacao, setorExibido } from '../shell/identidade';
 import { NOME_ACESSIVEL_MANUAL } from '../shell/manual';
@@ -41,6 +47,28 @@ const ESTILO_DO_LINK_DE_CARTAO = {
  */
 const ESTILOS_DE_CARTAO_COM_LINK = { title: { whiteSpace: 'normal' } } as const;
 
+/**
+ * Convite ao tour em **cápsula** azul-clara com ícone de play
+ * (`docs/demanda_cliente_3.md`, item 8; change `marca-dagua-e-inicio-rodada-3`,
+ * design.md D5). Continua link, com o mesmo destino e o texto como nome
+ * acessível; o ícone é `aria-hidden` (módulo único de ícones). `azulLink`
+ * sobre o fundo informativo mede 7,05:1 (`contraste.test.ts`); a altura mínima
+ * é o piso de acionamento, e o anel de foco é o `a:focus-visible` global.
+ */
+const ESTILO_DO_CONVITE_AO_TOUR = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 8,
+  minHeight: ALTURA_MINIMA_ACIONAMENTO,
+  padding: '0 16px',
+  borderRadius: 999,
+  background: tonsDeEstado.informativo.fundo,
+  border: `1px solid ${tonsDeEstado.informativo.borda}`,
+  color: paleta.azulLink,
+  fontWeight: 600,
+  textDecoration: 'none',
+} as const;
+
 /** Linhas de recentes na tela inicial (demanda nº 2, seção 1.3). */
 const LINHAS_DE_RECENTES_NO_INICIO = 5;
 
@@ -54,35 +82,37 @@ const LINHAS_DE_RECENTES_NO_INICIO = 5;
  */
 function CartaoDeAtalho({ atalho }: { atalho: Atalho }) {
   const Icone = atalho.icone;
+  const tom = tonsDeAtalho[atalho.tom];
   const conteudo = (
     <Card size="small" hoverable style={{ height: '100%' }}>
-      <Space align="start" size="middle">
-        <span
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: 40,
-            height: 40,
-            borderRadius: 8,
-            // Fundo translúcido do próprio tom do ícone — decorativo; o
-            // ícone é `aria-hidden` e a informação está no rótulo.
-            background: `${atalho.cor}1A`,
-            color: atalho.cor,
-            flex: 'none',
-          }}
-        >
-          <Icone style={{ fontSize: 20 }} />
-        </span>
-        <div>
-          <Typography.Text strong style={{ color: paleta.azulLink }}>
-            {atalho.rotulo}
-          </Typography.Text>
-          <div>
-            <Typography.Text type="secondary">{atalho.descricao}</Typography.Text>
-          </div>
-        </div>
-      </Space>
+      {/* Ícone **acima** do texto, como no mockup da demanda nº 3 (item 6):
+          ao lado, ele tirava 56 px da linha e a descrição quebrava em 1366 px
+          (design.md D3 de `marca-dagua-e-inicio-rodada-3`). */}
+      <span
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: 40,
+          height: 40,
+          borderRadius: 8,
+          // Quadrado tingido do próprio tom do ícone — decorativo; o ícone é
+          // `aria-hidden` e a informação está no rótulo.
+          background: tom.fundo,
+          color: tom.icone,
+          marginBottom: 12,
+        }}
+      >
+        <Icone style={{ fontSize: 20 }} />
+      </span>
+      <div>
+        <Typography.Text strong style={{ color: paleta.azulLink }}>
+          {atalho.rotulo}
+        </Typography.Text>
+      </div>
+      <div>
+        <Typography.Text type="secondary">{atalho.descricao}</Typography.Text>
+      </div>
     </Card>
   );
 
@@ -143,116 +173,137 @@ export function InicioPage() {
     .join(' · ');
 
   return (
-    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 24, alignItems: 'flex-start' }}>
-      {/* Conteúdo principal e coluna direita sem media query (design.md D8):
-          lado a lado o espaço livre vai quase todo para o principal (999:1) e
-          a coluna fica em ~340px; quando os dois não cabem, a coluna desce e
-          ocupa a largura inteira. `minWidth: 0` deixa a tabela rolar dentro
-          do próprio contêiner em vez de alargar a página. */}
-      <div style={{ flex: '999 1 480px', minWidth: 0 }}>
-        <Space direction="vertical" size="large" style={{ display: 'flex' }}>
-          <div>
-            {/* Convite ao tour à direita da saudação, só para quem ainda não
-                o fez (change `tour-guiado`, design.md D6) — refazer continua no
-                menu, em AJUDA. */}
-            <div
-              style={{
-                display: 'flex',
-                flexWrap: 'wrap',
-                alignItems: 'baseline',
-                justifyContent: 'space-between',
-                columnGap: 16,
-              }}
-            >
+    <>
+      <Space direction="vertical" size="large" style={{ display: 'flex' }}>
+        {/* Duas faixas (change `marca-dagua-e-inicio-rodada-3`, design.md D2):
+          saudação, convite e atalhos ocupam a **largura inteira** da área, como
+          no mockup da demanda nº 3; a divisão entre conteúdo principal e coluna
+          direita começa abaixo deles. */}
+        <div>
+          {/* Convite ao tour à direita da saudação, só para quem ainda não o fez
+            (change `tour-guiado`, design.md D6) — refazer continua no menu, em
+            AJUDA. Alinhado ao centro: a cápsula tem altura própria. */}
+          <div
+            style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '8px 16px',
+            }}
+          >
+            <div>
               <Typography.Title level={3} style={{ marginBottom: 4 }}>
                 {saudacao(nomeExibido(identity))}
               </Typography.Title>
-              {!identity.tourCompleted && (
-                <Link to={DESTINO_PEDIDO_DE_TOUR}>Primeira vez aqui? Faça o tour de 2 minutos</Link>
-              )}
+              <Typography.Text type="secondary">
+                {contexto}
+                {novos.data && ` — ${textoDeNovos(novos.data)}`}
+              </Typography.Text>
             </div>
-            <Typography.Text type="secondary">
-              {contexto}
-              {novos.data && ` — ${textoDeNovos(novos.data)}`}
-            </Typography.Text>
-          </div>
-
-          {/* Cartões soltos, sem título de seção (demanda nº 2, seção 1.3). */}
-          <Row gutter={[16, 16]} data-tour="atalhos">
-            {atalhos.map((atalho) => (
-              <Col key={atalho.chave} xs={24} sm={12} xxl={6}>
-                <CartaoDeAtalho atalho={atalho} />
-              </Col>
-            ))}
-          </Row>
-
-          <Card
-            data-tour="pastas"
-            title="Pastas da unidade"
-            extra={<Link to="/pastas">Ver todas as pastas</Link>}
-            styles={ESTILOS_DE_CARTAO_COM_LINK}
-          >
-            {pastas.isLoading && <Spin style={{ display: 'block', margin: '24px auto' }} />}
-            {pastas.isError && (
-              <Result
-                status="error"
-                title="Não foi possível carregar as pastas"
-                subTitle="Verifique sua conexão e tente novamente."
-              />
+            {!identity.tourCompleted && (
+              <Link
+                to={DESTINO_PEDIDO_DE_TOUR}
+                data-convite-ao-tour=""
+                style={ESTILO_DO_CONVITE_AO_TOUR}
+              >
+                <IconeIniciarTour style={{ fontSize: 18 }} />
+                Primeira vez aqui? Faça o tour de 2 minutos
+              </Link>
             )}
-            {!pastas.isLoading && !pastas.isError && pastas.data && (
-              <>
-                {pastas.data.folders.length === 0 ? (
-                  // Ausência orientada, nunca área vazia sem explicação.
-                  <Empty description="Nenhuma pasta disponível para você no momento" />
-                ) : (
-                  <Row gutter={[16, 16]}>
-                    {pastas.data.folders.map((pasta) => (
-                      <Col key={pasta.id} xs={24} sm={12} lg={8}>
-                        {/* Mesma forma dos atalhos: as áreas de cartão da tela
+          </div>
+        </div>
+
+        {/* Cartões soltos, sem título de seção (demanda nº 2, seção 1.3). A grade
+          decide as colunas pela largura **da própria área** (container query
+          em `ESTILO_GLOBAL`), não da janela — quatro numa linha quando cabem
+          (demanda nº 3, item 6; design.md D3). */}
+        <div className={CLASSE_GRADE_ATALHOS} data-tour="atalhos">
+          <div>
+            {atalhos.map((atalho) => (
+              <CartaoDeAtalho key={atalho.chave} atalho={atalho} />
+            ))}
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 24, alignItems: 'flex-start' }}>
+          {/* Conteúdo principal e coluna direita sem media query (design.md D8 de
+            `conteudo-da-tela-inicio`): lado a lado o espaço livre vai quase todo
+            para o principal (999:1) e a coluna fica em ~340px; quando os dois
+            não cabem, a coluna desce e ocupa a largura inteira. `minWidth: 0`
+            deixa a tabela rolar dentro do próprio contêiner em vez de alargar a
+            página. */}
+          <div data-conteudo-principal="" style={{ flex: '999 1 480px', minWidth: 0 }}>
+            <Space direction="vertical" size="large" style={{ display: 'flex' }}>
+              <Card
+                data-tour="pastas"
+                title="Pastas da unidade"
+                extra={<Link to="/pastas">Ver todas as pastas</Link>}
+                styles={ESTILOS_DE_CARTAO_COM_LINK}
+              >
+                {pastas.isLoading && <Spin style={{ display: 'block', margin: '24px auto' }} />}
+                {pastas.isError && (
+                  <Result
+                    status="error"
+                    title="Não foi possível carregar as pastas"
+                    subTitle="Verifique sua conexão e tente novamente."
+                  />
+                )}
+                {!pastas.isLoading && !pastas.isError && pastas.data && (
+                  <>
+                    {pastas.data.folders.length === 0 ? (
+                      // Ausência orientada, nunca área vazia sem explicação.
+                      <Empty description="Nenhuma pasta disponível para você no momento" />
+                    ) : (
+                      <Row gutter={[16, 16]}>
+                        {pastas.data.folders.map((pasta) => (
+                          <Col key={pasta.id} xs={24} sm={12} lg={8}>
+                            {/* Mesma forma dos atalhos: as áreas de cartão da tela
                             têm uma única regra de clique. Sem `aria-label` — o
                             ícone é decorativo e o nome acessível do link é o
                             nome da pasta. */}
-                        <Link to={`/pastas/${pasta.id}`} style={ESTILO_DO_LINK_DE_CARTAO}>
-                          <Card size="small" hoverable style={{ height: '100%' }}>
-                            <Space>
-                              <IconePasta style={{ color: paleta.azulLink }} />
-                              <Typography.Text style={{ color: paleta.azulLink }}>
-                                {pasta.name}
-                              </Typography.Text>
-                            </Space>
-                          </Card>
-                        </Link>
-                      </Col>
-                    ))}
-                  </Row>
+                            <Link to={`/pastas/${pasta.id}`} style={ESTILO_DO_LINK_DE_CARTAO}>
+                              <Card size="small" hoverable style={{ height: '100%' }}>
+                                <Space>
+                                  <IconePasta style={{ color: paleta.azulLink }} />
+                                  <Typography.Text style={{ color: paleta.azulLink }}>
+                                    {pasta.name}
+                                  </Typography.Text>
+                                </Space>
+                              </Card>
+                            </Link>
+                          </Col>
+                        ))}
+                      </Row>
+                    )}
+                  </>
                 )}
-              </>
-            )}
-          </Card>
+              </Card>
 
-          <Card
-            data-tour="recentes"
-            title="Documentos recentes"
-            extra={<Link to="/recentes">Ver histórico completo</Link>}
-            styles={ESTILOS_DE_CARTAO_COM_LINK}
+              <Card
+                data-tour="recentes"
+                title="Documentos recentes"
+                extra={<Link to="/recentes">Ver histórico completo</Link>}
+                styles={ESTILOS_DE_CARTAO_COM_LINK}
+              >
+                <TabelaDeRecentes limite={LINHAS_DE_RECENTES_NO_INICIO} />
+              </Card>
+            </Space>
+          </div>
+
+          <aside
+            aria-label="Leitura obrigatória e avisos"
+            data-tour="coluna-direita"
+            style={{ flex: '1 1 340px', minWidth: 0 }}
           >
-            <TabelaDeRecentes limite={LINHAS_DE_RECENTES_NO_INICIO} />
-          </Card>
-        </Space>
-      </div>
-
-      <aside
-        aria-label="Leitura obrigatória e avisos"
-        data-tour="coluna-direita"
-        style={{ flex: '1 1 340px', minWidth: 0 }}
-      >
-        <Space direction="vertical" size="large" style={{ display: 'flex' }}>
-          <CartaoDeLeituras />
-          <CartaoDeAvisos />
-        </Space>
-      </aside>
+            <Space direction="vertical" size="large" style={{ display: 'flex' }}>
+              <CartaoDeLeituras />
+              <CartaoDeAvisos />
+            </Space>
+          </aside>
+        </div>
+      </Space>
       <TourGuiado />
-    </div>
+    </>
   );
 }

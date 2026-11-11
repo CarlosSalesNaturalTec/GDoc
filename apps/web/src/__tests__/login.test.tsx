@@ -107,6 +107,21 @@ describe('Identidade visual na tela de login (identidade-visual)', () => {
     expect(screen.getByRole('heading', { name: 'PapelHub' })).toBeInTheDocument();
   });
 
+  it("a marca d'água da área principal não aparece no login (só no shell autenticado)", async () => {
+    mockFetch({
+      ...ROTAS_DA_TELA_INICIAL,
+      'GET /auth/me': { status: 401 },
+      'GET /auth/public-config': {
+        status: 200,
+        body: { appName: 'PapelHub', clientName: 'SETES', manualUrl: '' },
+      },
+    });
+    renderApp(['/login']);
+
+    await screen.findByText('SETES');
+    expect(document.querySelector('[data-marca-dagua-area-principal]')).toBeNull();
+  });
+
   it('sem identificação de cliente configurada, nenhum subtítulo aparece e o login segue funcional', async () => {
     mockFetch({
       ...ROTAS_DA_TELA_INICIAL,
