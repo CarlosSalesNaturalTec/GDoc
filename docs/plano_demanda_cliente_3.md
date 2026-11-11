@@ -39,7 +39,7 @@ Legenda: `pendente` · `proposta` · `em andamento` · `entregue`.
 | :-- | :--- | :--- | :--- | :--- | :--- |
 | A | Identidade ISETES e menu compacto | 1, 2, 3, 4 | **entregue** | — | `identidade-isetes-e-menu-compacto` |
 | B | Marca d'água e Início (rodada 3) | 5, 6, 8, 9, 10, 11, 12 | **entregue** | A (ativo do símbolo) | `marca-dagua-e-inicio-rodada-3` |
-| C | Contagem de documentos nas pastas | 7 | pendente | — | — |
+| C | Contagem de documentos nas pastas | 7 | **proposta** | — | `contagem-de-documentos-nas-pastas` |
 
 Ordem sugerida: **A → B → C**. B só depende de A pelo ativo do símbolo em
 `apps/web/public/` e por mexer no mesmo `AppShell.tsx` (A no `Sider`, B no
