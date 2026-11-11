@@ -5,7 +5,7 @@ import type { FileSummaryResponse, RecentDocumentResponse } from '@gdoc/shared';
 import { EtiquetaDeSituacao } from '../app/EtiquetaDeSituacao';
 import { RotuloDeTipoDocumental } from '../app/RotuloDeTipoDocumental';
 import { useSession } from '../auth/session-context';
-import { AUSENTE, formatarRevisao } from '../shell/document-control-labels';
+import { AUSENTE, formatarRevisao, tituloDoDocumento } from '../shell/document-control-labels';
 import { formatDate } from '../navegacao/format';
 import { PreviewModal } from '../visualizacao/PreviewModal';
 import { useRecentDocuments } from './queries';
@@ -47,12 +47,24 @@ export function TabelaDeRecentes({ limite }: { limite?: number }) {
       key: 'name',
       render: (_, doc) => (
         <div>
+          {/* Título limpo em destaque (demanda nº 3, item 12; design.md D9 de
+              `marca-dagua-e-inicio-rodada-3`): sem extensão e sem o prefixo
+              igual ao código. O nome íntegro do arquivo fica no nome acessível
+              e na dica — nada se perde. */}
           <Button
             type="link"
-            style={{ padding: 0, height: 'auto' }}
+            title={doc.fileName}
+            aria-label={doc.fileName}
+            style={{
+              padding: 0,
+              height: 'auto',
+              fontWeight: 600,
+              whiteSpace: 'normal',
+              textAlign: 'start',
+            }}
             onClick={() => setPreviewingFile(doc)}
           >
-            {doc.fileName}
+            {tituloDoDocumento(doc.fileName, doc.documentCode)}
           </Button>
           {doc.documentCode && (
             <div>

@@ -77,7 +77,7 @@ describe('Avisos de leitura obrigatória no sino (notificacoes)', () => {
     mockFetch(rotas([ATRASO_DA_EQUIPE, ATRASO, NOVA]));
     renderApp(['/recentes']);
 
-    await userEvent.click(await screen.findByRole('button', { name: 'Notificações' }));
+    await userEvent.click(await screen.findByRole('button', { name: /^Notificações/ }));
     const equipe = await screen.findByText(
       '3 pessoas da sua equipe estão com a leitura obrigatória de PRT-NSP-001 - Higienização das mãos, Rev. 02 atrasada (prazo 01/11/2026): Ana Leitora (CME), Bruno Leitor e mais 1.',
     );

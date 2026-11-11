@@ -26,14 +26,17 @@ import { useSession } from '../auth/session-context';
 import { useNarrowMode } from '../app/responsive';
 import {
   ALTURA_MINIMA_ACIONAMENTO,
+  CLASSE_SOMENTE_LEITOR,
   DEGRADE_NAVEGACAO,
   LARGURA_NAVEGACAO,
+  LARGURA_NAVEGACAO_COLAPSADA,
   paleta,
 } from '../app/theme';
 import { DESTINO_PEDIDO_DE_ENVIO } from '../navegacao/pedido-de-envio';
 import { MarcaDoProduto } from './MarcaDoProduto';
 import { BrandMark } from './BrandMark';
 import { MarcaDaguaDaNavegacao } from './MarcaDaguaDaNavegacao';
+import { MarcaDaguaDaAreaPrincipal } from './MarcaDaguaDaAreaPrincipal';
 import { CartaoDoUsuario } from './CartaoDoUsuario';
 import { NotificationCenter } from './NotificationCenter';
 import { BuscaNoCabecalho } from './BuscaNoCabecalho';
@@ -52,6 +55,16 @@ const MANUAL_KEY = 'manual-do-usuario';
  * corrente; e, por navegar, fecha o painel sobreposto como um destino.
  */
 const TOUR_KEY = 'tour-guiado';
+
+/**
+ * Rótulo de grupo da navegação. Colapsada, a coluna de 80 px cortava o texto
+ * com reticência ("NAVEGAÇ…"); ali o rótulo fica só para tecnologia assistiva
+ * e um traço (`ESTILO_GLOBAL`) separa os grupos (change
+ * `marca-dagua-e-inicio-rodada-3`, design.md D10).
+ */
+function rotuloDeGrupo(texto: string, colapsada: boolean) {
+  return colapsada ? <span className={CLASSE_SOMENTE_LEITOR}>{texto}</span> : texto;
+}
 
 /** Shell de layout (design.md D6): itens de administração só aparecem para `unit_admin`/`global_admin`. */
 export function AppShell() {
@@ -87,6 +100,8 @@ export function AppShell() {
   // paralelas e exigiriam entregar `selectedKeys` a ambos, com o risco de dois
   // itens selecionados ao mesmo tempo. O rótulo de grupo do design system já
   // não é acionável (`role="presentation"`) e não participa de `selectedKeys`.
+  // Só a coluna lateral colapsa; o painel sobreposto é sempre expandido.
+  const rotulosColapsados = collapsed && !isNarrow;
   const items: MenuProps['items'] = useMemo(() => {
     // Conjunto de destinos internos (capability `web-shell-e-auth`): tela
     // inicial, documentos, recentes e lixeira, mais os destinos de
@@ -175,7 +190,12 @@ export function AppShell() {
     ];
 
     const grupos: MenuProps['items'] = [
-      { key: 'grupo-navegacao', type: 'group', label: 'NAVEGAÇÃO', children: destinos },
+      {
+        key: 'grupo-navegacao',
+        type: 'group',
+        label: rotuloDeGrupo('NAVEGAÇÃO', rotulosColapsados),
+        children: destinos,
+      },
     ];
 
     // Grupo AJUDA (change `tour-guiado`, design.md D7): o tour guiado é
@@ -209,10 +229,15 @@ export function AppShell() {
       title: 'Tour guiado',
       label: <Link to={DESTINO_PEDIDO_DE_TOUR}>Tour guiado</Link>,
     });
-    grupos.push({ key: 'grupo-ajuda', type: 'group', label: 'AJUDA', children: ajuda });
+    grupos.push({
+      key: 'grupo-ajuda',
+      type: 'group',
+      label: rotuloDeGrupo('AJUDA', rotulosColapsados),
+      children: ajuda,
+    });
 
     return grupos;
-  }, [isAdmin, isGlobalAdmin, publicConfig.manualUrl, leiturasAbertas]);
+  }, [isAdmin, isGlobalAdmin, publicConfig.manualUrl, leiturasAbertas, rotulosColapsados]);
 
   // Painel sobreposto (design.md D2): tocar um destino interno navega e
   // fecha o painel; tocar o manual abre outra aba e não fecha — não há
@@ -343,6 +368,7 @@ export function AppShell() {
           onCollapse={setCollapsed}
           trigger={null}
           width={LARGURA_NAVEGACAO}
+          collapsedWidth={LARGURA_NAVEGACAO_COLAPSADA}
           /* A coluna é **fixa à viewport**, não ao documento. Sem isto ela
              cresce junto com o conteúdo da página, e o cartão do rodapé vai
              parar abaixo da dobra — a medição na app o encontrou em y=977
@@ -434,7 +460,13 @@ export function AppShell() {
             )}
           </Space>
         </Header>
-        <Content style={{ margin: isNarrow ? 12 : 24 }}>
+        {/* Marca d'água da área principal, em todas as telas do shell
+            (change `marca-dagua-e-inicio-rodada-3`, design.md D1): camada fixa
+            **atrás** do conteúdo, que sobe para `z-index: 1`. */}
+        <MarcaDaguaDaAreaPrincipal
+          esquerda={isNarrow ? 0 : collapsed ? LARGURA_NAVEGACAO_COLAPSADA : LARGURA_NAVEGACAO}
+        />
+        <Content style={{ margin: isNarrow ? 12 : 24, position: 'relative', zIndex: 1 }}>
           <Outlet />
         </Content>
       </Layout>

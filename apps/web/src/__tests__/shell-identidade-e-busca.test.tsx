@@ -6,6 +6,7 @@ import { mockFetch, ROTAS_DA_TELA_INICIAL } from './mock-fetch';
 import { renderApp } from './render-app';
 import { mockViewportWidth, NARROW_VIEWPORT, WIDE_VIEWPORT } from './viewport';
 import { APOIO_BUSCA, PISO_LARGURA_BUSCA, TETO_LARGURA_BUSCA } from '../shell/BuscaNoCabecalho';
+import { ALTURA_MINIMA_ACIONAMENTO } from '../app/theme';
 
 const IDENTIFICADOR = '66e1b0f2-0000-4000-8000-000000000001';
 
@@ -423,6 +424,25 @@ describe('Busca fora da navegação e permanente na barra superior (web-busca)',
     expect(envoltorio.style.maxWidth).toBe(`${TETO_LARGURA_BUSCA}px`);
     expect(envoltorio.style.flex).toContain('1');
     expect(envoltorio.style.width).toBe('');
+  });
+
+  // Change `marca-dagua-e-inicio-rodada-3`, design.md D6: medido na app, o
+  // campo tinha 66 px e o botão de envio 44. O jsdom não tem layout; trava-se
+  // a decisão — caixa de 44 px sem preenchimento vertical e acionador com os
+  // mesmos 44 px, estendido sobre a borda.
+  it('o campo tem a altura da ação de envio, sem baixar o acionador do piso de 44 px', async () => {
+    mockViewportWidth(WIDE_VIEWPORT);
+    mockFetch({ ...ROTAS_DA_TELA_INICIAL, 'GET /auth/me': { status: 200, body: COLABORADOR } });
+
+    renderApp(['/']);
+    const campo = await screen.findByRole('searchbox', { name: 'Buscar documentos' });
+    const envoltorio = campo.closest('.ant-input-affix-wrapper') as HTMLElement;
+
+    expect(envoltorio.style.height).toBe(`${ALTURA_MINIMA_ACIONAMENTO}px`);
+    expect(envoltorio.style.paddingBlock).toBe('0px');
+    const acionador = within(envoltorio).getByRole('button', { name: 'Buscar' });
+    expect(acionador.style.height).toBe(`${ALTURA_MINIMA_ACIONAMENTO}px`);
+    expect(acionador.style.marginBlock).toBe('-1px');
   });
 
   it('digitar no campo não dispara consulta ao servidor — o acionamento permanece explícito', async () => {

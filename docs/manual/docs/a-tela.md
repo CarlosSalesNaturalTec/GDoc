@@ -25,18 +25,25 @@ clique, a "quem sou, onde estou, o que posso fazer e o que mudou":
   linha continua aparecendo.
   Cargo e setor são dados do cadastro: quem os ajusta é quem administra a sua
   unidade, e **nenhum dos dois altera as suas permissões**.
-- **Primeira vez aqui? Faça o tour de 2 minutos**: à direita da saudação,
-  enquanto você ainda não fez o tour guiado. Depois de feito (ou fechado), o
+- **Primeira vez aqui? Faça o tour de 2 minutos**: um botão azul-claro com o
+  ícone de play, à direita da saudação, enquanto você ainda não fez o tour
+  guiado. Depois de feito (ou fechado), o
   convite some — e o tour continua no menu, em **AJUDA → Tour guiado**. Veja
   [Tour guiado](#tour-guiado).
-- **Quatro atalhos** para as ações do dia a dia, cada um com ícone, título e
-  descrição:
-    - **Enviar documento** leva direto à área de envio, já pronta para uso,
-      quando você pode enviar ali;
-    - **Nova pasta** abre o formulário de nova pasta na raiz da sua unidade;
-    - **Buscar documento** abre a tela de busca com o campo já pronto para
-      digitar;
-    - **Manual do usuário** abre este manual numa nova aba.
+- **Quatro atalhos** para as ações do dia a dia, logo abaixo da saudação e
+  ocupando a largura da tela. Cada um tem um ícone colorido, o título e uma
+  descrição curta:
+    - **Enviar documento** ("Arraste ou selecione o arquivo") leva direto à
+      área de envio, já pronta para uso, quando você pode enviar ali;
+    - **Nova pasta** ("Organize por setor ou tema") abre o formulário de nova
+      pasta na raiz da sua unidade;
+    - **Buscar documento** ("Por nome ou código") abre a tela de busca com o
+      campo já pronto para digitar;
+    - **Manual do usuário** ("Passo a passo de cada tela") abre este manual
+      numa nova aba.
+  Num computador, os quatro ficam lado a lado, numa linha só; quando o espaço
+  não comporta (janela mais estreita, tablet), passam a duas colunas, e no
+  celular ficam um abaixo do outro.
   Os atalhos de administração (Colaboradores, Painel, Unidades) e a Lixeira não
   ficam mais na tela inicial — continuam no menu lateral.
 - **Pastas da unidade**: cartões para as pastas de primeiro nível da sua
@@ -46,9 +53,13 @@ clique, a "quem sou, onde estou, o que posso fazer e o que mudou":
   ficar vazia.
 - **Documentos recentes**: os **cinco** documentos ao seu alcance publicados,
   substituídos, renomeados ou movidos mais recentemente, do mais novo para o
-  mais antigo, com o **tipo**, o **nome** (e o código logo abaixo), a
-  **unidade**, a **revisão**, a **situação** e a data em que foi
-  **atualizado**. Clique no nome para visualizar o documento. **Ver histórico
+  mais antigo, com o **tipo** (a sigla, como POP ou PRT, numa etiqueta
+  colorida), o **título** do documento em destaque (e o código logo abaixo),
+  a **unidade**, a **revisão**, a **situação** e a data em que foi
+  **atualizado**. O título aparece sem a extensão do arquivo e sem o código
+  repetido no começo — "POP-ASS-004 - Emissão da declaração de óbito.pdf"
+  aparece como **Emissão da declaração de óbito**; o nome completo do arquivo
+  aparece ao apontar o título. Clique no título para visualizar o documento. **Ver histórico
   completo** leva ao item **Recentes** do menu, com todo o recorte.
 - **Leitura obrigatória** e **Avisos**: dois cartões numa coluna à direita (ou
   ao final da tela, no celular). O cartão **Leitura obrigatória** lista os
@@ -74,6 +85,12 @@ clique, a "quem sou, onde estou, o que posso fazer e o que mudou":
     seja o seu perfil), e um documento sai da lista assim que a permissão
     temporária que o liberava vence. Apenas **alterações** entram nos recentes:
     visualizar ou baixar um documento não o coloca ali.
+
+!!! note "O símbolo claro à direita é só decoração"
+    Em todas as telas, o símbolo do ISETES aparece bem clarinho, como marca
+    d'água, no lado direito da área principal, atrás do conteúdo. Ele não é
+    clicável, não atrapalha a leitura e clicar sobre ele aciona normalmente o
+    que estiver por cima.
 
 ## Tour guiado
 
@@ -134,7 +151,8 @@ estava — é o único item que leva para fora da aplicação.
 
 Você pode **recolher** o menu pelo controle no **topo** da coluna, ao lado da
 logo, para ganhar largura: ficam só o símbolo do ISETES, os ícones e o seu
-avatar, e o nome de cada item aparece ao apontá-lo. O mesmo controle, logo
+avatar, e o nome de cada item aparece ao apontá-lo. Os títulos dos grupos dão
+lugar a um traço que separa NAVEGAÇÃO de AJUDA. O mesmo controle, logo
 abaixo do símbolo, expande o menu de novo.
 
 ## Seu cartão no pé do menu
@@ -173,7 +191,8 @@ A barra no alto de toda tela reúne, da esquerda para a direita:
 
 À esquerda da barra, em toda tela, há o campo **Buscar por nome, código (ex.:
 PRT-NSP-001) ou palavra-chave**. Digite o termo e pressione Enter (ou clique na
-lupa, dentro do próprio campo): você vai para a tela de resultados com o termo
+lupa, dentro do próprio campo, que tem a mesma altura do botão **Enviar
+documento**): você vai para a tela de resultados com o termo
 **já aplicado**, sem redigitar. O campo não procura enquanto você digita — a
 busca acontece só quando você a aciona —, e na tela de resultados você refina
 por tipo, autor e período. Ver [Buscar e filtrar](colaborador/buscar.md).
@@ -181,8 +200,8 @@ por tipo, autor e período. Ver [Buscar e filtrar](colaborador/buscar.md).
 ## Sino de notificações
 
 Na barra superior, entre o botão de envio e o de Ajuda, fica o **sino de
-notificações**. Um número sobre o sino indica quantas notificações você ainda
-não leu — sem nenhuma pendente, o sino aparece sem número. Clique nele para ver
+notificações**. Um número em **vermelho** sobre o sino indica quantas
+notificações você ainda não leu — sem nenhuma pendente, o sino aparece sem número. Clique nele para ver
 a lista — por exemplo, avisos de que você recebeu um acesso temporário ou de
 que ele está prestes a vencer, ou de uma **leitura obrigatória** nova ou
 atrasada (ver [Leitura obrigatória](colaborador/leitura-obrigatoria.md#avisos)). Abrir uma notificação a marca como lida, mas ela

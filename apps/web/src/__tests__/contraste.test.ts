@@ -13,6 +13,7 @@ import {
   TAMANHO_MINIMO_TEXTO,
   paleta,
   theme,
+  tonsDeAtalho,
   tonsDeEstado,
   tonsDeTipoDocumental,
 } from '../app/theme';
@@ -22,6 +23,10 @@ import {
   COR_MAIS_CLARA_DO_SIMBOLO,
   OPACIDADE_MARCA_DAGUA_NAVEGACAO,
 } from '../shell/MarcaDaguaDaNavegacao';
+import {
+  COR_MAIS_ESCURA_DO_SIMBOLO,
+  OPACIDADE_MARCA_DAGUA_AREA_PRINCIPAL,
+} from '../shell/MarcaDaguaDaAreaPrincipal';
 
 describe('Razão de contraste (sistema-de-design, apuração por cálculo)', () => {
   it('é 21:1 entre preto e branco e 1:1 entre a cor e ela mesma', () => {
@@ -293,5 +298,48 @@ describe('Orçamento de altura da navegação (identidade-isetes-e-menu-compacto
     const menu = theme.components?.Menu;
     expect(menu?.itemHeight).toBe(ALTURA_MINIMA_ACIONAMENTO);
     expect(menu?.itemMarginBlock).toBe(0);
+  });
+});
+
+describe("Marca d'água da área principal (marca-dagua-e-inicio-rodada-3, design.md D1)", () => {
+  // Fundo claro: o símbolo **escurece** o fundo, então o pior caso é o pixel
+  // mais escuro do símbolo sobre a superfície, contra os textos que aparecem
+  // direto sobre ela.
+  const fundoSobAMarca = (opacidade: number) =>
+    misturar(COR_MAIS_ESCURA_DO_SIMBOLO, paleta.superficie, opacidade);
+  const textos = [paleta.textoApoio, paleta.texto, paleta.azulLink, paleta.verdeAcao];
+
+  it('é a opacidade pedida pelo cliente (6%)', () => {
+    expect(OPACIDADE_MARCA_DAGUA_AREA_PRINCIPAL).toBe(0.06);
+  });
+
+  it('na opacidade adotada, todo texto sobre o fundo mantém o piso de 4,5:1', () => {
+    const fundo = fundoSobAMarca(OPACIDADE_MARCA_DAGUA_AREA_PRINCIPAL);
+    for (const texto of textos) {
+      expect(atendeAoPiso(texto, fundo, PISO_CONTRASTE_TEXTO)).toBe(true);
+    }
+  });
+
+  it('a 10% o verde de ação reprovaria — o teto não é arbitrário', () => {
+    expect(atendeAoPiso(paleta.verdeAcao, fundoSobAMarca(0.1), PISO_CONTRASTE_TEXTO)).toBe(false);
+  });
+});
+
+describe('Tokens da rodada 3 (marca-dagua-e-inicio-rodada-3, design.md D3, D5 e D7)', () => {
+  it('o número branco sobre o vermelho do sino atende ao piso; o padrão do design system não', () => {
+    expect(atendeAoPiso(paleta.branco, paleta.vermelhoIndicador, PISO_CONTRASTE_TEXTO)).toBe(true);
+    expect(atendeAoPiso(paleta.branco, '#FF4D4F', PISO_CONTRASTE_TEXTO)).toBe(false);
+  });
+
+  it('cada ícone de atalho se distingue do seu quadrado tingido (elemento gráfico, 3:1)', () => {
+    for (const { icone, fundo } of Object.values(tonsDeAtalho)) {
+      expect(atendeAoPiso(icone, fundo, PISO_CONTRASTE_CONTROLE)).toBe(true);
+    }
+  });
+
+  it('o texto do convite ao tour atende ao piso sobre o fundo azul-claro', () => {
+    expect(
+      atendeAoPiso(paleta.azulLink, tonsDeEstado.informativo.fundo, PISO_CONTRASTE_TEXTO),
+    ).toBe(true);
   });
 });
