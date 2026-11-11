@@ -50,7 +50,12 @@ clique, a "quem sou, onde estou, o que posso fazer e o que mudou":
   unidade que você pode abrir; um clique no cartão abre a pasta, e **Ver todas
   as pastas** leva a **Documentos**. Pasta a que você não tem acesso não
   aparece nem é mencionada. Se não houver nenhuma, a área diz isso em vez de
-  ficar vazia.
+  ficar vazia. Cada cartão traz o ícone da pasta colorido e, abaixo do nome,
+  **quantos documentos você encontra ao abrir a pasta** ("12 documentos", "1
+  documento", "Nenhum documento"). A contagem considera só os documentos que
+  você pode ver e que estão **diretamente** na pasta — documentos guardados em
+  subpastas não entram, e uma pasta que só tem subpastas aparece como "Nenhum
+  documento".
 - **Documentos recentes**: os **cinco** documentos ao seu alcance publicados,
   substituídos, renomeados ou movidos mais recentemente, do mais novo para o
   mais antigo, com o **tipo** (a sigla, como POP ou PRT, numa etiqueta

@@ -183,11 +183,28 @@ export const fileSummaryResponseSchema: z.ZodType<FileSummaryResponse> = z.objec
   requiredReading: z.boolean().optional().catch(undefined),
 });
 
+/**
+ * Espelha `FolderListItemResponse`: a subpasta da listagem com a contagem de
+ * documentos diretos (change `contagem-de-documentos-nas-pastas`, design.md
+ * D3). Mesma tolerância de `canEditControl`: API anterior não traz o campo, e
+ * ausência (ou valor inválido) é "contagem desconhecida" — o cartão omite a
+ * linha, nunca a apresenta como zero.
+ */
+const folderListItemResponseSchema = z.object({
+  id: z.string(),
+  unitId: z.string(),
+  ownerId: z.string(),
+  parentId: z.string().nullable(),
+  name: z.string(),
+  createdAt: z.string(),
+  documentCount: z.number().int().nonnegative().optional().catch(undefined),
+});
+
 /** Espelha `FolderContentsResponse` (design.md D8, `web-navegacao`). */
 export const folderContentsResponseSchema: z.ZodType<FolderContentsResponse> = z.object({
   folder: folderResponseSchema.nullable(),
   breadcrumb: z.array(folderResponseSchema),
-  folders: z.array(folderResponseSchema),
+  folders: z.array(folderListItemResponseSchema),
   files: z.array(fileSummaryResponseSchema),
   // Veredito de `upload` resolvido pelo servidor (design.md D10 de
   // `identidade-visual-isetes`). Resolve como `false` quando ausente — uma

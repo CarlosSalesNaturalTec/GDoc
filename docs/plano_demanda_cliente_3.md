@@ -39,7 +39,7 @@ Legenda: `pendente` · `proposta` · `em andamento` · `entregue`.
 | :-- | :--- | :--- | :--- | :--- | :--- |
 | A | Identidade ISETES e menu compacto | 1, 2, 3, 4 | **entregue** | — | `identidade-isetes-e-menu-compacto` |
 | B | Marca d'água e Início (rodada 3) | 5, 6, 8, 9, 10, 11, 12 | **entregue** | A (ativo do símbolo) | `marca-dagua-e-inicio-rodada-3` |
-| C | Contagem de documentos nas pastas | 7 | **proposta** | — | `contagem-de-documentos-nas-pastas` |
+| C | Contagem de documentos nas pastas | 7 | **entregue** | — | `contagem-de-documentos-nas-pastas` |
 
 Ordem sugerida: **A → B → C**. B só depende de A pelo ativo do símbolo em
 `apps/web/public/` e por mexer no mesmo `AppShell.tsx` (A no `Sider`, B no
@@ -168,3 +168,26 @@ grant vigente de `view`), só filhos diretos, fora da lixeira — sem herança,
 fail-closed, como `apps/api/src/lib/access.ts`. Uma contagem não filtrada
 revelaria a existência de itens sem permissão. Teste junto dos de isolamento.
 Front: "N documentos" no cartão e ícone tingido.
+
+**Entregue** (change arquivado em
+`openspec/changes/archive/2026-11-11-contagem-de-documentos-nas-pastas/`).
+Desvios e registros:
+
+- **Contagem nas duas rotas de conteúdo** (raiz e `/folders/:id/contents`),
+  não só na raiz: `listContents` é comum, e o custo é uma consulta agregada
+  indexada. A tabela do explorador não mostra o número.
+- **Mesmo recorte da listagem, por construção:** os fragmentos SQL são os da
+  consulta de arquivos; o teste afirma `documentCount(X)` igual ao número de
+  arquivos de `GET /folders/X/contents` para dono, admin da unidade,
+  colaborador com concessões parciais, quem enviou o pendente e admin global.
+  Os casos de não vazamento ficaram num arquivo próprio,
+  `apps/api/src/__tests__/contagem-documentos-pastas.test.ts`, em vez de
+  espalhados por `isolamento-unidade`/`expiracao-permissoes-acesso`.
+- **`documentCount` opcional no contrato** (`FolderListItemResponse`), como
+  `favoriteFolderIds`: API anterior não o envia, e a SPA omite a linha em vez
+  de mostrar zero.
+- **Pendência a validar com o cliente:** a contagem é de documentos
+  **diretos**; uma pasta que só tem subpastas mostra "Nenhum documento". O
+  mockup ("Governança — 38 documentos") pode estar pressupondo a soma da
+  subárvore. Somar exige decidir antes como tratar documento visível dentro de
+  subpasta não visível (design.md D2 do change).

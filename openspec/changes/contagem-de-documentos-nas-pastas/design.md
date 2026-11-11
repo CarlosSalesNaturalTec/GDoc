@@ -102,15 +102,21 @@ do item invisível decidida antes. Registrado como pendência em
 ```ts
 export interface FolderListItemResponse extends FolderResponse {
   /** Documentos diretos que o solicitante veria ao abrir a pasta. */
-  documentCount: number;
+  documentCount?: number;
 }
 ```
 
 `FolderContentsResponse.folders: FolderListItemResponse[]`. `FolderResponse`
 continua sem o campo — ele é usado na trilha (`breadcrumb`), na pasta corrente,
 na criação, no renomear, no mover e na restauração, onde contagem não tem
-sentido e custaria consulta. Campo **obrigatório** (não `?`): a SPA não precisa
-distinguir "ausente" de zero.
+sentido e custaria consulta.
+
+A API desta versão **sempre** envia o campo, mas ele é **opcional no
+contrato**, no mesmo molde de `favoriteFolderIds` e dos `.catch(...)` de
+`apps/web/src/lib/schemas.ts`: uma API anterior à SPA não o envia, e a
+listagem não pode cair por um campo acessório. Na SPA, ausência (ou valor
+inválido) é "contagem desconhecida" e o cartão **omite a linha** — nunca a
+apresenta como zero, o que seria afirmar algo que o servidor não disse.
 
 ### D4 — Prova de não vazamento
 

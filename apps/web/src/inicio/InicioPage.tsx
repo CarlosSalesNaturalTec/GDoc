@@ -1,5 +1,6 @@
 import { Card, Col, Empty, Result, Row, Space, Spin, Typography } from 'antd';
 import { Link } from 'react-router-dom';
+import type { FolderListItemResponse } from '@gdoc/shared';
 import { IconeIniciarTour, IconePasta } from '../app/icons';
 import {
   ALTURA_MINIMA_ACIONAMENTO,
@@ -13,6 +14,7 @@ import { funcaoExibida, nomeExibido, saudacao, setorExibido } from '../shell/ide
 import { NOME_ACESSIVEL_MANUAL } from '../shell/manual';
 import { useFolderContents } from '../navegacao/queries';
 import { atalhosDoPapel, type Atalho } from './atalhos';
+import { textoDaContagemDeDocumentos, tomDaPasta } from './cartao-de-pasta';
 import { textoDeNovos, useNewDocumentsCount } from './queries';
 import { TabelaDeRecentes } from './TabelaDeRecentes';
 import { TourGuiado } from '../tour/TourGuiado';
@@ -132,6 +134,64 @@ function CartaoDeAtalho({ atalho }: { atalho: Atalho }) {
   return (
     <Link to={atalho.destino} aria-label={atalho.rotulo} style={ESTILO_DO_LINK_DE_CARTAO}>
       {conteudo}
+    </Link>
+  );
+}
+
+/**
+ * Cartão de pasta de "Pastas da unidade" (change
+ * `contagem-de-documentos-nas-pastas`, design.md D5; demanda nº 3, item 7):
+ * ícone em quadrado tingido do tom estável da pasta, nome e, embaixo, a
+ * contagem de documentos **informada pelo servidor** — a tela não calcula
+ * nada. O nome acessível do link continua sendo o nome da pasta (`aria-label`),
+ * e a contagem entra como descrição (`aria-describedby`): a lista de links do
+ * leitor de tela segue "Geral", "Governança", e o número é anunciado em
+ * seguida.
+ */
+function CartaoDePasta({ pasta }: { pasta: FolderListItemResponse }) {
+  const tom = tonsDeAtalho[tomDaPasta(pasta.id)];
+  const contagem = textoDaContagemDeDocumentos(pasta.documentCount);
+  const idDaContagem = `contagem-pasta-${pasta.id}`;
+  return (
+    <Link
+      to={`/pastas/${pasta.id}`}
+      aria-label={pasta.name}
+      aria-describedby={contagem ? idDaContagem : undefined}
+      style={ESTILO_DO_LINK_DE_CARTAO}
+    >
+      <Card size="small" hoverable style={{ height: '100%' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
+          <span
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flex: '0 0 40px',
+              width: 40,
+              height: 40,
+              borderRadius: 8,
+              background: tom.fundo,
+              color: tom.icone,
+            }}
+          >
+            <IconePasta style={{ fontSize: 20 }} />
+          </span>
+          <div style={{ minWidth: 0 }}>
+            <div>
+              <Typography.Text strong style={{ color: paleta.azulLink }}>
+                {pasta.name}
+              </Typography.Text>
+            </div>
+            {contagem && (
+              <div>
+                <Typography.Text type="secondary" id={idDaContagem}>
+                  {contagem}
+                </Typography.Text>
+              </div>
+            )}
+          </div>
+        </div>
+      </Card>
     </Link>
   );
 }
@@ -259,19 +319,8 @@ export function InicioPage() {
                         {pastas.data.folders.map((pasta) => (
                           <Col key={pasta.id} xs={24} sm={12} lg={8}>
                             {/* Mesma forma dos atalhos: as áreas de cartão da tela
-                            têm uma única regra de clique. Sem `aria-label` — o
-                            ícone é decorativo e o nome acessível do link é o
-                            nome da pasta. */}
-                            <Link to={`/pastas/${pasta.id}`} style={ESTILO_DO_LINK_DE_CARTAO}>
-                              <Card size="small" hoverable style={{ height: '100%' }}>
-                                <Space>
-                                  <IconePasta style={{ color: paleta.azulLink }} />
-                                  <Typography.Text style={{ color: paleta.azulLink }}>
-                                    {pasta.name}
-                                  </Typography.Text>
-                                </Space>
-                              </Card>
-                            </Link>
+                            têm uma única regra de clique. */}
+                            <CartaoDePasta pasta={pasta} />
                           </Col>
                         ))}
                       </Row>
