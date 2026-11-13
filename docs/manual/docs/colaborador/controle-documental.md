@@ -16,7 +16,7 @@ listagem diz, de relance, se o documento ainda vale.
 
 Os dez tipos e suas siglas: **PRT** Protocolo, **POP** Procedimento, **POL**
 Política/Norma, **FOR** Formulário, **CHK** Checklist, **FLX** Fluxograma, **MAN**
-Manual, **TCO** Termo de Consentimento, **COM** Comunicado Interno e **ARQ** Arquivo
+Manual, **TC** Termo de Consentimento, **COM** Comunicado Interno e **ARQ** Arquivo
 geral.
 
 Formulário e Checklist eram, antes, um tipo só. Os checklists cadastrados naquela
