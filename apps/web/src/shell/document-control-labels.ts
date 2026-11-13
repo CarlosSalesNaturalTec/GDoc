@@ -16,7 +16,8 @@ export const DOCUMENT_TYPE_LABEL: Record<DocumentType, string> = {
   [DocumentType.PROTOCOL]: 'Protocolo',
   [DocumentType.PROCEDURE]: 'Procedimento',
   [DocumentType.POLICY]: 'Política/Norma',
-  [DocumentType.FORM]: 'Formulário/Checklist',
+  [DocumentType.FORM]: 'Formulário',
+  [DocumentType.CHECKLIST]: 'Checklist',
   [DocumentType.FLOWCHART]: 'Fluxograma',
   [DocumentType.MANUAL]: 'Manual',
   [DocumentType.CONSENT_TERM]: 'Termo de Consentimento',
@@ -33,7 +34,12 @@ export const DOCUMENT_TYPE_ACRONYM: Record<DocumentType, string> = {
   [DocumentType.PROTOCOL]: 'PRT',
   [DocumentType.PROCEDURE]: 'POP',
   [DocumentType.POLICY]: 'POL',
-  [DocumentType.FORM]: 'FRM',
+  /**
+   * `FOR` e `CHK`, como na Matriz de Documentos do cliente (retorno sobre a
+   * demanda nº 3, item 11; change `tipo-checklist`).
+   */
+  [DocumentType.FORM]: 'FOR',
+  [DocumentType.CHECKLIST]: 'CHK',
   [DocumentType.FLOWCHART]: 'FLX',
   [DocumentType.MANUAL]: 'MAN',
   [DocumentType.CONSENT_TERM]: 'TCO',

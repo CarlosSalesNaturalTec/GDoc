@@ -50,7 +50,6 @@ Referência: PRD US 3.1 (cenário 1), RF #6; design.md D1/D2/D3.
 
 ### Requirement: Falha independente com nova tentativa apenas do item afetado
 
-
 O envio de cada arquivo SHALL falhar de forma **isolada**: uma falha — seja
 por o servidor recusar o item (`ok: false`, ex.: cota) seja por o PUT ao GCS não
 concluir — NÃO SHALL impedir os demais arquivos do mesmo lote de concluir. Os
@@ -160,7 +159,6 @@ Referência: PRD US 3.1, RF #10; design.md D4/D7.
 
 ### Requirement: Transferências simultâneas limitadas por fila
 
-
 A SPA SHALL manter, a qualquer instante, no máximo um número configurado de
 transferências de arquivo em andamento, enfileirando os demais itens aceitos e
 iniciando o próximo assim que uma transferência termina — **por sucesso ou por
@@ -191,7 +189,6 @@ Referência: PRD US 3.1; design.md D4 do change `corrige-defeitos-envio-lote`.
   o arquivo que falhou é sinalizado sem impedir o avanço dos demais
 
 ### Requirement: Reconhecimento da recusa por teto de itens vinda do servidor
-
 
 A SPA NÃO SHALL recusar uma seleção por **quantidade de arquivos**: com o envio
 dividido em fatias abaixo do teto por requisição, o teto deixou de ser alcançável
@@ -535,9 +532,11 @@ padrão `SIGLA-AREA-Nº`, reconhecendo as siglas como o cliente as escreve nos
 nomes dos arquivos, e NÃO SHALL depender apenas das siglas apresentadas na
 interface. A sugestão SHALL ser editável e SHALL ser **visivelmente
 distinguível** de um valor confirmado pela pessoa. Nome que não segue o padrão
-NÃO SHALL receber sugestão alguma.
+NÃO SHALL receber sugestão alguma. A sigla `CHK` SHALL sugerir Checklist, e as
+siglas `FOR` e `FRM` SHALL sugerir Formulário.
 
-Referência: demanda 2.1 (item 4); design.md D4.
+Referência: demanda 2.1 (item 4); design.md D4; change `tipo-checklist`,
+design.md D4.
 
 #### Scenario: Nome no padrão sugere tipo e código
 - **WHEN** um arquivo chamado `PRT-NSP-001_Identificacao.pdf` entra na tabela
@@ -549,6 +548,11 @@ Referência: demanda 2.1 (item 4); design.md D4.
   apresentada na interface, entra na tabela
 - **THEN** o tipo correspondente é sugerido, em vez de a linha ficar sem
   sugestão
+
+#### Scenario: Checklist e formulário são sugeridos como tipos distintos
+- **WHEN** entram na tabela um arquivo chamado `CHK-NSP-002.xlsx` e outro
+  chamado `FOR-NSP-003.xlsx`
+- **THEN** o primeiro recebe a sugestão Checklist e o segundo, Formulário
 
 #### Scenario: Sugestão é distinguível de valor confirmado
 - **WHEN** uma linha tem tipo e código sugeridos e outra tem os mesmos campos

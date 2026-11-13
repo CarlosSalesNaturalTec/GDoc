@@ -48,10 +48,13 @@ export interface LinhaDeCadastro {
  * Siglas reconhecidas no **nome do arquivo**, mapeadas para o tipo.
  *
  * A tabela 2.2 da demanda lista as siglas como o cliente as escreve — `POL/NOR`,
- * `FOR/CHK`, `TC`, `CI` —, que **não** são as apresentadas na interface
- * (`DOCUMENT_TYPE_ACRONYM`: `POL`, `FRM`, `TCO`, `COM`). Um reconhecedor que só
- * aceitasse as da interface falharia justamente em `FOR-NSP-001` e
+ * `FOR/CHK`, `TC`, `CI` —, nem todas apresentadas na interface
+ * (`DOCUMENT_TYPE_ACRONYM`: `POL`, `FOR`, `TCO`, `COM`). Um reconhecedor que só
+ * aceitasse as da interface falharia justamente em `CHK-NSP-002` e
  * `CI-NSP-003`, que são os nomes que o acervo do cliente traz (design.md D4).
+ * `FRM` foi a sigla do formulário na interface até o retorno do cliente sobre a
+ * demanda nº 3 e continua reconhecida para arquivos já nomeados com ela. `CHK`
+ * sugere Checklist, tipo próprio desde o change `tipo-checklist` (design.md D4).
  *
  * Fica na SPA, e não no contrato compartilhado, porque sigla de nome de arquivo
  * é convenção de quem nomeia: a API nunca a vê — recebe o valor do enum.
@@ -62,7 +65,7 @@ const SIGLA_PARA_TIPO: Readonly<Record<string, DocumentTypeValue>> = {
   POL: DocumentType.POLICY,
   NOR: DocumentType.POLICY,
   FOR: DocumentType.FORM,
-  CHK: DocumentType.FORM,
+  CHK: DocumentType.CHECKLIST,
   FRM: DocumentType.FORM,
   FLX: DocumentType.FLOWCHART,
   MAN: DocumentType.MANUAL,

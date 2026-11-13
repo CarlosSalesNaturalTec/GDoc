@@ -481,7 +481,7 @@ O **objetivo principal** do GDoc é entregar um repositório de arquivos corpora
 * **US 10.1:** Como Colaborador, eu quero classificar um documento por tipo para que eu o identifique de relance na listagem, sem abrir o arquivo.
   * **Critérios de Aceitação:**
     * *Cenário 1 — Tipo exibido como sigla e cor:*
-      * **Dado** que um documento foi classificado com um dos tipos previstos (Protocolo, Procedimento, Política/Norma, Formulário/Checklist, Fluxograma, Manual, Termo de Consentimento ou Comunicado Interno)
+      * **Dado** que um documento foi classificado com um dos tipos previstos (Protocolo, Procedimento, Política/Norma, Formulário, Checklist, Fluxograma, Manual, Termo de Consentimento ou Comunicado Interno)
       * **Quando** visualizo a listagem da pasta que o contém
       * **Então** vejo a sigla do tipo junto ao nome do documento, acompanhada da cor correspondente àquele tipo.
     * *Cenário 2 — A cor nunca é a única portadora da informação:*

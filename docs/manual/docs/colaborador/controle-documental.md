@@ -8,15 +8,22 @@ listagem diz, de relance, se o documento ainda vale.
 
 | Dado | Para que serve |
 | --- | --- |
-| **Tipo** | Classifica o documento entre os nove tipos previstos. Aparece na listagem como uma **sigla** colorida ao lado do nome (por exemplo `PRT` para Protocolo). A cor acompanha a sigla; a informação é a sigla. |
+| **Tipo** | Classifica o documento entre os dez tipos previstos. Aparece na listagem como uma **sigla** colorida ao lado do nome (por exemplo `PRT` para Protocolo). A cor acompanha a sigla; a informação é a sigla. |
 | **Código** | Identificador do documento dentro da sua unidade (por exemplo `PRT-NSP-001`). Serve para citar e para **encontrar**: a busca por nome também procura pelo código. |
 | **Revisão** | Número da versão vigente, apresentado como `Rev. 02`. |
 | **Setor responsável** | Quem responde pelo documento — a quem procurar para falar dele. |
 | **Próxima revisão** | A data em que o documento precisa ser revisto. É dela que nasce a situação. |
 
-Os nove tipos e suas siglas: **PRT** Protocolo, **POP** Procedimento, **POL**
-Política/Norma, **FRM** Formulário/Checklist, **FLX** Fluxograma, **MAN** Manual,
-**TCO** Termo de Consentimento, **COM** Comunicado Interno e **ARQ** Arquivo geral.
+Os dez tipos e suas siglas: **PRT** Protocolo, **POP** Procedimento, **POL**
+Política/Norma, **FOR** Formulário, **CHK** Checklist, **FLX** Fluxograma, **MAN**
+Manual, **TCO** Termo de Consentimento, **COM** Comunicado Interno e **ARQ** Arquivo
+geral.
+
+Formulário e Checklist eram, antes, um tipo só. Os checklists cadastrados naquela
+época continuam aparecendo como **FOR**: o sistema não tem como saber quais deles são
+checklists. Para corrigir, use a ação **Dados de controle** do documento (ver
+[Preencher ou corrigir os dados depois](#preencher-ou-corrigir-os-dados-depois)) e
+escolha o tipo **CHK — Checklist**.
 
 ### Arquivo geral: o que não é documento da Matriz
 
