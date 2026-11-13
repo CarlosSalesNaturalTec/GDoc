@@ -49,11 +49,12 @@ export interface LinhaDeCadastro {
  *
  * A tabela 2.2 da demanda lista as siglas como o cliente as escreve — `POL/NOR`,
  * `FOR/CHK`, `TC`, `CI` —, nem todas apresentadas na interface
- * (`DOCUMENT_TYPE_ACRONYM`: `POL`, `FOR`, `TCO`, `COM`). Um reconhecedor que só
+ * (`DOCUMENT_TYPE_ACRONYM`: `POL`, `FOR`, `TC`, `COM`). Um reconhecedor que só
  * aceitasse as da interface falharia justamente em `CHK-NSP-002` e
  * `CI-NSP-003`, que são os nomes que o acervo do cliente traz (design.md D4).
  * `FRM` foi a sigla do formulário na interface até o retorno do cliente sobre a
- * demanda nº 3 e continua reconhecida para arquivos já nomeados com ela. `CHK`
+ * demanda nº 3 e continua reconhecida para arquivos já nomeados com ela; o mesmo
+ * vale para `TCO`, sigla anterior do termo de consentimento. `CHK`
  * sugere Checklist, tipo próprio desde o change `tipo-checklist` (design.md D4).
  *
  * Fica na SPA, e não no contrato compartilhado, porque sigla de nome de arquivo

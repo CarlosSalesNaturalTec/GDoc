@@ -41,7 +41,7 @@ describe('Sugestão de tipo e código pelo nome do arquivo (design.md D4)', () =
 
   it('reconhece as siglas como o cliente as escreve, não só as da interface', () => {
     // A tabela 2.2 da demanda usa FOR/CHK, TC e CI; a interface apresenta
-    // FOR, TCO e COM. Um reconhecedor só com as da interface falharia justamente
+    // FOR, TC e COM. Um reconhecedor só com as da interface falharia justamente
     // nos nomes que o acervo do cliente traz.
     expect(sugerirPeloNome('FOR-NSP-002.xlsx')?.documentType).toBe(DocumentType.FORM);
     expect(sugerirPeloNome('CHK-NSP-002.xlsx')?.documentType).toBe(DocumentType.CHECKLIST);
@@ -50,6 +50,8 @@ describe('Sugestão de tipo e código pelo nome do arquivo (design.md D4)', () =
     expect(sugerirPeloNome('NOR-NSP-005.pdf')?.documentType).toBe(DocumentType.POLICY);
     // E FRM, sigla anterior da interface, continua valendo.
     expect(sugerirPeloNome('FRM-NSP-006.xlsx')?.documentType).toBe(DocumentType.FORM);
+    // E TCO, sigla anterior do termo de consentimento, também.
+    expect(sugerirPeloNome('TCO-NSP-007.pdf')?.documentType).toBe(DocumentType.CONSENT_TERM);
   });
 
   it('distingue checklist de formulário (change tipo-checklist, design.md D4)', () => {

@@ -42,7 +42,11 @@ export const DOCUMENT_TYPE_ACRONYM: Record<DocumentType, string> = {
   [DocumentType.CHECKLIST]: 'CHK',
   [DocumentType.FLOWCHART]: 'FLX',
   [DocumentType.MANUAL]: 'MAN',
-  [DocumentType.CONSENT_TERM]: 'TCO',
+  /**
+   * `TC`, como o cliente escreve (demanda nº 2, tabela 2.2); `TCO` foi a sigla
+   * da interface até o retorno do cliente sobre a demanda nº 3.
+   */
+  [DocumentType.CONSENT_TERM]: 'TC',
   [DocumentType.INTERNAL_NOTICE]: 'COM',
   /**
    * O material do cliente não dá sigla ao Arquivo geral — ele é a opção que

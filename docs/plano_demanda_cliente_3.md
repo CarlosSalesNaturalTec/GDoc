@@ -158,6 +158,10 @@ Desvios e registros:
   Formulário (`FOR`) e Checklist (`CHK`) são tipos distintos; o acervo já
   gravado como formulário não é reclassificado automaticamente. O cadastro em
   lote sugere Checklist para `CHK` e Formulário para `FOR` e `FRM`.
+- **Sigla do termo de consentimento (retorno do cliente, 2026-11-13):** a
+  etiqueta passou de **TCO** para **TC**, como o cliente escreve na tabela 2.2
+  da demanda nº 2. O cadastro em lote reconhece `TC` e, por compatibilidade,
+  `TCO`.
 - **Marca d'água a 6%** atrás do conteúdo, com os cartões opacos — não
   atravessa o cartão de Avisos como o mockup insinua. 10% reprovaria o verde de
   ação como texto (4,39:1).
