@@ -383,15 +383,33 @@ resposta, e NÃO SHALL substituir a autorização da rota de envio.
 - **THEN** a resposta informa que ela pode enviar, por a raiz não ser recurso
   concedível
 
-### Requirement: Resposta de conteúdo informa a contagem de documentos de cada subpasta, filtrada pelo acesso
+### Requirement: Resposta de conteúdo informa, por subpasta, a contagem de documentos da subárvore alcançável pelo solicitante
 
-A rota de navegação SHALL informar, em cada subpasta listada, quantos documentos **diretamente** dentro dela o solicitante veria ao abrir aquela pasta naquele instante. A contagem SHALL obedecer ao mesmo recorte da listagem de conteúdo — fora da lixeira; dono, administrador da unidade do recurso ou concessão vigente de visualização sobre o **próprio documento**, sem herança da pasta; documento obsoleto só para o administrador da unidade; documento pendente de cadastro só para quem o enviou ou administra a unidade — com a vigência avaliada pelo relógio do banco. NÃO SHALL contar documento de outra unidade, inclusive para o administrador global, e NÃO SHALL existir contagem para pasta que o solicitante não pode abrir. Documentos de subpastas não entram na contagem. Referência: `docs/demanda_cliente_3.md`, item 7; PRD US 11.1 (cenário 3), US 4.1, US 4.3, US 5.1, US 10.7 e US 10.9.
+A rota de navegação SHALL informar, em cada subpasta listada, quantos documentos o solicitante pode abrir **dentro dela, incluindo as subpastas que ele pode abrir**, contando em cada pasta alcançada o mesmo recorte da listagem de documentos e podando a subpasta sem acesso com toda a sua descendência. NÃO SHALL contar nada de outra unidade nem de pasta que o solicitante não pode abrir. Referência: PRD US 11.1 (cenário 3), US 4.1, US 4.3, US 5.1, US 10.7, US 10.9.
 
-#### Scenario: A contagem é igual ao que a pasta mostra ao ser aberta
+#### Scenario: A contagem é a soma do que a pessoa encontra navegando
 - **WHEN** uma pessoa solicita o conteúdo de uma pasta e, em seguida, o conteúdo
   de uma das subpastas listadas
 - **THEN** a contagem informada para essa subpasta é igual ao número de
-  documentos apresentados ao abri-la
+  documentos apresentados ao abri-la somado às contagens informadas para as
+  subpastas que aparecem dentro dela
+
+#### Scenario: Documentos de subpastas entram na soma
+- **WHEN** uma pasta contém apenas subpastas com documentos que o solicitante
+  pode abrir
+- **THEN** a contagem dessa pasta é a soma desses documentos
+
+#### Scenario: Subpasta sem acesso fica fora da soma
+- **WHEN** uma pasta visível contém uma subpasta que o solicitante não pode
+  abrir, ainda que ele tenha concessão de visualização sobre documentos dentro
+  dela
+- **THEN** os documentos dessa subpasta não entram na contagem da pasta, sem
+  revelar a existência deles
+
+#### Scenario: A poda vale para toda a descendência
+- **WHEN** abaixo de uma subpasta que o solicitante não pode abrir existe outra
+  subpasta, com documentos, que ele poderia abrir
+- **THEN** nem essa subpasta nem seus documentos entram na contagem
 
 #### Scenario: Concessão sobre a pasta não faz contar os documentos dela
 - **WHEN** uma pessoa com concessão de visualização apenas sobre uma pasta de
@@ -405,26 +423,29 @@ A rota de navegação SHALL informar, em cada subpasta listada, quantos document
   revelar a existência dos demais
 
 #### Scenario: Concessão expirada deixa de contar na requisição seguinte
-- **WHEN** a concessão de visualização de um documento expira
-- **THEN** a contagem da pasta que o contém deixa de incluí-lo na requisição
-  seguinte, sem depender de rotina agendada
+- **WHEN** a concessão de visualização de um documento ou de uma subpasta
+  expira
+- **THEN** a contagem deixa de incluir o documento, ou o ramo daquela subpasta,
+  na requisição seguinte, sem depender de rotina agendada
 
-#### Scenario: Documento na lixeira não é contado
-- **WHEN** um documento de uma pasta é excluído para a lixeira
-- **THEN** a contagem da pasta deixa de incluí-lo para qualquer solicitante,
-  inclusive o administrador da unidade
+#### Scenario: Documento ou subpasta na lixeira não é contado
+- **WHEN** um documento, ou uma subpasta com documentos, é excluído para a
+  lixeira
+- **THEN** a contagem deixa de incluí-lo para qualquer solicitante, inclusive o
+  administrador da unidade
 
 #### Scenario: Obsoleto e pendente de cadastro seguem a listagem
-- **WHEN** uma pasta contém um documento obsoleto e um pendente de cadastro
+- **WHEN** uma pasta ou uma de suas subpastas contém um documento obsoleto e um
+  pendente de cadastro
 - **THEN** o administrador da unidade vê os dois contados, quem enviou o
   pendente o vê contado, e um terceiro com concessão de visualização sobre eles
   não vê nenhum dos dois contado
 
 #### Scenario: Administrador global conta só a própria unidade
 - **WHEN** o administrador global solicita o conteúdo da raiz da sua unidade
-- **THEN** cada contagem considera apenas documentos da sua unidade, e pastas de
-  outras unidades não aparecem nem são contadas
+- **THEN** cada contagem considera apenas pastas e documentos da sua unidade, e
+  pastas de outras unidades não aparecem nem são contadas
 
-#### Scenario: Subpastas não entram na contagem
-- **WHEN** uma pasta contém apenas subpastas com documentos
-- **THEN** a contagem dessa pasta é zero
+#### Scenario: Estrutura inconsistente não trava a requisição
+- **WHEN** a cadeia de pastas em torno da pasta solicitada contém um ciclo
+- **THEN** a requisição termina, sem laço infinito na contagem
