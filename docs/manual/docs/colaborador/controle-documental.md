@@ -15,7 +15,7 @@ listagem diz, de relance, se o documento ainda vale.
 | **Próxima revisão** | A data em que o documento precisa ser revisto. É dela que nasce a situação. |
 
 Os nove tipos e suas siglas: **PRT** Protocolo, **POP** Procedimento, **POL**
-Política/Norma, **FRM** Formulário/Checklist, **FLX** Fluxograma, **MAN** Manual,
+Política/Norma, **FOR** Formulário/Checklist, **FLX** Fluxograma, **MAN** Manual,
 **TCO** Termo de Consentimento, **COM** Comunicado Interno e **ARQ** Arquivo geral.
 
 ### Arquivo geral: o que não é documento da Matriz

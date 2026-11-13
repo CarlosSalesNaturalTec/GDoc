@@ -149,14 +149,23 @@ Desvios e registros:
 - **Descrições fiéis:** "Por nome ou código" (o mockup prometia busca no
   conteúdo, que não existe) e "Passo a passo de cada tela" (o manual não tem
   imagens).
-- **Etiqueta de tipo (item 11):** o mockup escreve "FOR"; a sigla do formulário
-  continua **FRM**, da Matriz do cliente.
+- ~~**Etiqueta de tipo (item 11):** o mockup escreve "FOR"; a sigla do
+  formulário continua **FRM**, da Matriz do cliente.~~ **Corrigido após retorno
+  do cliente (2026-11-13):** na Matriz de Documentos do cliente a sigla é
+  **FOR** (e **CHK** para checklist); a interface passou a apresentar **FOR**.
+  O tipo segue único (Formulário/Checklist) e o cadastro em lote reconhece
+  `FOR`, `CHK` e, por compatibilidade, `FRM`.
 - **Marca d'água a 6%** atrás do conteúdo, com os cartões opacos — não
   atravessa o cartão de Avisos como o mockup insinua. 10% reprovaria o verde de
   ação como texto (4,39:1).
 - **Sino (item 10):** `#CF1322` (5,57:1 com o número branco).
 - **Menu colapsado:** rótulos de grupo viraram traço (pendência da fatia A); o
   orçamento de 768 px segue em 582/582 px para `global_admin`.
+- **Validado com o cliente (2026-11-13):** de acordo com os textos dos atalhos
+  ("Por nome ou código", "Passo a passo de cada tela") e com a marca d'água
+  mais clara (6%) e por trás dos cartões opacos. Do item 7, de acordo com o
+  número de documentos **só nos cartões de pasta da tela Início** (o explorador
+  `/pastas` não mostra a contagem).
 
 ## Fatia C — Contagem de documentos nas pastas
 

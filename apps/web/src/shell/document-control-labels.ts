@@ -33,7 +33,12 @@ export const DOCUMENT_TYPE_ACRONYM: Record<DocumentType, string> = {
   [DocumentType.PROTOCOL]: 'PRT',
   [DocumentType.PROCEDURE]: 'POP',
   [DocumentType.POLICY]: 'POL',
-  [DocumentType.FORM]: 'FRM',
+  /**
+   * `FOR`, como na Matriz de Documentos do cliente (retorno sobre a demanda
+   * nº 3, item 11). O tipo único cobre também o checklist, que no acervo vem
+   * como `CHK` — o reconhecedor do cadastro em lote aceita as duas.
+   */
+  [DocumentType.FORM]: 'FOR',
   [DocumentType.FLOWCHART]: 'FLX',
   [DocumentType.MANUAL]: 'MAN',
   [DocumentType.CONSENT_TERM]: 'TCO',
