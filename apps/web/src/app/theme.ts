@@ -113,6 +113,8 @@ export const tonsDeTipoDocumental = {
   procedure: { texto: '#067A52', fundo: '#E6F5EF', borda: '#9CD3BE' },
   policy: { texto: '#5B3A9B', fundo: '#EFE9FA', borda: '#C2B0E4' },
   form: { texto: '#8A4B00', fundo: '#FDF2E2', borda: '#E8C48C' },
+  /** Magenta, matiz ausente da paleta, distinto do âmbar do Formulário (change `tipo-checklist`, design.md D3). */
+  checklist: { texto: '#9E1068', fundo: '#FCEBF4', borda: '#E5A6C8' },
   flowchart: { texto: '#0F6E70', fundo: '#E2F2F2', borda: '#9FD1D2' },
   manual: { texto: '#012442', fundo: '#E8EEF3', borda: '#A9BECE' },
   consent_term: { texto: '#A8071A', fundo: '#FDECEA', borda: '#EBA9A2' },

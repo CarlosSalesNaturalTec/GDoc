@@ -8,7 +8,7 @@
  */
 
 /**
- * Conjunto fechado dos nove tipos previstos (US 10.1, US 10.8). Valor fora
+ * Conjunto fechado dos dez tipos previstos (US 10.1, US 10.8). Valor fora
  * deste conjunto é recusado pela API — a validação vive em
  * `apps/api/src/lib/document-control.ts`, não no schema do banco (ver o
  * comentário da migration 0016 sobre por que não há CHECK).
@@ -18,6 +18,13 @@ export const DocumentType = {
   PROCEDURE: 'procedure',
   POLICY: 'policy',
   FORM: 'form',
+  /**
+   * Checklist, sigla `CHK` na Matriz do cliente — até o change
+   * `tipo-checklist` era o mesmo tipo do formulário. Documentos gravados como
+   * `form` antes dele **não** são reclassificados (design.md D2): nada no
+   * banco separa com segurança um checklist de um formulário.
+   */
+  CHECKLIST: 'checklist',
   FLOWCHART: 'flowchart',
   MANUAL: 'manual',
   CONSENT_TERM: 'consent_term',
@@ -28,7 +35,7 @@ export const DocumentType = {
    * revisão nem data de próxima revisão, e nenhuma situação de revisão lhe é
    * atribuída.
    *
-   * É o nono tipo e o único que **declara ausência** de controle, o que o
+   * É o único que **declara ausência** de controle, o que o
    * torna distinto de "dados ainda não preenchidos" — um é afirmação de que
    * nunca haverá código, o outro é pendência a resolver. A fatia da leitura
    * obrigatória depende dessa distinção para recusar marcar o Arquivo geral.

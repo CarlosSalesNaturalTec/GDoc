@@ -44,12 +44,23 @@ describe('Sugestão de tipo e código pelo nome do arquivo (design.md D4)', () =
     // FOR, TCO e COM. Um reconhecedor só com as da interface falharia justamente
     // nos nomes que o acervo do cliente traz.
     expect(sugerirPeloNome('FOR-NSP-002.xlsx')?.documentType).toBe(DocumentType.FORM);
-    expect(sugerirPeloNome('CHK-NSP-002.xlsx')?.documentType).toBe(DocumentType.FORM);
+    expect(sugerirPeloNome('CHK-NSP-002.xlsx')?.documentType).toBe(DocumentType.CHECKLIST);
     expect(sugerirPeloNome('CI-NSP-003.pdf')?.documentType).toBe(DocumentType.INTERNAL_NOTICE);
     expect(sugerirPeloNome('TC-NSP-004.pdf')?.documentType).toBe(DocumentType.CONSENT_TERM);
     expect(sugerirPeloNome('NOR-NSP-005.pdf')?.documentType).toBe(DocumentType.POLICY);
     // E FRM, sigla anterior da interface, continua valendo.
     expect(sugerirPeloNome('FRM-NSP-006.xlsx')?.documentType).toBe(DocumentType.FORM);
+  });
+
+  it('distingue checklist de formulário (change tipo-checklist, design.md D4)', () => {
+    expect(sugerirPeloNome('CHK-NSP-002.xlsx')).toEqual({
+      documentType: DocumentType.CHECKLIST,
+      documentCode: 'CHK-NSP-002',
+    });
+    expect(sugerirPeloNome('FOR-NSP-003.xlsx')).toEqual({
+      documentType: DocumentType.FORM,
+      documentCode: 'FOR-NSP-003',
+    });
   });
 
   it('não sugere nada para nome fora do padrão', () => {
@@ -234,7 +245,7 @@ describe('Aplicar a todos (design.md D5)', () => {
 describe('O conjunto exigido é o do servidor, para todo tipo (design.md D9)', () => {
   it.each(DOCUMENT_TYPES)('o que falta em %s é exatamente requiredFieldsForType', (tipo) => {
     // Guarda estrutural: se alguém reintroduzir uma lista escrita à mão no
-    // cliente, ela divergirá do contrato em algum dos nove tipos e este caso
+    // cliente, ela divergirá do contrato em algum dos tipos e este caso
     // falha. Foi assim que o formulário ficou exigindo quatro campos enquanto o
     // servidor passou a exigir cinco.
     const vazia = editarLinha(linha('arquivo.pdf'), 'documentType', tipo);

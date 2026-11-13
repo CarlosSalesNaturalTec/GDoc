@@ -153,8 +153,11 @@ Desvios e registros:
   formulário continua **FRM**, da Matriz do cliente.~~ **Corrigido após retorno
   do cliente (2026-11-13):** na Matriz de Documentos do cliente a sigla é
   **FOR** (e **CHK** para checklist); a interface passou a apresentar **FOR**.
-  O tipo segue único (Formulário/Checklist) e o cadastro em lote reconhece
-  `FOR`, `CHK` e, por compatibilidade, `FRM`.
+  Em seguida o cliente pediu o **checklist como tipo próprio (CHK)**: entregue
+  pelo change `tipo-checklist` (ver `openspec/changes/archive/*-tipo-checklist/`).
+  Formulário (`FOR`) e Checklist (`CHK`) são tipos distintos; o acervo já
+  gravado como formulário não é reclassificado automaticamente. O cadastro em
+  lote sugere Checklist para `CHK` e Formulário para `FOR` e `FRM`.
 - **Marca d'água a 6%** atrás do conteúdo, com os cartões opacos — não
   atravessa o cartão de Avisos como o mockup insinua. 10% reprovaria o verde de
   ação como texto (4,39:1).

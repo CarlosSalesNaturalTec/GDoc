@@ -328,6 +328,33 @@ describe('Épico 10: controle documental', () => {
       });
     });
 
+    it('checklist é tipo próprio, aceito com os dados da Matriz (change tipo-checklist)', async () => {
+      const app = createApp(ports);
+      const res = await request(app)
+        .post('/files/upload-url')
+        .set('Cookie', await sessionCookieFor(ports, ids.userA))
+        .send({
+          fileName: 'checklist.xlsx',
+          contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          declaredSizeBytes: 10,
+          documentControl: {
+            documentType: DocumentType.CHECKLIST,
+            documentCode: 'CHK-NSP-002',
+            documentRevision: 1,
+            responsibleSector: 'Núcleo de Segurança do Paciente',
+            nextReviewAt: '2099-06-30',
+          },
+        });
+      expect(res.status).toBe(200);
+
+      const lido = (await listarRaiz(ids.userA)).find((f) => f.fileName === 'checklist.xlsx');
+      expect(lido).toMatchObject({
+        documentType: DocumentType.CHECKLIST,
+        documentCode: 'CHK-NSP-002',
+        documentStatus: DocumentStatus.CURRENT,
+      });
+    });
+
     // Este caso afirmava, até a change `arquivo-geral-e-pendente-de-cadastro`,
     // que o lote **dispensava** os dados e nascia "Sem controle de revisão".
     // A demanda do cliente (seção 2) classificou essa dispensa como defeito: é
