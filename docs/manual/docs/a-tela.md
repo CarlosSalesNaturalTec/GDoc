@@ -51,11 +51,13 @@ clique, a "quem sou, onde estou, o que posso fazer e o que mudou":
   as pastas** leva a **Documentos**. Pasta a que você não tem acesso não
   aparece nem é mencionada. Se não houver nenhuma, a área diz isso em vez de
   ficar vazia. Cada cartão traz o ícone da pasta colorido e, abaixo do nome,
-  **quantos documentos você encontra ao abrir a pasta** ("12 documentos", "1
-  documento", "Nenhum documento"). A contagem considera só os documentos que
-  você pode ver e que estão **diretamente** na pasta — documentos guardados em
-  subpastas não entram, e uma pasta que só tem subpastas aparece como "Nenhum
-  documento".
+  **quantos documentos você pode abrir dentro dela, incluindo as subpastas**
+  ("38 documentos", "1 documento", "Nenhum documento"). A conta é pessoal: só
+  entram os documentos que você pode ver, e só das subpastas a que você tem
+  acesso — se você não pode abrir uma subpasta, os documentos dela (e de tudo o
+  que estiver abaixo dela) ficam fora da conta, mesmo que algum deles tenha
+  sido compartilhado com você; esses continuam em **Compartilhados comigo**.
+  Por isso duas pessoas podem ver números diferentes para a mesma pasta.
 - **Documentos recentes**: os **cinco** documentos ao seu alcance publicados,
   substituídos, renomeados ou movidos mais recentemente, do mais novo para o
   mais antigo, com o **tipo** (a sigla, como POP ou PRT, numa etiqueta
