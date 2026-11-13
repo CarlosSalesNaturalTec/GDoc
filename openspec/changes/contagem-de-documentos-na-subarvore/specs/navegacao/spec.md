@@ -65,9 +65,9 @@ A rota de navegação SHALL informar, em cada subpasta listada, quantos document
 - **THEN** cada contagem considera apenas pastas e documentos da sua unidade, e
   pastas de outras unidades não aparecem nem são contadas
 
-#### Scenario: Estrutura inconsistente não derruba a listagem
-- **WHEN** a cadeia de subpastas abaixo de uma pasta listada contém um ciclo
-- **THEN** a resposta é entregue normalmente, com uma contagem finita
+#### Scenario: Estrutura inconsistente não trava a requisição
+- **WHEN** a cadeia de pastas em torno da pasta solicitada contém um ciclo
+- **THEN** a requisição termina, sem laço infinito na contagem
 
 ## REMOVED Requirements
 

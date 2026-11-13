@@ -17,9 +17,10 @@ export interface FolderResponse {
 
 /**
  * Subpasta como aparece na listagem de conteúdo (`FolderContentsResponse.folders`),
- * com a contagem de documentos **diretos** que o solicitante veria ao abri-la
- * (change `contagem-de-documentos-nas-pastas`, design.md D1/D3; US 11.1,
- * cenário 3). A API desta versão sempre envia o campo; ele é opcional no
+ * com a contagem de documentos que o solicitante pode abrir **na pasta e nas
+ * subpastas que ele alcança** — subpasta sem acesso fica de fora com toda a
+ * descendência (change `contagem-de-documentos-na-subarvore`, design.md D1/D4;
+ * antes, `contagem-de-documentos-nas-pastas`; US 11.1, cenário 3). A API desta versão sempre envia o campo; ele é opcional no
  * contrato pela mesma razão de `favoriteFolderIds` — uma API anterior não o
  * envia, e ausência é "contagem desconhecida" (a SPA omite a linha), nunca zero.
  */

@@ -139,18 +139,31 @@ async function listContents(
     params,
   );
 
-  // Contagem de documentos **diretos** de cada subpasta listada (change
-  // `contagem-de-documentos-nas-pastas`, design.md D1/D2; US 11.1, cenário 3;
-  // `docs/demanda_cliente_3.md`, item 7). Os fragmentos e o placeholder do
-  // dono são **os mesmos** da consulta de arquivos acima, de propósito: o
-  // número da subpasta X é, por construção, o `files.length` que
-  // `GET /folders/X/contents` devolveria a este solicitante agora — nem mais
-  // (não vaza a existência de item sem `view`, sem herança da pasta), nem
-  // menos. Os ids vêm só da lista que a cláusula de pastas acabou de liberar:
-  // não existe contagem para pasta que a pessoa não pode abrir. A vigência
-  // das concessões é a do relógio do Postgres (`now()` no fragmento), e o ramo
-  // `global_admin` de `resourceScopeClause` fixa `unit_id` na própria unidade
-  // — o bypass de RLS não vira soma de outra unidade.
+  // Contagem de documentos na **subárvore alcançável** de cada subpasta
+  // listada (change `contagem-de-documentos-na-subarvore`, design.md D1/D2;
+  // US 11.1, cenário 3; `docs/demanda_cliente_3.md`, item 7). Uma consulta só:
+  //
+  // - Raízes: **só** os ids que a cláusula de pastas acabou de liberar — não
+  //   existe contagem para pasta que a pessoa não pode abrir.
+  // - Descida (D1): o passo recursivo só atravessa subpasta que passa em
+  //   `visibleResourceClause(FOLDER)` — a mesma regra de "pode abrir" da
+  //   listagem. Subpasta sem acesso (ou na lixeira) é podada **com toda a
+  //   descendência**, como no manifesto de download de pasta: o número nunca
+  //   fala de conteúdo num lugar que a pessoa não alcança navegando.
+  // - Em cada pasta alcançada conta-se o mesmo recorte da consulta de arquivos
+  //   acima (fragmentos e placeholder do dono idênticos): sem herança da pasta,
+  //   obsoleto e pendente de cadastro como na listagem. Vale, nível a nível,
+  //   `documentCount(X) = files(X) + Σ documentCount(S)` sobre as subpastas S
+  //   que `GET /folders/X/contents` lista — é o que o teste afirma (D3).
+  // - Ciclo (D2): `UNION` sobre `(raiz_id, pasta_id)` descarta tupla repetida,
+  //   então a recursão termina mesmo com `parent_id` cíclico, e cada pasta
+  //   entra uma vez por raiz — sem contar arquivo em dobro.
+  // - Os fragmentos usam colunas sem qualificação; por isso entram em
+  //   subconsultas sobre a própria tabela (`folders`/`files`), onde resolvem
+  //   sem ambiguidade, em vez de reescritos com alias.
+  // - A vigência das concessões é a do relógio do Postgres, em cada nível, e o
+  //   ramo `global_admin` dos fragmentos fixa `unit_id` na própria unidade — o
+  //   bypass de RLS não vira descida nem soma em outra unidade.
   const counts = new Map<string, number>();
   if (folders.length > 0) {
     // Só o placeholder do dono (quando não-admin) é reaproveitado; a âncora
@@ -158,11 +171,24 @@ async function listContents(
     const countParams: unknown[] = admin ? [] : [ctx.userId];
     countParams.push(folders.map((f) => f.id));
     const { rows } = await client.query<{ folder_id: string; n: number }>(
-      `SELECT folder_id, count(*)::int AS n
-       FROM files WHERE ${visibleResourceClause(GrantResourceType.FILE, ownerPlaceholder, ctx)}
-         AND ${nonObsoleteClause(ctx)} AND ${visibleRegistrationClause(ctx, ownerPlaceholder)}
-         AND folder_id = ANY($${countParams.length}::uuid[])
-       GROUP BY folder_id`,
+      `WITH RECURSIVE alcance (raiz_id, pasta_id) AS (
+         SELECT id, id FROM folders WHERE id = ANY($${countParams.length}::uuid[])
+         UNION
+         SELECT a.raiz_id, f.id
+         FROM alcance a
+         JOIN (
+           SELECT id, parent_id FROM folders
+           WHERE ${visibleResourceClause(GrantResourceType.FOLDER, ownerPlaceholder, ctx)}
+         ) f ON f.parent_id = a.pasta_id
+       )
+       SELECT a.raiz_id AS folder_id, count(*)::int AS n
+       FROM alcance a
+       JOIN (
+         SELECT folder_id FROM files
+         WHERE ${visibleResourceClause(GrantResourceType.FILE, ownerPlaceholder, ctx)}
+           AND ${nonObsoleteClause(ctx)} AND ${visibleRegistrationClause(ctx, ownerPlaceholder)}
+       ) v ON v.folder_id = a.pasta_id
+       GROUP BY a.raiz_id`,
       countParams,
     );
     for (const row of rows) counts.set(row.folder_id, row.n);

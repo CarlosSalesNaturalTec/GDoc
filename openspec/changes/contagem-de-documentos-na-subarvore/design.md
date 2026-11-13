@@ -69,22 +69,23 @@ divergiria do download de pasta.
 A consulta de contagem de `listContents` vira:
 
 ```sql
-WITH RECURSIVE alcance (raiz_id, pasta_id, profundidade) AS (
-  SELECT id, id, 0
+WITH RECURSIVE alcance (raiz_id, pasta_id) AS (
+  SELECT id, id
   FROM folders
   WHERE id = ANY($k::uuid[])               -- subpastas recém-listadas
   UNION
-  SELECT a.raiz_id, f.id, a.profundidade + 1
+  SELECT a.raiz_id, f.id
   FROM alcance a
-  JOIN folders f ON f.parent_id = a.pasta_id
-  WHERE <visibleResourceClause(FOLDER)>     -- poda (D1), sobre f
-    AND a.profundidade < <teto>
+  JOIN (SELECT id, parent_id FROM folders
+        WHERE <visibleResourceClause(FOLDER)>) f   -- poda (D1)
+    ON f.parent_id = a.pasta_id
 )
 SELECT a.raiz_id AS folder_id, count(*)::int AS n
 FROM alcance a
-JOIN files ON files.folder_id = a.pasta_id
-WHERE <visibleResourceClause(FILE)> AND <nonObsoleteClause>
-  AND <visibleRegistrationClause>
+JOIN (SELECT folder_id FROM files
+      WHERE <visibleResourceClause(FILE)> AND <nonObsoleteClause>
+        AND <visibleRegistrationClause>) v
+  ON v.folder_id = a.pasta_id
 GROUP BY a.raiz_id
 ```
 
@@ -100,14 +101,17 @@ GROUP BY a.raiz_id
   subconsulta sobre `files` —, em vez de reescrever os fragmentos com alias. A
   forma exata fica para a implementação; o requisito é reaproveitar os
   fragmentos sem duplicar regra.
-- **Ciclo e profundidade:** `UNION` (não `UNION ALL`) descarta tuplas
-  `(raiz, pasta, profundidade)` repetidas, mas sozinho não para um ciclo, por
-  causa da profundidade crescente; o teto (`MAX_BREADCRUMB_DEPTH`, reaproveitado
-  — 1000) garante término. Em vez de erro (como na trilha), a contagem
-  **trunca silenciosamente** no teto: é um rótulo, e derrubar a listagem por ele
-  seria desproporcional. Pasta alcançada por dois caminhos dentro do teto
-  contaria em dobro; para evitar, a agregação final faz `count(DISTINCT
-  files.id)` por raiz.
+- **Ciclo:** `UNION` (não `UNION ALL`) sobre `(raiz, pasta)` descarta tupla
+  repetida; o conjunto é finito, então a recursão termina mesmo com
+  `parent_id` cíclico, e cada pasta entra uma vez por raiz — sem contar
+  arquivo em dobro e sem teto de profundidade. Na prática, descendo de uma
+  pasta listada (cada pasta tem uma só mãe) só se encontra ciclo se a própria
+  pasta aberta estiver nele — e aí a guarda de ciclo da trilha
+  (`buildBreadcrumb`, `FolderCycleError`) interrompe a requisição antes da
+  contagem, comportamento já existente e fora deste change. O `UNION` é
+  defesa em profundidade: a contagem, sozinha, nunca entra em laço.
+  *(Ajustado na implementação: a primeira versão previa teto de profundidade
+  e `count(DISTINCT)`; o `UNION` sobre o par já garante as duas coisas.)*
 - **Admin global:** o ramo admin dos fragmentos devolve `unit_id =
   '<ctx.unitId>'` para pastas e arquivos — a descida e a soma nunca saem da
   própria unidade, apesar do bypass de RLS.
@@ -136,7 +140,7 @@ pode abri-la, a soma é exatamente o que ela encontra navegando. Casos novos:
 | Sub-subpasta com `view`, abaixo de subpasta sem `view` | fora da soma (poda do ramo inteiro) |
 | Subpasta na lixeira | fora da soma, inclusive para admin da unidade |
 | Concessão de `view` sobre subpasta expirada | ramo sai da soma na requisição seguinte |
-| Ciclo artificial em `parent_id` (montado com bypass) | resposta 200, sem laço, contagem finita |
+| Pasta aberta dentro de um ciclo em `parent_id` (montado com bypass) | a requisição termina (sem laço) |
 | Admin global | soma só da própria unidade |
 
 ### D4 — Contrato e SPA inalterados

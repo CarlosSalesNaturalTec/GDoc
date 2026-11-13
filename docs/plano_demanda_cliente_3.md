@@ -186,8 +186,10 @@ Desvios e registros:
 - **`documentCount` opcional no contrato** (`FolderListItemResponse`), como
   `favoriteFolderIds`: API anterior não o envia, e a SPA omite a linha em vez
   de mostrar zero.
-- **Pendência a validar com o cliente:** a contagem é de documentos
-  **diretos**; uma pasta que só tem subpastas mostra "Nenhum documento". O
-  mockup ("Governança — 38 documentos") pode estar pressupondo a soma da
-  subárvore. Somar exige decidir antes como tratar documento visível dentro de
-  subpasta não visível (design.md D2 do change).
+- ~~**Pendência a validar com o cliente:** a contagem é de documentos
+  **diretos**; uma pasta que só tem subpastas mostra "Nenhum documento".~~
+  **Resolvida:** o cliente pediu a soma de tudo o que está dentro da pasta,
+  incluindo subpastas, contando só o que a pessoa pode abrir; subpasta sem
+  acesso fica fora da conta com toda a descendência. Entregue pelo change
+  `contagem-de-documentos-na-subarvore` (ver
+  `openspec/changes/archive/*-contagem-de-documentos-na-subarvore/`).
