@@ -557,6 +557,102 @@ describe('Gestão de pessoas da SPA (web-pessoas)', () => {
     expect(within(dialog).queryByText('Unidade')).not.toBeInTheDocument();
   });
 
+  describe('Busca de colaborador (change `busca-de-colaboradores`, design.md D1–D3)', () => {
+    function usersCalls(): number {
+      return (global.fetch as ReturnType<typeof vi.fn>).mock.calls.filter((call) =>
+        String(call[0]).endsWith('/users'),
+      ).length;
+    }
+
+    it('filtra sem acento pelo nome e pelo setor; limpar restaura; digitar não consulta o servidor (spec: busca por trecho do nome / por setor / limpar / sem nova consulta)', async () => {
+      const joao = person({ id: 'p-joao', fullName: 'João Pereira', sectorName: 'Farmácia' });
+      const maria = person({ id: 'p-maria', fullName: 'Maria Souza' });
+      mockFetch({
+        'GET /auth/me': { status: 200, body: UNIT_ADMIN },
+        'GET /users': { status: 200, body: [joao, maria] },
+      });
+
+      renderApp(['/admin/pessoas']);
+      await screen.findByText('João Pereira');
+      const chamadasAntes = usersCalls();
+      const busca = screen.getByRole('searchbox', { name: 'Buscar colaborador' });
+
+      await userEvent.type(busca, 'joao');
+      expect(screen.getByText('João Pereira')).toBeInTheDocument();
+      expect(screen.queryByText('Maria Souza')).not.toBeInTheDocument();
+
+      await userEvent.clear(busca);
+      await userEvent.type(busca, 'FARMACIA');
+      expect(screen.getByText('João Pereira')).toBeInTheDocument();
+      expect(screen.queryByText('Maria Souza')).not.toBeInTheDocument();
+
+      await userEvent.clear(busca);
+      expect(screen.getByText('João Pereira')).toBeInTheDocument();
+      expect(screen.getByText('Maria Souza')).toBeInTheDocument();
+
+      expect(usersCalls()).toBe(chamadasAntes);
+    });
+
+    it('busca sem resultado mostra "Nenhum colaborador encontrado" (spec: busca sem resultado)', async () => {
+      mockFetch({
+        'GET /auth/me': { status: 200, body: UNIT_ADMIN },
+        'GET /users': { status: 200, body: [person({ id: 'p-1', fullName: 'Beltrano' })] },
+      });
+
+      renderApp(['/admin/pessoas']);
+      await screen.findByText('Beltrano');
+      await userEvent.type(
+        screen.getByRole('searchbox', { name: 'Buscar colaborador' }),
+        'inexistente',
+      );
+      expect(screen.queryByText('Beltrano')).not.toBeInTheDocument();
+      expect(screen.getByText('Nenhum colaborador encontrado')).toBeInTheDocument();
+    });
+
+    it('global_admin encontra as pessoas pelo nome da unidade (spec: administrador global busca pela unidade)', async () => {
+      const pessoaA = person({ id: 'p-a', fullName: 'Colaborador A', unitId: 'unit-a' });
+      const pessoaB = person({ id: 'p-b', fullName: 'Colaborador B', unitId: 'unit-b' });
+      mockFetch({
+        'GET /auth/me': { status: 200, body: GLOBAL_ADMIN },
+        'GET /users': { status: 200, body: [pessoaA, pessoaB] },
+        'GET /units': { status: 200, body: [UNIT_A, UNIT_B] },
+      });
+
+      renderApp(['/admin/pessoas']);
+      await screen.findByText('Colaborador A');
+      await waitFor(() => expect(screen.getAllByText('Unidade B').length).toBeGreaterThan(0));
+
+      await userEvent.type(
+        screen.getByRole('searchbox', { name: 'Buscar colaborador' }),
+        'unidade b',
+      );
+      expect(screen.getByText('Colaborador B')).toBeInTheDocument();
+      expect(screen.queryByText('Colaborador A')).not.toBeInTheDocument();
+    });
+
+    it('mudar o termo volta à primeira página (spec: mudar o termo volta à primeira página)', async () => {
+      const pessoas = Array.from({ length: 15 }, (_, i) =>
+        person({ id: `p-${i}`, fullName: `Colaborador ${String(i).padStart(2, '0')}` }),
+      );
+      mockFetch({
+        'GET /auth/me': { status: 200, body: UNIT_ADMIN },
+        'GET /users': { status: 200, body: pessoas },
+      });
+
+      renderApp(['/admin/pessoas']);
+      await screen.findByText('Colaborador 00');
+      await userEvent.click(screen.getByTitle('2'));
+      expect(await screen.findByText('Colaborador 10')).toBeInTheDocument();
+
+      await userEvent.type(
+        screen.getByRole('searchbox', { name: 'Buscar colaborador' }),
+        'colaborador',
+      );
+      expect(screen.getByText('Colaborador 00')).toBeInTheDocument();
+      expect(screen.queryByText('Colaborador 10')).not.toBeInTheDocument();
+    });
+  });
+
   describe('Cota individual (change `cota-por-usuario`, design.md D3/D5/D7)', () => {
     const ALVO: Partial<PersonResponse> & { id: string } = {
       id: 'person-cota',

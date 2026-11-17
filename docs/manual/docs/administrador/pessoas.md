@@ -29,6 +29,19 @@ Confirme em **Cadastrar**. O colaborador passa a poder entrar com essas credenci
   pode ser alterado na edição; os demais dados, o setor e o papel, sim. Para
   deixar a pessoa **sem setor**, limpe a escolha no campo Setor.
 
+## Encontrar um colaborador
+
+Acima da lista de **Colaboradores** há um campo de busca. Digite parte do
+**nome**, do **e-mail**, da **função/cargo** ou do **setor** e a lista mostra só
+quem corresponde — a partir de qualquer trecho, não só do começo. Maiúsculas e
+acentos não importam: "joao" encontra "João". O administrador global também
+pode buscar pelo **nome da unidade**.
+
+- Se ninguém corresponder, a lista mostra **Nenhum colaborador encontrado**.
+- Para voltar a ver todos, apague o texto ou clique no **×** do campo.
+- A busca só filtra a lista que você já vê: não mostra ninguém fora do seu
+  alcance.
+
 ## Gestores de acompanhamento
 
 **Gestor** é quem acompanha se a equipe leu os documentos de leitura
