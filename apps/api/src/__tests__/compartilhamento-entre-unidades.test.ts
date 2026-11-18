@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -225,6 +225,21 @@ describe('Compartilhamento entre unidades (US 5.2)', () => {
       expect(res.status).toBe(422);
       expect(res.body.error).toBe('cross_unit_subject');
       const rows = await sql('SELECT 1 FROM grants WHERE subject_user_id = $1', [raira]);
+      expect(rows).toHaveLength(0);
+    });
+
+    it('lote misto é recusado por inteiro: nem a pessoa da própria unidade recebe', async () => {
+      const res = await request(app())
+        .post('/grants')
+        .set('Cookie', await cookie(ana))
+        .send({
+          subjectUserIds: [donoSede, raira],
+          resourceType: 'folder',
+          resourceId: governanca,
+          permissions: ['view'],
+        });
+      expect(res.status).toBe(422);
+      const rows = await sql('SELECT 1 FROM grants WHERE resource_id = $1', [governanca]);
       expect(rows).toHaveLength(0);
     });
   });
@@ -593,6 +608,8 @@ describe('Compartilhamento entre unidades (US 5.2)', () => {
         [documento],
       );
       expect((await baixarUrl(colegaNorte, documento)).status).toBe(403);
+      // Vencido também sai de "Compartilhados comigo" (spec compartilhados-comigo).
+      expect((await recebidos(colegaNorte)).find((i) => i.id === documento)).toBeUndefined();
       await sql('UPDATE cross_unit_grants SET expires_at = NULL WHERE resource_id = $1', [
         documento,
       ]);
@@ -603,6 +620,18 @@ describe('Compartilhamento entre unidades (US 5.2)', () => {
       await sql('UPDATE users SET unit_id = $1 WHERE id = $2', [sul, colegaNorte]);
       expect((await baixarUrl(colegaNorte, documento)).status).toBe(403);
       await sql('UPDATE users SET unit_id = $1 WHERE id = $2', [norte, colegaNorte]);
+    });
+  });
+
+  describe('Caminho comum primeiro (design.md D4)', () => {
+    it('o dono acessa sem abrir transação de visita', async () => {
+      const spy = vi.spyOn(ports.database, 'withSharedVisitTransaction');
+      try {
+        expect((await verUrl(donoSede, ataProfunda)).status).toBe(200);
+        expect(spy).not.toHaveBeenCalled();
+      } finally {
+        spy.mockRestore();
+      }
     });
   });
 
