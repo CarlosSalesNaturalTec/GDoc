@@ -124,6 +124,27 @@ export async function seedIfEmpty(pool?: Pool): Promise<boolean> {
             setorCentroCirurgico.id,
           ],
         );
+
+        // Compartilhamento entre unidades (change
+        // `compartilhamento-entre-unidades`, tasks.md 9.1): a Unidade A é a
+        // SEDE, e a pasta "Governança" dela é compartilhada com a Unidade B
+        // inteira, só para visualizar — o caso real do cliente, reproduzível
+        // em dev (o Colaborador B a encontra em "Compartilhados comigo").
+        await client.query('UPDATE units SET is_headquarters = true WHERE id = $1', [unitA.id]);
+        const { rows: governancaRows } = await client.query<{ id: string; owner_id: string }>(
+          `INSERT INTO folders (unit_id, owner_id, parent_id, name)
+           SELECT $1, id, NULL, 'Governança' FROM users WHERE email = 'admin.a@gdoc.dev'
+           RETURNING id, owner_id`,
+          [unitA.id],
+        );
+        const governanca = governancaRows[0];
+        if (!governanca) throw new Error('seed: expected demo shared folder to be created');
+        await client.query(
+          `INSERT INTO cross_unit_grants
+             (unit_id, resource_type, resource_id, subject_unit_id, permission, granted_by)
+           VALUES ($1, 'folder', $2, $3, 'view', $4)`,
+          [unitA.id, governanca.id, unitB.id, governanca.owner_id],
+        );
       } else {
         const { rows: unitRows } = await client.query<{ id: string }>(
           `INSERT INTO units (name) VALUES ('Administração') RETURNING id`,

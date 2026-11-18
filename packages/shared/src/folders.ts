@@ -148,6 +148,20 @@ export interface FolderContentsResponse {
    */
   favoriteFolderIds?: string[];
   favoriteFileIds?: string[];
+  /**
+   * Pasta alcançada por **compartilhamento entre unidades** (change
+   * `compartilhamento-entre-unidades`, design.md D6): navegação somente
+   * leitura. Ausente/`false` em toda listagem da própria unidade.
+   */
+  readOnly?: boolean;
+  /** Unidade de origem do conteúdo quando `readOnly`; ausente nos demais casos. */
+  sharedFrom?: { unitId: string; unitName: string } | null;
+  /**
+   * Veredito do verbo `download` sobre o conteúdo compartilhado, resolvido
+   * pelo servidor (só quando `readOnly`): a SPA oferece "Baixar" apenas se
+   * verdadeiro, sem inferir permissão no cliente.
+   */
+  canDownload?: boolean;
 }
 
 /** Um arquivo do manifesto de download de pasta (design.md D1/D7 de `download-pasta-zip`). */

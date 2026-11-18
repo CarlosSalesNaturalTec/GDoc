@@ -9,7 +9,7 @@ O **objetivo principal** do GDoc é entregar um repositório de arquivos corpora
 ## 2. Personas
 
 * **Administrador Global:** responsável pela plataforma como um todo. Enxerga todas as unidades e todos os arquivos, cadastra e desativa pessoas, define administradores de unidade, configura permissões e consome os registros de auditoria e o painel gerencial. Sua dor é a falta de controle centralizado e de comprovação de quem acessou o quê.
-* **Administrador de Unidade** (apresentado na interface como **Administrador da unidade**; até a demanda nº 2 era **Gestor** — palavra agora reservada a quem acompanha as leituras da equipe, resposta 5a de `docs/respostas_d1_d3_d5_decisoes_estruturais.txt`)**:** gerencia apenas a sua própria unidade — as pessoas, as pastas e as permissões daquela unidade. Não enxerga o conteúdo das demais unidades. Sua dor é depender de uma área central para tarefas cotidianas de liberação de acesso do seu time.
+* **Administrador de Unidade** (apresentado na interface como **Administrador da unidade**; até a demanda nº 2 era **Gestor** — palavra agora reservada a quem acompanha as leituras da equipe, resposta 5a de `docs/respostas_d1_d3_d5_decisoes_estruturais.txt`)**:** gerencia apenas a sua própria unidade — as pessoas, as pastas e as permissões daquela unidade. Não enxerga o conteúdo das demais unidades, salvo o que a SEDE ou outra unidade compartilhar com a sua (US 5.2). Sua dor é depender de uma área central para tarefas cotidianas de liberação de acesso do seu time.
 * **Colaborador (Usuário Comum):** envia e consome arquivos no dia a dia. Só enxerga os arquivos e pastas que criou ou para os quais recebeu permissão explícita. Quando envia um arquivo, torna-se o dono dele e pode consultar quem o acessou. Sua dor é encontrar rapidamente o material certo e ter certeza de que documentos sensíveis não estão expostos a quem não deveria vê-los.
 
 ## 3. Escopo do MVP
@@ -19,6 +19,7 @@ O **objetivo principal** do GDoc é entregar um repositório de arquivos corpora
   * Área "Minha conta", com consulta aos próprios dados cadastrais e alteração da própria senha; redefinição administrativa de senha para quem esquecer a sua.
   * Cadastro de pessoas com os dados: nome, unidade, telefone, e-mail, função/cargo, setor e observação.
   * Isolamento por unidade: cada unidade só enxerga os próprios arquivos; existe o papel de administrador de unidade.
+  * Compartilhamento somente leitura (visualizar e baixar) de pastas e documentos entre a unidade marcada como SEDE e as demais unidades, nos dois sentidos, sempre com a SEDE numa das pontas (US 5.2).
   * Navegador de arquivos com pastas aninhadas, trilha de navegação (breadcrumb), envio, download e visualização.
   * Envio de múltiplos arquivos de uma vez com progresso individual; envio de uma pasta inteira preservando a estrutura; download de uma pasta completa (com suas subpastas) num único arquivo compactado.
   * Permissões granulares (visualizar, baixar, enviar, renomear/substituir, excluir) atribuídas por pasta ou por arquivos selecionados, sem herança automática para o conteúdo interno, com prazo de expiração opcional.
@@ -39,7 +40,7 @@ O **objetivo principal** do GDoc é entregar um repositório de arquivos corpora
   * Recuperação de senha por e-mail ("esqueci minha senha" com link enviado à pessoa) — o MVP não envia e-mails, e por isso o esquecimento é resolvido por redefinição administrativa.
   * Edição do conteúdo dos documentos por dentro do sistema (a permissão de "editar" cobre apenas renomear e substituir o arquivo por uma nova versão).
   * Histórico de versões navegável de um arquivo (substituir troca o arquivo vigente; versões anteriores não ficam disponíveis para consulta).
-  * Compartilhamento de arquivos entre unidades diferentes.
+  * Compartilhamento entre duas unidades que não sejam a SEDE, e qualquer ação de escrita (enviar, renomear/substituir, excluir) sobre conteúdo de outra unidade.
   * Notificações fora do contexto de expiração de permissão (ex.: aviso a cada novo compartilhamento recebido).
   * Leitura obrigatória com registro de ciência (confirmação datada de que a pessoa leu um documento).
   * Busca pelo conteúdo interno dos arquivos (a busca alcança nome e código do documento, não o texto dentro do PDF ou do documento de escritório).
@@ -375,7 +376,42 @@ O **objetivo principal** do GDoc é entregar um repositório de arquivos corpora
     * *Cenário 2 — Colaborador não enxerga outra unidade:*
       * **Dado** que sou colaborador de uma unidade
       * **Quando** navego pelos arquivos
-      * **Então** nunca vejo arquivos pertencentes a outra unidade, mesmo por busca ou link direto.
+      * **Então** nunca vejo arquivos pertencentes a outra unidade, mesmo por busca ou link direto, salvo o que foi compartilhado com a minha unidade ou comigo pela US 5.2.
+
+* **US 5.2:** Como Administrador (Global, ou da unidade dona do conteúdo), eu quero compartilhar pastas e documentos entre a SEDE e as demais unidades, para que material institucional circule sem quebrar o isolamento do restante do acervo. (Demanda do cliente: a pasta Governança é da SEDE, mas as unidades precisam vê-la.)
+  * **Critérios de Aceitação:**
+    * *Cenário 1 — SEDE compartilha pasta com uma unidade:*
+      * **Dado** que a pasta Governança é da SEDE
+      * **Quando** a compartilho com a Unidade Norte para visualizar
+      * **Então** qualquer pessoa da Unidade Norte — inclusive quem for cadastrado depois — abre a pasta e tudo o que há dentro dela, inclusive o que entrar depois, sem poder enviar, renomear ou excluir.
+    * *Cenário 2 — Compartilhamento com uma pessoa:*
+      * **Dado** que compartilhei a pasta Governança com uma pessoa de outra unidade
+      * **Quando** ela abre "Compartilhados comigo"
+      * **Então** a pasta aparece, identificada como vinda da SEDE, e abre normalmente.
+    * *Cenário 3 — Unidade compartilha com a SEDE:*
+      * **Dado** que sou administrador de uma unidade
+      * **Quando** compartilho um documento dela com a SEDE
+      * **Então** a SEDE passa a alcançá-lo, e não consigo compartilhá-lo com nenhuma outra unidade.
+    * *Cenário 4 — Fora do compartilhamento nada muda:*
+      * **Dado** um compartilhamento vigente
+      * **Quando** uma pessoa da unidade de destino navega, busca ou usa link direto para qualquer item fora do que foi compartilhado
+      * **Então** é recusada como se o item não existisse.
+    * *Cenário 5 — Regras restritivas continuam valendo:*
+      * **Dado** que um documento dentro da pasta compartilhada está obsoleto, pendente de cadastro ou na lixeira
+      * **Quando** alguém da unidade de destino tenta alcançá-lo
+      * **Então** é recusado como se não existisse.
+    * *Cenário 6 — Prazo e revogação:*
+      * **Dado** que o compartilhamento tem prazo ou foi revogado
+      * **Quando** o prazo vence ou a revogação acontece
+      * **Então** o acesso termina na requisição seguinte.
+    * *Cenário 7 — Auditoria na origem:*
+      * **Dado** que uma pessoa de outra unidade visualizou ou baixou um arquivo compartilhado
+      * **Quando** o dono ou o administrador da unidade de origem consulta a auditoria do arquivo
+      * **Então** o acesso aparece com o nome da pessoa e a unidade dela.
+    * *Cenário 8 — Concessão comum não atravessa unidades:*
+      * **Dado** que tento conceder uma permissão comum a uma pessoa de outra unidade
+      * **Quando** confirmo
+      * **Então** sou recusado e orientado a usar o compartilhamento entre unidades, em vez de ver uma concessão sem efeito.
 
 ### Épico 6: Lixeira e Retenção
 
@@ -831,7 +867,7 @@ O **objetivo principal** do GDoc é entregar um repositório de arquivos corpora
 3. Alteração da própria senha em "Minha conta", mediante confirmação da senha atual e respeitando o tamanho mínimo exigido; a alteração encerra os demais acessos abertos da pessoa. Os dados cadastrais aparecem em "Minha conta" apenas para consulta.
 4. Redefinição administrativa de senha, com senha gerada pelo sistema e exibida uma única vez, encerrando de imediato os acessos abertos da pessoa: o Administrador de Unidade redefine a senha de Colaboradores da própria unidade; o Administrador Global, a de Colaboradores e Administradores de Unidade. A senha de um Administrador Global só é alterada por ele mesmo.
 5. Três níveis de papel: Administrador Global, Administrador de Unidade e Colaborador, com alcance de visibilidade correspondente.
-6. Isolamento total de conteúdo entre unidades: nenhuma pessoa acessa arquivos de unidade diferente da sua, por navegação, busca ou link direto.
+6. Isolamento total de conteúdo entre unidades: nenhuma pessoa acessa arquivos de unidade diferente da sua, por navegação, busca ou link direto — salvo compartilhamento entre unidades vigente (RF 28).
 7. Estrutura de pastas aninhadas com trilha de navegação; envio, download e visualização de itens conforme permissão.
 8. Envio de múltiplos arquivos com progresso individual e tratamento independente de falhas; envio de pasta preservando a hierarquia; download de pasta completa em arquivo compactado, restrito aos itens permitidos.
 9. Permissões concedidas por pasta ou por arquivos selecionados, cobrindo visualizar, baixar, enviar, renomear/substituir e excluir, sem herança automática para o conteúdo interno de pastas.
@@ -853,11 +889,12 @@ O **objetivo principal** do GDoc é entregar um repositório de arquivos corpora
 25. Documento marcado como obsoleto deixa de ser apresentado a Colaboradores por navegação, busca ou link direto, permanecendo visível a perfis de gestão da própria unidade e nunca atravessando o isolamento entre unidades.
 26. Tela inicial com identificação da pessoa, atalhos filtrados pelo perfil, acesso rápido às pastas de primeiro nível permitidas e lista de documentos alterados recentemente, restrita às permissões da pessoa e à sua unidade.
 27. Destino próprio, disponível a qualquer perfil, reunindo as pastas e os arquivos sobre os quais a pessoa tem permissão vigente recebida de outra pessoa, com os verbos e o prazo de cada um, a pasta que contém o item e a data do compartilhamento; a lista respeita todas as regras de visibilidade já vigentes e não amplia alcance.
+28. Compartilhamento somente leitura (visualizar e baixar) de pasta ou documento entre a unidade marcada como SEDE (no máximo uma) e as demais unidades, sempre com a SEDE numa das pontas, concedido pelo Administrador Global ou pelo Administrador da unidade dona do conteúdo, a uma pessoa ou a uma unidade inteira, com prazo opcional e revogação; a pasta compartilhada alcança todo o seu conteúdo, inclusive o que entrar depois; obsoletos, pendentes de cadastro e itens na lixeira continuam de fora; o acesso é auditado na unidade de origem; a concessão comum a pessoa de outra unidade é recusada.
 
 ## 6. Requisitos Não Funcionais
 
 * **Segurança e Confidencialidade:** o acesso à informação é sempre validado no servidor a cada ação (visualizar, baixar, enviar, alterar, excluir), independentemente da interface; links diretos nunca contornam a verificação de permissão. Senhas são armazenadas de forma protegida e nunca exibidas — a única exceção é a senha gerada em uma redefinição administrativa, apresentada uma única vez a quem a solicitou e não recuperável depois. Alterar ou redefinir uma senha encerra os acessos já abertos daquela pessoa.
-* **Privacidade entre unidades:** o isolamento por unidade é um requisito de confidencialidade — em nenhuma hipótese o conteúdo de uma unidade fica visível a outra.
+* **Privacidade entre unidades:** o isolamento por unidade é um requisito de confidencialidade — em nenhuma hipótese o conteúdo de uma unidade fica visível a outra, salvo compartilhamento explícito, somente leitura, envolvendo a SEDE (US 5.2).
 * **Desempenho e escala:** o sistema deve suportar arquivos grandes (sem limite de tamanho por arquivo definido), incluindo vídeos, com envio e download estáveis; a navegação em pastas com muitos itens deve permanecer fluida.
 * **Confiabilidade da retenção e da auditoria:** os registros de auditoria e o controle da lixeira devem ser confiáveis e resistentes a perda; a rotina diária de expurgo às 3h deve executar de forma consistente.
 * **Usabilidade:** interface limpa e premium, com navegação familiar no estilo explorador de arquivos, feedback claro de progresso de envio e mensagens compreensíveis de erro e de permissão insuficiente.

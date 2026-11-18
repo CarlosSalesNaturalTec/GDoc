@@ -10,6 +10,7 @@ import { usersRouter } from './routes/users.js';
 import { unitsRouter } from './routes/units.js';
 import { sectorsRouter } from './routes/sectors.js';
 import { grantsRouter } from './routes/grants.js';
+import { crossUnitGrantsRouter } from './routes/cross-unit-grants.js';
 import { authRouter } from './routes/auth.js';
 import { storageEventsRouter, type StorageEventsOptions } from './routes/storage-events.js';
 import { trashRouter } from './routes/trash.js';
@@ -169,6 +170,9 @@ export function createApp(ports: Ports, options: CreateAppOptions = {}): Express
   app.use(usersRouter(ports));
   app.use(unitsRouter(ports));
   app.use(sectorsRouter(ports));
+  // Antes de `grantsRouter`: rotas `/grants/cross-unit/*` (change
+  // `compartilhamento-entre-unidades`) sob o mesmo prefixo.
+  app.use(crossUnitGrantsRouter(ports));
   app.use(grantsRouter(ports));
   app.use(trashRouter(ports));
   app.use(auditRouter(ports));

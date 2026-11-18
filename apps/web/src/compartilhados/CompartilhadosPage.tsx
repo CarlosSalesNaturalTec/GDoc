@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom';
 import { GrantResourceType, Permission } from '@gdoc/shared';
 import type { FileSummaryResponse, SharedWithMeItemResponse } from '@gdoc/shared';
 import { IconeArquivo, IconeBaixarVarios, IconePasta, IconeVisualizar } from '../app/icons';
+import { RotuloDeEstado } from '../app/RotuloDeEstado';
 import { formatDate } from '../navegacao/format';
 import { VERB_LABEL } from '../permissoes/PermissoesModal';
 import { PreviewModal } from '../visualizacao/PreviewModal';
@@ -94,8 +95,16 @@ export function CompartilhadosPage() {
       // Só a pasta que contém o item (design.md D7): sem herança, o recurso
       // concedido está frequentemente sob pastas que a pessoa não alcança, e
       // nomear a cadeia revelaria estrutura fora do seu alcance.
+      // Item compartilhado por outra unidade (change
+      // `compartilhamento-entre-unidades`, design.md D12): a pasta que o
+      // contém está fora do compartilhamento e não é nomeada — o que o
+      // identifica é a unidade de origem.
       render: (_, item) =>
-        item.folderName ?? <Typography.Text type="secondary">Raiz da unidade</Typography.Text>,
+        item.originUnit ? (
+          <RotuloDeEstado tom="neutro">da unidade {item.originUnit.name}</RotuloDeEstado>
+        ) : (
+          (item.folderName ?? <Typography.Text type="secondary">Raiz da unidade</Typography.Text>)
+        ),
     },
     {
       title: 'O que você pode fazer',

@@ -94,6 +94,17 @@ export function fileSummaryColumns(ctx: TenantContext, ownerIdParam: string): st
 }
 
 /**
+ * Colunas do resumo de arquivo na **transação de visita** (change
+ * `compartilhamento-entre-unidades`, design.md D6): mesma forma de
+ * `fileSummaryColumns`, com `can_edit_control` e `required_reading` fixos em
+ * `false` — quem visita nunca edita, e a leitura obrigatória é da unidade de
+ * origem, não de quem visita.
+ */
+export function visitFileSummaryColumns(): string {
+  return `${FILE_SUMMARY_BASE_COLUMNS}, FALSE AS can_edit_control, FALSE AS required_reading, ${FILE_DERIVED_COLUMNS}`;
+}
+
+/**
  * A revisão vigente tem marcação de leitura obrigatória em curso (change
  * `superficies-de-pendencia`, design.md D4): marcação da **revisão atual**, de
  * documento não obsoleto — o complemento do ramo `closed` de
