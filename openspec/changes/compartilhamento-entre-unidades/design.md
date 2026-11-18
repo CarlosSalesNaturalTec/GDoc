@@ -102,18 +102,22 @@ requisição.
 `POSTGRES_16` (`infra/terraform/cloud_sql.tf`), `postgres:16` na CI e
 Postgres 16 no sandbox.
 
-### D2: RLS de `cross_unit_grants` e o novo `app.current_user`
+### D2: RLS de `cross_unit_grants` e o novo `app.current_user_id`
 
 ```sql
-CREATE POLICY unit_isolation ON cross_unit_grants
-  USING (
-    unit_id = current_unit
-    OR (subject_unit_id = current_unit
-        AND (subject_user_id IS NULL OR subject_user_id = current_user_setting))
-    OR role = 'global_admin'
-  )
+-- origem gere (FOR ALL): lê, cria, revoga
+CREATE POLICY origin_manage ON cross_unit_grants
+  USING (unit_id = current_unit OR role = 'global_admin')
   WITH CHECK (unit_id = current_unit OR role = 'global_admin');
+-- destino só lê (FOR SELECT): nunca revoga nem altera
+CREATE POLICY destination_read ON cross_unit_grants FOR SELECT
+  USING (subject_unit_id = current_unit
+         AND (subject_user_id IS NULL OR subject_user_id = current_user_id));
 ```
+
+São duas policies, e não uma: numa policy única `FOR ALL`, o `USING` do
+ramo de destino valeria também para `DELETE`, e o destino poderia revogar o
+que recebeu.
 
 A notação está abreviada: as expressões reais seguem o molde de
 `0002_enable_rls.sql`, com `NULLIF(current_setting(...), '')::uuid`.
@@ -122,8 +126,13 @@ A notação está abreviada: as expressões reais seguem o molde de
 - **O destino só lê o que lhe diz respeito**: o que foi dado à unidade dele
   e o que foi dado a ele em pessoa. A concessão individual feita a um
   colega não chega à transação de outra pessoa da mesma unidade.
+- A transação de visita é **somente leitura por imposição do banco**:
+  policies `AS RESTRICTIVE` recusam INSERT/UPDATE/DELETE com
+  `app.user_role = 'shared_visitor'` em toda tabela de unidade, exceto
+  `audit_events` (a única escrita da visita). A visita lê
+  `cross_unit_grants` da origem pela `origin_manage`, mas nunca a altera.
 - Para isso `withTenantTransaction` passa a publicar
-  `set_config('app.current_user', ctx.userId, true)`, com `SET LOCAL`,
+  `set_config('app.current_user_id', ctx.userId, true)`, com `SET LOCAL`,
   ao lado de `current_unit` e `user_role`. Sem a configuração, a
   comparação dá `NULL` e o ramo pessoal nega (fail-closed).
 
@@ -153,7 +162,7 @@ withSharedVisitTransaction<T>(visit: SharedVisit, fn: (client) => Promise<T>): P
 // SharedVisit = { userId, originUnitId }
 // SET LOCAL app.current_unit = originUnitId,
 //           app.user_role    = 'shared_visitor',
-//           app.current_user = userId
+//           app.current_user_id = userId
 ```
 
 - `'shared_visitor'` **não é** `'global_admin'`, então nenhuma policy dá
@@ -254,8 +263,10 @@ acervo documental). O CTE usa os índices existentes em `folders (id)` e
 - `breadcrumb`: só as pastas da cadeia que também estão cobertas, ou seja,
   da raiz compartilhada mais alta até a corrente. Os ancestrais acima da
   raiz não são nomeados, na mesma linha de `compartilhados-comigo` D7.
-- `canUpload: false`, favoritos vazios e dois campos novos:
-  `readOnly: true` e `sharedFrom: { unitId, unitName }`.
+- `canUpload: false`, favoritos vazios e três campos novos:
+  `readOnly: true`, `sharedFrom: { unitId, unitName }` e `canDownload`
+  (veredito do verbo `download` sobre a pasta corrente, para a SPA não
+  inferir permissão).
 - A contagem de documentos da subárvore (requisito de `navegacao`) é
   calculada na visita com o mesmo filtro de subtração.
 

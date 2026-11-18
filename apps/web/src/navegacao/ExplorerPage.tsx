@@ -1,6 +1,7 @@
 import type { Key, ReactNode } from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  Alert,
   App,
   Breadcrumb,
   Button,
@@ -201,6 +202,13 @@ export function ExplorerPage() {
     identity?.role === UserRole.UNIT_ADMIN || identity?.role === UserRole.GLOBAL_ADMIN;
 
   const { data, isLoading, isError, error } = useFolderContents(currentFolderId);
+  // Pasta compartilhada por outra unidade (change
+  // `compartilhamento-entre-unidades`, design.md D6, spec `web-navegacao`):
+  // navegação somente leitura. O veredito vem do servidor (`readOnly`,
+  // `canDownload`) — a SPA não o infere, e o servidor recusaria a escrita de
+  // todo modo.
+  const somenteLeitura = data?.readOnly === true;
+  const podeBaixarCompartilhado = data?.canDownload === true;
   const createFolder = useCreateFolder();
   const renameFile = useRenameFile();
   const renameFolder = useRenameFolder();
@@ -571,7 +579,9 @@ export function ExplorerPage() {
       return [{ title: 'Documentos' }];
     }
     return [
-      { title: <Link to="/pastas">Documentos</Link> },
+      data.readOnly
+        ? { title: <Link to="/compartilhados">Compartilhados comigo</Link> }
+        : { title: <Link to="/pastas">Documentos</Link> },
       ...data.breadcrumb.map((crumb) => ({
         key: crumb.id,
         title: <Link to={`/pastas/${crumb.id}`}>{crumb.name}</Link>,
@@ -671,6 +681,7 @@ export function ExplorerPage() {
       title: 'Ações',
       key: 'actions',
       render: (_, row) => {
+        if (row.kind === 'folder' && somenteLeitura) return null;
         if (row.kind === 'folder') {
           const folderActions: ReactNode[] = [
             <Button
@@ -747,6 +758,30 @@ export function ExplorerPage() {
             <GroupedActions actions={folderActions} />
           ) : (
             <Space>{folderActions}</Space>
+          );
+        }
+
+        if (somenteLeitura) {
+          return (
+            <Space>
+              <Button
+                size="small"
+                icon={<IconeVisualizar />}
+                onClick={() => setPreviewingFile(row.file)}
+              >
+                Visualizar
+              </Button>
+              {podeBaixarCompartilhado && (
+                <Button
+                  size="small"
+                  icon={<IconeBaixarVarios />}
+                  loading={downloading}
+                  onClick={() => download(row.file.id)}
+                >
+                  Baixar
+                </Button>
+              )}
+            </Space>
           );
         }
 
@@ -909,42 +944,55 @@ export function ExplorerPage() {
       <div style={{ overflowX: 'auto', marginBottom: 16 }}>
         <Breadcrumb items={breadcrumbItems} style={{ whiteSpace: 'nowrap' }} />
       </div>
-      <Space wrap style={{ marginBottom: 16 }}>
-        <Button type="primary" icon={<IconeNovaPasta />} onClick={() => setNewFolderOpen(true)}>
-          Nova pasta
-        </Button>
-        {/* Oferecida uniformemente, inclusive na raiz da unidade — a recusa
+      {somenteLeitura && data.sharedFrom && (
+        <Alert
+          type="info"
+          showIcon
+          style={{ marginBottom: 16 }}
+          message={`Compartilhada pela unidade ${data.sharedFrom.unitName}`}
+          description="Somente leitura: você pode visualizar os documentos e, quando permitido, baixá-los."
+        />
+      )}
+      {!somenteLeitura && (
+        <Space wrap style={{ marginBottom: 16 }}>
+          <Button type="primary" icon={<IconeNovaPasta />} onClick={() => setNewFolderOpen(true)}>
+            Nova pasta
+          </Button>
+          {/* Oferecida uniformemente, inclusive na raiz da unidade — a recusa
             por limite é que ensina o teto, não a ausência da ação
             (design.md D9). Abaixo do limiar, a recusa é por dispositivo
             (design.md D5 de `responsividade-mobile-tablet`). */}
-        <Button
-          icon={<IconeBaixar />}
-          onClick={() =>
-            handleOpenDownloadFolder({
-              folderId: currentFolderId,
-              folderName: data.folder?.name ?? 'Documentos',
-            })
-          }
-        >
-          Baixar esta pasta
-        </Button>
-        {data.folder !== null && (
-          <Popconfirm
-            title="Excluir esta pasta"
-            description="A pasta e seu conteúdo vão para a lixeira."
-            okText="Sim, excluir"
-            cancelText="Cancelar"
-            onConfirm={handleDeleteCurrentFolder}
+          <Button
+            icon={<IconeBaixar />}
+            onClick={() =>
+              handleOpenDownloadFolder({
+                folderId: currentFolderId,
+                folderName: data.folder?.name ?? 'Documentos',
+              })
+            }
           >
-            <Button danger icon={<IconeExcluir />}>
-              Excluir esta pasta
-            </Button>
-          </Popconfirm>
-        )}
-      </Space>
-      <div ref={areaDeEnvioRef}>
-        <UploadArea destinationFolderId={currentFolderId} />
-      </div>
+            Baixar esta pasta
+          </Button>
+          {data.folder !== null && (
+            <Popconfirm
+              title="Excluir esta pasta"
+              description="A pasta e seu conteúdo vão para a lixeira."
+              okText="Sim, excluir"
+              cancelText="Cancelar"
+              onConfirm={handleDeleteCurrentFolder}
+            >
+              <Button danger icon={<IconeExcluir />}>
+                Excluir esta pasta
+              </Button>
+            </Popconfirm>
+          )}
+        </Space>
+      )}
+      {!somenteLeitura && (
+        <div ref={areaDeEnvioRef}>
+          <UploadArea destinationFolderId={currentFolderId} />
+        </div>
+      )}
       {/* Barra de ação em lote (US 2.4, design.md D3/D8 do change
           `mover-itens-em-lote`): visível a partir de um item selecionado,
           alcançável também abaixo do ponto de ruptura — a seleção não é
@@ -976,9 +1024,11 @@ export function ExplorerPage() {
           image={Empty.PRESENTED_IMAGE_SIMPLE}
           description={
             <Typography.Text type="secondary">
-              {data.canUpload
-                ? 'Esta pasta ainda não tem documentos. Envie o primeiro para começar.'
-                : 'Esta pasta ainda não tem documentos.'}
+              {somenteLeitura
+                ? 'Não há documentos compartilhados nesta pasta.'
+                : data.canUpload
+                  ? 'Esta pasta ainda não tem documentos. Envie o primeiro para começar.'
+                  : 'Esta pasta ainda não tem documentos.'}
             </Typography.Text>
           }
         >
@@ -995,10 +1045,14 @@ export function ExplorerPage() {
           dataSource={rows}
           pagination={false}
           scroll={{ x: 'max-content' }}
-          rowSelection={{
-            selectedRowKeys,
-            onChange: (keys) => setSelectedRowKeys(keys),
-          }}
+          rowSelection={
+            somenteLeitura
+              ? undefined
+              : {
+                  selectedRowKeys,
+                  onChange: (keys) => setSelectedRowKeys(keys),
+                }
+          }
         />
       )}
       <NewFolderModal

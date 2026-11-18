@@ -7,8 +7,9 @@
 O explorador SHALL exibir a pasta identificada com a unidade de origem
 ("Compartilhada pela unidade {nome}") quando a resposta de conteúdo de
 pasta indicar `readOnly` e `sharedFrom`. A trilha SHALL começar na raiz
-compartilhada, e a SPA SHALL oferecer somente visualizar e baixar,
-conforme os verbos. Não SHALL oferecer enviar, nova pasta, renomear, mover,
+compartilhada (precedida de "Compartilhados comigo", nunca de
+"Documentos"), e a SPA SHALL oferecer somente visualizar e, quando o
+servidor indicar `canDownload`, baixar. Não SHALL oferecer enviar, nova pasta, renomear, mover,
 excluir, permissões nem favorito. O orientador de pasta vazia SHALL
 informar que não há documentos compartilhados, sem sugerir envio. A SPA NÃO
 SHALL inferir esses vereditos no cliente: eles vêm da resposta do servidor.

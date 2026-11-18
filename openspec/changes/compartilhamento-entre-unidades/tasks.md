@@ -2,7 +2,7 @@
 
 ## 0. PRD
 
-- [ ] 0.1 Atualizar `docs/prd_final.md` conforme proposal.md, em "What
+- [x] 0.1 Atualizar `docs/prd_final.md` conforme proposal.md, em "What
   Changes / PRD":
   - §3: mover o compartilhamento entre unidades de "Fora de Escopo" para
     "Dentro do Escopo", na forma somente leitura e envolvendo a SEDE;
@@ -16,7 +16,7 @@
 
 ## 1. Banco
 
-- [ ] 1.1 `apps/api/src/db/migrations/0026_cross_unit_grants.sql`:
+- [x] 1.1 `apps/api/src/db/migrations/0026_cross_unit_grants.sql`:
   - `units.is_headquarters` com índice único parcial;
   - `OR is_headquarters` no `USING` da policy de `units` (o `WITH CHECK`
     não muda);
@@ -27,7 +27,7 @@
 
   Comentários com rastro (`change compartilhamento-entre-unidades,
   design.md D1/D2/D9/D11`).
-- [ ] 1.2 Na mesma migração, a parte de dados de D10, sob `SET LOCAL
+- [x] 1.2 Na mesma migração, a parte de dados de D10, sob `SET LOCAL
   app.user_role = 'global_admin'`, como em `0020_sectors.sql`: copiar para
   `cross_unit_grants` as concessões de `view`/`download` cujo sujeito é de
   outra unidade, e depois remover de `grants` todas as concessões com
@@ -36,29 +36,33 @@
 - [ ] 1.3 Antes do deploy, rodar em produção (só leitura) a consulta que
   conta as concessões sem efeito por verbo, e anexar o resultado ao PR.
   Verificação: os números batem com o `NOTICE` da migração no deploy.
-- [ ] 1.4 `rls-isolation.test.ts` ganha casos para `cross_unit_grants`:
+  **Pendente de operação**: o sandbox não tem acesso ao banco de produção. A
+  consulta está na descrição do PR.
+- [x] 1.4 Casos de RLS para `cross_unit_grants` (ficaram em
+  `compartilhamento-entre-unidades.test.ts`, junto da transação de visita,
+  para não alterar `rls-isolation.test.ts`):
   - a origem lê e escreve;
   - o destino lê só a concessão da unidade e a própria;
   - terceira unidade não lê nada;
-  - sem `app.current_user`, o ramo pessoal nega.
+  - sem `app.current_user_id`, o ramo pessoal nega.
 
   Verificação: a suíte roda com o papel não-superuser.
 
 ## 2. Seam de banco
 
-- [ ] 2.1 `pg-database-port.ts::withTenantTransaction` passa a publicar
-  `app.current_user` (`SET LOCAL`, via `set_config(..., true)`).
-- [ ] 2.2 `DatabasePort.withSharedVisitTransaction({ userId, originUnitId },
+- [x] 2.1 `pg-database-port.ts::withTenantTransaction` passa a publicar
+  `app.current_user_id` (`SET LOCAL`, via `set_config(..., true)`).
+- [x] 2.2 `DatabasePort.withSharedVisitTransaction({ userId, originUnitId },
   fn)` com `current_unit = origem`, `user_role = 'shared_visitor'` e
   `current_user` (design.md D3). Implementar também no adapter de testes,
   se houver.
-- [ ] 2.3 Teste de arquitetura: falha se algum arquivo de `apps/api/src`,
+- [x] 2.3 Teste de arquitetura: falha se algum arquivo de `apps/api/src`,
   fora de `lib/cross-unit-share.ts` e do port/adapter, referenciar
   `withSharedVisitTransaction`.
 
 ## 3. Resolução e rotas de conteúdo
 
-- [ ] 3.1 `packages/shared`: incluir os DTOs abaixo e recompilar o
+- [x] 3.1 `packages/shared`: incluir os DTOs abaixo e recompilar o
   `shared`.
   - `CrossUnitGrantResponse`;
   - `CreateCrossUnitGrantRequest`;
@@ -70,7 +74,7 @@
   - `actor.unitName` na auditoria;
   - códigos de erro `cross_unit_subject`,
     `cross_unit_destination_not_allowed` e `headquarters_already_set`.
-- [ ] 3.2 `apps/api/src/lib/cross-unit-share.ts`:
+- [x] 3.2 `apps/api/src/lib/cross-unit-share.ts`:
   - `listShareOrigins(client, ctx, permission)`;
   - `withSharedResource(ports, ctx, type, id, permission, fn)`, com os
     passos de D4 (a–d): subtrações, regra da SEDE, origem ativa e cobertura
@@ -79,41 +83,41 @@
 
   Rastro em comentário. `lib/access.ts` ganha só um parágrafo de comentário
   apontando para o segundo caminho, sem mudança de código.
-- [ ] 3.3 `POST /files/:id/view-url` e `/download-url`: se `hasAccess` negar,
+- [x] 3.3 `POST /files/:id/view-url` e `/download-url`: se `hasAccess` negar,
   tentar `withSharedResource`. A emissão da URL e a auditoria acontecem
   dentro da visita, com `actor_name` e `actor_unit_name` lidos na
   transação própria (D9). A negação final é idêntica à de hoje.
-- [ ] 3.4 `GET /folders/:id/contents`: caminho de visita (D6), com
+- [x] 3.4 `GET /folders/:id/contents`: caminho de visita (D6), com
   `readOnly: true`, `sharedFrom`, `canUpload: false`, favoritos vazios e
   contagem da subárvore com subtração. Levantar se o `PreviewModal` usa
   outra rota de detalhe de arquivo e, se usar, incluí-la no caminho de
   visita.
-- [ ] 3.5 Confirmar, com teste, que as rotas de escrita (upload, replace,
+- [x] 3.5 Confirmar, com teste, que as rotas de escrita (upload, replace,
   rename, move, delete, restore, grants, favorites, document-control) e as
   de busca, recentes e manifesto **não** alcançam conteúdo compartilhado.
   Elas devem responder exatamente como hoje para um item de outra unidade.
 
 ## 4. Rotas de gestão
 
-- [ ] 4.1 `POST /grants`: recusar com 422 `cross_unit_subject` quando algum
+- [x] 4.1 `POST /grants`: recusar com 422 `cross_unit_subject` quando algum
   sujeito tiver `unit_id` diferente do recurso (D10). Atualizar os testes
   de `permission.test.ts` que assumiam outro comportamento, se houver.
-- [ ] 4.2 `POST /grants/cross-unit`, `GET /grants/cross-unit`,
+- [x] 4.2 `POST /grants/cross-unit`, `GET /grants/cross-unit`,
   `DELETE /grants/cross-unit/:id`, `GET /grants/cross-unit/destinations` e
   `GET /grants/cross-unit/recipients`, conforme D7/D8. Registrá-las
   **antes** de `/grants/:id` no router, para não haver conflito de padrão.
-- [ ] 4.3 `GET /grants/received`: segunda origem de candidatos e
+- [x] 4.3 `GET /grants/received`: segunda origem de candidatos e
   `originUnit` (D12).
-- [ ] 4.4 `PATCH /units/:id`: aceitar `isHeadquarters`, com 409 para segunda
+- [x] 4.4 `PATCH /units/:id`: aceitar `isHeadquarters`, com 409 para segunda
   SEDE e 409 para desativar a SEDE marcada. `GET /units` devolve
   `isHeadquarters` (D11).
-- [ ] 4.5 `routes/audit.ts`: usar `LEFT JOIN users`, `COALESCE` com
+- [x] 4.5 `routes/audit.ts`: usar `LEFT JOIN users`, `COALESCE` com
   `actor_name` e devolver `actor.unitName` e e-mail nulo para quem é de
   outra unidade (D9).
 
 ## 5. Testes de servidor
 
-- [ ] 5.1 `apps/api/src/__tests__/compartilhamento-entre-unidades.test.ts`.
+- [x] 5.1 `apps/api/src/__tests__/compartilhamento-entre-unidades.test.ts`.
   Cenários positivos:
   - caso real: Governança (SEDE) → Raíra e Governança (SEDE) → Unidade
     Norte inteira, inclusive pessoa cadastrada depois;
@@ -135,36 +139,36 @@
   - destino tentando revogar.
 
   Auditoria: o evento aparece para o dono da origem, com nome e unidade.
-- [ ] 5.2 `isolamento-unidade.test.ts`, `permission.test.ts`,
+- [x] 5.2 `isolamento-unidade.test.ts`, `permission.test.ts`,
   `expiracao-permissoes-acesso.test.ts` e `web-serving.test.ts` seguem
   verdes **sem edição de asserção**. A única exceção esperada é a 4.1, se
   algum teste gravava concessão entre unidades.
-- [ ] 5.3 Testes de migração: base com concessão sem efeito de `view` e de
+- [x] 5.3 Testes de migração: base com concessão sem efeito de `view` e de
   `delete`. Depois da 0026, a de `view` vira compartilhamento por pessoa e
   as duas saem de `grants`.
 
 ## 6. SPA
 
-- [ ] 6.1 `unidades/`: etiqueta "SEDE", ação marcar e desmarcar com
+- [x] 6.1 `unidades/`: etiqueta "SEDE", ação marcar e desmarcar com
   confirmação, e desativar indisponível na SEDE (spec `web-unidades`).
-- [ ] 6.2 `permissoes/PermissoesModal.tsx`: seção "Compartilhar com outra
+- [x] 6.2 `permissoes/PermissoesModal.tsx`: seção "Compartilhar com outra
   unidade", com destino, unidade inteira ou pessoas, verbos, prazo, lista,
   revogação, aviso de subárvore e estado sem SEDE. A seleção de pessoas da
   concessão comum fica restrita à unidade do recurso, e a mensagem de
   `cross_unit_subject` é traduzida (spec `web-permissoes`).
-- [ ] 6.3 `compartilhados/`: etiqueta "da unidade {nome}" quando
+- [x] 6.3 `compartilhados/`: etiqueta "da unidade {nome}" quando
   `originUnit` vier preenchido.
-- [ ] 6.4 `navegacao/ExplorerPage.tsx`: modo somente leitura com
+- [x] 6.4 `navegacao/ExplorerPage.tsx`: modo somente leitura com
   `readOnly`/`sharedFrom`, ações de escrita ocultas, faixa "Compartilhada
   pela unidade {nome}" e orientador de vazio próprio (spec
   `web-navegacao`).
-- [ ] 6.5 `auditoria/`: mostrar a unidade da pessoa quando
+- [x] 6.5 `auditoria/`: mostrar a unidade da pessoa quando
   `actor.unitName` vier preenchido.
-- [ ] 6.6 Testes de componente em `apps/web/src/__tests__/` para 6.1–6.5.
+- [x] 6.6 Testes de componente em `apps/web/src/__tests__/` para 6.1–6.5.
 
 ## 7. Documentação
 
-- [ ] 7.1 Atualizar as páginas do manual:
+- [x] 7.1 Atualizar as páginas do manual:
   - `docs/manual/docs/administrador/unidades.md`: marcar a SEDE e o efeito
     de desmarcar;
   - `administrador/permissoes.md`: compartilhar com outra unidade (quem
@@ -180,10 +184,10 @@
 
 ## 8. Fechamento
 
-- [ ] 8.1 `npm run lint`, `npm run build`, `npm run format:check` e
+- [x] 8.1 `npm run lint`, `npm run build`, `npm run format:check` e
   `npm run test`. Verificação: tudo verde, com a API testada contra o
   Postgres com papel não-superuser.
-- [ ] 8.2 Validação manual no sandbox com seed: marcar a SEDE, compartilhar
+- [x] 8.2 Validação manual no sandbox com seed: marcar a SEDE, compartilhar
   uma pasta com a Unidade Norte, entrar como colaborador da Norte, abrir
   por "Compartilhados comigo", visualizar um arquivo interno e conferir a
   auditoria como admin da SEDE.
@@ -197,7 +201,7 @@
 
 ## Paridade dev (SessionStart hook/sandbox)
 
-- [ ] 9.1 O seed (`npm run seed --workspace apps/api`) marca a unidade-sede
+- [x] 9.1 O seed (`npm run seed --workspace apps/api`) marca a unidade-sede
   do seed como SEDE e cria um compartilhamento de exemplo, de forma
   idempotente, para que o fluxo de 8.2 seja reproduzível. O hook não muda:
   ele já migra e semeia.

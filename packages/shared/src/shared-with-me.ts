@@ -56,6 +56,12 @@ export interface SharedWithMeItemResponse {
    * exige nenhuma conversão.
    */
   file: FileSummaryResponse | null;
+  /**
+   * Unidade de origem quando o item chega por **compartilhamento entre
+   * unidades** (change `compartilhamento-entre-unidades`, design.md D12);
+   * `null` (ou ausente, numa API anterior) nos itens da própria unidade.
+   */
+  originUnit?: { id: string; name: string } | null;
 }
 
 /**

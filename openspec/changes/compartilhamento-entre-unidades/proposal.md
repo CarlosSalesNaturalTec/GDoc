@@ -105,7 +105,7 @@ Decisões confirmadas com o solicitante antes deste change:
   destino, pessoa de destino opcional, verbo (`view`/`download`), prazo
   opcional e autor. RLS própria: a origem gere, e o destino lê só o que lhe
   diz respeito.
-- `withTenantTransaction` passa a publicar também `app.current_user`, que a
+- `withTenantTransaction` passa a publicar também `app.current_user_id`, que a
   policy nova usa.
 - `audit_events` ganha um retrato do nome de quem acessou e da unidade dele
   (`actor_name`, `actor_unit_name`), preenchido só em acesso entre
@@ -182,7 +182,7 @@ Decisões confirmadas com o solicitante antes deste change:
 
 - `apps/api/src/db/migrations/0026_cross_unit_grants.sql` (nova).
 - `apps/api/src/adapters/pg-database-port.ts` e
-  `apps/api/src/ports/database-port.ts` (`app.current_user`,
+  `apps/api/src/ports/database-port.ts` (`app.current_user_id`,
   `withSharedVisitTransaction`).
 - `apps/api/src/lib/cross-unit-share.ts` (nova) e
   `apps/api/src/lib/access.ts` (comentário de rastro, sem ramo novo).

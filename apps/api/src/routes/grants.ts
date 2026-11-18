@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { GrantResourceType, NotificationKind, Permission, UserRole } from '@gdoc/shared';
 import type {
   CreateGrantRequest,
+  CrossUnitSubjectResponse,
   GrantListResponse,
   GrantResponse,
   GrantSubjectsLimitExceededResponse,
@@ -13,6 +14,7 @@ import type { PoolClient } from 'pg';
 import type { Ports } from '../ports/index.js';
 import type { TenantContext } from '../ports/database-port.js';
 import { hasAccess, resourceTable } from '../lib/access.js';
+import { listCrossUnitReceived } from '../lib/cross-unit-share.js';
 import {
   fileSummaryColumns,
   toFileSummaryResponse,
@@ -318,11 +320,23 @@ export function grantsRouter(ports: Ports): Router {
         // a cardinalidade do resultado comparada com o conjunto deduplicado
         // decide tudo-ou-nada, sem apontar qual id falhou — recusa parcial
         // transformaria a rota num oráculo de existência de contas.
-        const { rows: subjectRows } = await client.query<{ id: string }>(
-          'SELECT id FROM users WHERE id = ANY($1)',
+        const { rows: subjectRows } = await client.query<{ id: string; unit_id: string }>(
+          'SELECT id, unit_id FROM users WHERE id = ANY($1)',
           [subjectUserIds],
         );
         if (subjectRows.length !== subjectUserIds.length) return { status: 404 as const };
+
+        // Concessão comum não atravessa unidades (change
+        // `compartilhamento-entre-unidades`, design.md D10, PRD US 5.2
+        // cenário 8). Antes, o `global_admin` — cujo bypass de RLS enxerga
+        // pessoas de toda unidade — gravava aqui uma concessão que a RLS
+        // tornava inerte para a pessoa de destino, e a tela a apresentava como
+        // se valesse. Recusa explícita, tudo ou nada; o caminho correto é o
+        // compartilhamento entre unidades. Para o `unit_admin` nada muda: a
+        // RLS já escondia a pessoa de outra unidade (404 acima).
+        if (subjectRows.some((subject) => subject.unit_id !== resource.unit_id)) {
+          return { status: 422 as const };
+        }
 
         // Produto colaboradores × verbos num único INSERT ... SELECT sobre
         // unnest (design.md D2) — uma ida ao banco em vez de N×M, com a
@@ -349,6 +363,11 @@ export function grantsRouter(ports: Ports): Router {
         return { status: 201 as const, rows };
       });
 
+      if (outcome.status === 422) {
+        const crossUnit: CrossUnitSubjectResponse = { error: 'cross_unit_subject' };
+        res.status(422).json(crossUnit);
+        return;
+      }
       if (outcome.status !== 201) {
         res.status(404).json({ error: 'not found' });
         return;
@@ -517,7 +536,36 @@ export function grantsRouter(ports: Ports): Router {
         });
       });
 
-      const response: SharedWithMeResponse = { items };
+      // Itens recebidos de outra unidade (change
+      // `compartilhamento-entre-unidades`, design.md D12): só as raízes
+      // compartilhadas, confirmadas em visita à unidade de origem. Mesclados
+      // pela mesma ordem (mais recente primeiro, id desempata). A pasta que
+      // contém o item de outra unidade não é nomeada (`folderName` nulo): ela
+      // está fora do compartilhamento; a SPA mostra a unidade de origem.
+      const recebidos = await listCrossUnitReceived(ports, ctx);
+      const deOutraUnidade = recebidos.flatMap<SharedWithMeItemResponse>((item) => {
+        const comum = {
+          resourceType: item.resourceType,
+          id: item.resourceId,
+          permissions: [...item.permissions].sort(
+            (a, b) =>
+              (PERMISSION_ORDER.get(a.permission) ?? 0) - (PERMISSION_ORDER.get(b.permission) ?? 0),
+          ),
+          sharedAt: item.sharedAt,
+          folderName: null,
+          originUnit: { id: item.originUnitId, name: item.originUnitName },
+        };
+        if (item.folder) return [{ ...comum, name: item.folder.name, file: null }];
+        if (!item.file) return [];
+        const resumo = toFileSummaryResponse(item.file);
+        return [{ ...comum, name: resumo.fileName, file: resumo }];
+      });
+      const todos = [
+        ...items.map((item) => ({ ...item, originUnit: null })),
+        ...deOutraUnidade,
+      ].sort((a, b) => b.sharedAt.localeCompare(a.sharedAt) || a.id.localeCompare(b.id));
+
+      const response: SharedWithMeResponse = { items: todos };
       res.json(response);
     } catch (err) {
       next(err);

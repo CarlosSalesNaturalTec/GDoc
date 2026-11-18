@@ -18,7 +18,7 @@ todos os perfis.
 | ------------------------- | ---------------------------------------------------------------------------- |
 | **Tipo**                  | Se é uma pasta ou um arquivo.                                                 |
 | **Nome**                  | O nome da pasta ou do arquivo. Clique para abrir.                             |
-| **Onde está**             | A pasta que contém o item — ou "Raiz da unidade", quando está no primeiro nível. |
+| **Onde está**             | A pasta que contém o item — ou "Raiz da unidade", quando está no primeiro nível. Para itens de outra unidade, mostra **da unidade** e o nome dela. |
 | **O que você pode fazer** | Suas permissões sobre aquele item, e até quando cada uma vale.                |
 | **Compartilhado em**      | A data em que o acesso foi liberado para você.                                |
 | **Ações**                 | Os botões correspondentes ao que você pode fazer.                             |
@@ -31,9 +31,10 @@ Os itens aparecem do compartilhamento mais recente para o mais antigo.
   visualização, sem precisar navegar até a pasta onde está.
 - **Pasta**: clique no nome, ou em **Abrir**, e você vai direto para dentro dela.
 
-Lembre-se de que liberar uma pasta **não** libera o conteúdo dela: ao abrir uma
-pasta compartilhada, você vê apenas os itens que também foram liberados para
-você, individualmente.
+Lembre-se de que, dentro da sua unidade, liberar uma pasta **não** libera o
+conteúdo dela: ao abrir uma pasta compartilhada, você vê apenas os itens que
+também foram liberados para você, individualmente. A exceção são as pastas
+compartilhadas por outra unidade (veja abaixo).
 
 ## Prazos
 
@@ -63,8 +64,28 @@ a situação do item, não o seu acesso.
   pessoas.
 - **Quem liberou o acesso.** Liberar permissão é tarefa da administração da sua
   unidade; se precisar saber quem liberou ou pedir mais acesso, fale com ela.
-- **Itens de outra unidade.** Nenhum conteúdo atravessa unidades, aqui ou em
-  qualquer outra tela.
+- **Itens de outra unidade que não foram compartilhados com você.** Só aparece o
+  que a SEDE (ou, se você é da SEDE, outra unidade) compartilhou explicitamente
+  com você ou com a sua unidade — veja abaixo.
+
+## Itens compartilhados por outra unidade
+
+A SEDE pode compartilhar pastas e documentos com a sua unidade inteira ou só com
+você — e, se você é da SEDE, outra unidade pode compartilhar com a SEDE. Esses
+itens aparecem na lista com a etiqueta **da unidade** e o nome da unidade de
+origem.
+
+Ao abrir uma **pasta** compartilhada por outra unidade:
+
+- você vê **todo o conteúdo** dela, inclusive as subpastas — aqui não é preciso
+  liberar item a item;
+- uma faixa informa **Compartilhada pela unidade** e o nome da unidade;
+- a trilha começa em **Compartilhados comigo**, seguida da pasta compartilhada;
+- o acesso é **somente leitura**: você pode **Visualizar** e, quando permitido,
+  **Baixar** — não é possível enviar, criar pastas, renomear, mover ou excluir.
+
+A busca e a tela inicial não mostram conteúdo de outra unidade: o caminho até ele
+é sempre esta lista.
 
 ## Não vejo nada na lista
 

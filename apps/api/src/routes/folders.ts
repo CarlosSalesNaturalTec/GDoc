@@ -36,6 +36,11 @@ import {
 } from '../lib/folder-tree.js';
 import { canReorganize, hasAccess, isAdminOfUnit, visibleResourceClause } from '../lib/access.js';
 import {
+  buildVisitBreadcrumb,
+  listVisitContents,
+  withSharedResource,
+} from '../lib/cross-unit-share.js';
+import {
   fileSummaryColumns,
   nonObsoleteClause,
   visibleRegistrationClause,
@@ -429,6 +434,38 @@ export function foldersRouter(ports: Ports): Router {
       });
 
       if (outcome.status !== 200) {
+        // Segundo caminho (change `compartilhamento-entre-unidades`,
+        // design.md D6): pasta coberta por compartilhamento entre unidades —
+        // navegação somente leitura, trilha a partir da raiz compartilhada.
+        // Sem compartilhamento, a mesma recusa de antes.
+        const shared = await withSharedResource(
+          ports,
+          ctx,
+          GrantResourceType.FOLDER,
+          req.params.id,
+          Permission.VIEW,
+          async (scope, resource) => {
+            if (resource.type !== GrantResourceType.FOLDER) return null;
+            const breadcrumb = await buildVisitBreadcrumb(scope, ctx, resource.row);
+            const { folders, files } = await listVisitContents(scope, resource.row.id);
+            return {
+              folder: toFolderResponse(resource.row),
+              breadcrumb: breadcrumb.map(toFolderResponse),
+              folders: folders.map(toFolderListItemResponse),
+              files: files.map(toFileSummaryResponse),
+              canUpload: false,
+              favoriteFolderIds: [],
+              favoriteFileIds: [],
+              readOnly: true,
+              sharedFrom: { unitId: scope.originUnitId, unitName: scope.originUnitName },
+              canDownload: await scope.covers(Permission.DOWNLOAD),
+            };
+          },
+        );
+        if (shared?.value) {
+          res.json(shared.value);
+          return;
+        }
         res.status(outcome.status).json({ error: 'forbidden' });
         return;
       }

@@ -4,6 +4,10 @@ import type {
   AuthenticatedIdentity,
   BatchUploadItemResult,
   BatchUploadUrlResponse,
+  CrossUnitDestinationListResponse,
+  CrossUnitGrantListResponse,
+  CrossUnitGrantResponse,
+  CrossUnitRecipientListResponse,
   DashboardResponse,
   FileRestoreResponse,
   FileSummaryResponse,
@@ -216,6 +220,16 @@ export const folderContentsResponseSchema: z.ZodType<FolderContentsResponse> = z
   // resposta inteira ser recusada.
   favoriteFolderIds: z.array(z.string()).optional().catch(undefined),
   favoriteFileIds: z.array(z.string()).optional().catch(undefined),
+  // Navegação somente leitura em pasta compartilhada por outra unidade
+  // (change `compartilhamento-entre-unidades`, design.md D6). Ausentes numa
+  // API anterior: listagem comum.
+  readOnly: z.boolean().optional().catch(undefined),
+  sharedFrom: z
+    .object({ unitId: z.string(), unitName: z.string() })
+    .nullable()
+    .optional()
+    .catch(undefined),
+  canDownload: z.boolean().optional().catch(undefined),
 });
 
 /** Espelha `SignedUrlResponse` (design.md D7, `web-visualizacao`). */
@@ -327,6 +341,9 @@ export const newDocumentsCountResponseSchema: z.ZodType<NewDocumentsCountRespons
 export const authorPersonSchema = z.object({
   id: z.string(),
   fullName: z.string().nullable(),
+  // Unidade da pessoa: a concessão comum só aceita pessoas da unidade do
+  // recurso (change `compartilhamento-entre-unidades`, design.md D10).
+  unitId: z.string().optional().catch(undefined),
 });
 export const authorPersonListSchema = z.array(authorPersonSchema);
 
@@ -457,6 +474,8 @@ export const unitResponseSchema: z.ZodType<UnitResponse> = z.object({
   name: z.string(),
   status: z.enum([UnitStatus.ACTIVE, UnitStatus.DISABLED]),
   createdAt: z.string(),
+  // SEDE (change `compartilhamento-entre-unidades`, design.md D11).
+  isHeadquarters: z.boolean().optional().catch(undefined),
 });
 
 /** Espelha a listagem de `GET /units`. */
@@ -557,7 +576,10 @@ export const auditQueryResponseSchema: z.ZodType<AuditQueryResponse> = z.object(
       actor: z.object({
         id: z.string(),
         name: z.string().nullable(),
-        email: z.string(),
+        // Nulo para quem acessou vindo de outra unidade (design.md D9 de
+        // `compartilhamento-entre-unidades`), com a unidade em `unitName`.
+        email: z.string().nullable(),
+        unitName: z.string().nullable().optional(),
       }),
       action: z.enum(['view', 'download']),
       createdAt: z.string(),
@@ -669,6 +691,8 @@ export const sharedWithMeItemResponseSchema: z.ZodType<SharedWithMeItemResponse>
   permissions: z.array(sharedPermissionResponseSchema),
   sharedAt: z.string(),
   file: fileSummaryResponseSchema.nullable(),
+  // Unidade de origem do compartilhamento entre unidades (design.md D12).
+  originUnit: z.object({ id: z.string(), name: z.string() }).nullable().optional().catch(undefined),
 });
 
 /** Espelha `SharedWithMeResponse` — `GET /grants/received`. */
@@ -691,3 +715,47 @@ export const favoriteItemResponseSchema: z.ZodType<FavoriteItemResponse> = z.obj
 export const favoritesResponseSchema: z.ZodType<FavoritesResponse> = z.object({
   items: z.array(favoriteItemResponseSchema),
 });
+
+/**
+ * Compartilhamento entre unidades (change `compartilhamento-entre-unidades`,
+ * design.md D7/D8) — fronteiras de `/grants/cross-unit*`.
+ */
+export const crossUnitGrantResponseSchema: z.ZodType<CrossUnitGrantResponse> = z.object({
+  id: z.string(),
+  unitId: z.string(),
+  resourceType: z.enum([GrantResourceType.FOLDER, GrantResourceType.FILE]),
+  resourceId: z.string(),
+  subjectUnitId: z.string(),
+  subjectUnitName: z.string().nullable(),
+  subjectUserId: z.string().nullable(),
+  subjectUserName: z.string().nullable(),
+  permission: z.enum(['view', 'download']),
+  grantedBy: z.string(),
+  createdAt: z.string(),
+  expiresAt: z.string().nullable(),
+  expired: z.boolean(),
+});
+
+export const crossUnitGrantListResponseSchema: z.ZodType<CrossUnitGrantListResponse> = z.object({
+  grants: z.array(crossUnitGrantResponseSchema),
+});
+
+export const crossUnitDestinationListResponseSchema: z.ZodType<CrossUnitDestinationListResponse> =
+  z.object({
+    headquartersDefined: z.boolean(),
+    destinations: z.array(
+      z.object({ id: z.string(), name: z.string(), isHeadquarters: z.boolean() }),
+    ),
+  });
+
+export const crossUnitRecipientListResponseSchema: z.ZodType<CrossUnitRecipientListResponse> =
+  z.object({
+    recipients: z.array(
+      z.object({
+        id: z.string(),
+        fullName: z.string().nullable(),
+        jobTitle: z.string().nullable(),
+        sectorName: z.string().nullable(),
+      }),
+    ),
+  });

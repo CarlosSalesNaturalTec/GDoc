@@ -61,3 +61,10 @@ você fez a troca.
 "Colaboradores" e "Painel" são exclusivos de administradores, e "Unidades" é exclusivo do
 administrador global. Se você precisa deles, converse com a área administrativa sobre
 o seu perfil.
+
+**Concedi acesso a alguém de outra unidade e não funciona.**
+A concessão comum (o formulário principal de **Permissões**) vale só dentro da
+unidade do item. Para liberar a alguém de outra unidade, use **Compartilhar com
+outra unidade**, no mesmo diálogo — ver
+[Compartilhar com outra unidade](../administrador/permissoes.md#compartilhar-com-outra-unidade).
+Esse compartilhamento sempre envolve a SEDE e é somente leitura.

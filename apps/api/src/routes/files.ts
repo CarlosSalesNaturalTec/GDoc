@@ -31,6 +31,7 @@ import type {
 import { config } from '../config.js';
 import { ensureFolderPath, findFolderById, validateAnchor } from '../lib/folder-tree.js';
 import { canReorganize, hasAccess } from '../lib/access.js';
+import { withSharedResource } from '../lib/cross-unit-share.js';
 import {
   FILE_DERIVED_COLUMNS,
   CONTROL_FIELD_COLUMN,
@@ -203,6 +204,42 @@ export function filesRouter(ports: Ports): Router {
       // Dono-ou-grant `view` (design.md D2): sem posse nem o verbo, nenhuma
       // URL é emitida e nenhuma auditoria é gravada (US 4.2, fail-closed).
       if (!file) {
+        // Segundo caminho (change `compartilhamento-entre-unidades`,
+        // design.md D4): compartilhamento entre unidades vigente. Assinatura
+        // e auditoria acontecem **dentro** da visita confirmada; sem ela, a
+        // resposta é exatamente a de antes.
+        const shared = await withSharedResource(
+          ports,
+          ctx,
+          GrantResourceType.FILE,
+          req.params.id,
+          Permission.VIEW,
+          async (scope, resource) => {
+            if (resource.type !== GrantResourceType.FILE) return null;
+            const visitFile = resource.row;
+            if (!isPreviewable(visitFile.content_type)) {
+              const notPreviewable: ViewUrlResponse = {
+                previewAvailable: false,
+                reason: 'unsupported_format',
+                download: { available: await scope.covers(Permission.DOWNLOAD) },
+              };
+              return notPreviewable;
+            }
+            await scope.recordAudit(visitFile.id, FileAccessAction.VIEW);
+            const signed = await ports.storage.getViewUrl(visitFile.object_path);
+            const previewable: ViewUrlResponse = {
+              previewAvailable: true,
+              url: signed.url,
+              expiresAt: signed.expiresAt.toISOString(),
+              action: FileAccessAction.VIEW,
+            };
+            return previewable;
+          },
+        );
+        if (shared?.value) {
+          res.json(shared.value);
+          return;
+        }
         res.status(403).json({ error: 'forbidden' });
         return;
       }
@@ -241,6 +278,31 @@ export function filesRouter(ports: Ports): Router {
       const ctx = req.tenantContext!;
       const file = await findAccessibleFile(ports, ctx, req.params.id, Permission.DOWNLOAD);
       if (!file) {
+        // Segundo caminho: compartilhamento entre unidades (design.md D4).
+        const shared = await withSharedResource(
+          ports,
+          ctx,
+          GrantResourceType.FILE,
+          req.params.id,
+          Permission.DOWNLOAD,
+          async (scope, resource) => {
+            if (resource.type !== GrantResourceType.FILE) return null;
+            await scope.recordAudit(resource.row.id, FileAccessAction.DOWNLOAD);
+            const signed = await ports.storage.getDownloadUrl(
+              resource.row.object_path,
+              resource.row.file_name,
+            );
+            return {
+              url: signed.url,
+              expiresAt: signed.expiresAt.toISOString(),
+              action: FileAccessAction.DOWNLOAD,
+            };
+          },
+        );
+        if (shared?.value) {
+          res.json(shared.value);
+          return;
+        }
         res.status(403).json({ error: 'forbidden' });
         return;
       }
