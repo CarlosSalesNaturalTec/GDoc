@@ -50,9 +50,16 @@ resource "google_cloud_run_v2_job" "trash_purge" {
       }
 
       containers {
-        image   = var.api_image
+        image = var.api_image
+        # Caminho relativo ao WORKDIR `/app` do Dockerfile, que copia o build
+        # da API para `/app/apps/api/dist` — mesma forma do CMD
+        # (`apps/api/dist/server.js`) e dos Jobs de migração e bootstrap.
+        # Estava `dist/jobs/...`, que não existe: o Job falharia com "Cannot
+        # find module" TODA noite, e passou despercebido porque Job com a
+        # imagem placeholder falha antes de chegar ao módulo (change
+        # correcoes-herdadas-do-fork).
         command = ["node"]
-        args    = ["dist/jobs/purge-trash.js"]
+        args    = ["apps/api/dist/jobs/purge-trash.js"]
 
         resources {
           limits = {
@@ -120,6 +127,21 @@ resource "google_cloud_run_v2_job" "trash_purge" {
     }
   }
 
+  # O provider google 6.x introduziu `deletion_protection` com default `true`
+  # em Cloud Run v2, e é uma trava DO TERRAFORM (não existe campo equivalente
+  # na API do Cloud Run). Nos Jobs ela só atrapalha: Job não guarda dado algum
+  # e destruir/recriar é gratuito. Pior, ela cria um impasse quando um `create`
+  # falha na espera de prontidão: o recurso fica `tainted`, o apply seguinte
+  # planeja SUBSTITUIR, e o destroy é recusado — `cannot destroy job without
+  # setting deletion_protection=false`. Como o provider lê a flag do STATE, não
+  # da configuração, mudar isto aqui não desfaz um impasse já instalado (aí é
+  # `terraform untaint` ou `state rm`); serve para não haver o próximo.
+  # Deliberadamente NÃO replicado no Cloud Run Service da API (cloud_run.tf),
+  # onde o default `true` é rede de segurança desejável: o serviço é o endpoint
+  # de produção, e destruí-lo é indisponibilidade, não recriação barata.
+  # Change correcoes-herdadas-do-fork; runbook, Armadilha 7.
+  deletion_protection = false
+
   lifecycle {
     # Mesmo racional do Cloud Run Service (cloud_run.tf): a imagem publicada
     # pelo CI/CD não deve ser revertida por um `terraform apply` seguinte.
@@ -129,6 +151,16 @@ resource "google_cloud_run_v2_job" "trash_purge" {
   depends_on = [
     google_project_service.required,
     google_secret_manager_secret_version.database_url,
+    # O Cloud Run valida o acesso da service account ao secret NO MOMENTO da
+    # criação do Job, e `version = "latest"` é resolvido ali. Sem esta aresta,
+    # o Terraform cria o Job em paralelo com a própria concessão e a criação
+    # falha com `Error code 9 ... Permission denied on secret ... The service
+    # account used must be granted the 'Secret Manager Secret Accessor' role`.
+    # É corrida, não configuração ausente: a concessão existe logo acima. Este
+    # Job tem service account PRÓPRIA, criada na mesma camada do grafo, então
+    # não herda nenhuma aresta de ordenação por acaso (change
+    # correcoes-herdadas-do-fork; runbook, Armadilha 6).
+    google_secret_manager_secret_iam_member.trash_purge_database_url,
   ]
 }
 
@@ -216,7 +248,7 @@ resource "google_cloud_run_v2_job" "notify_expiring_grants" {
       containers {
         image   = var.api_image
         command = ["node"]
-        args    = ["dist/jobs/notify-expiring-grants.js"]
+        args    = ["apps/api/dist/jobs/notify-expiring-grants.js"]
 
         resources {
           limits = {
@@ -282,6 +314,21 @@ resource "google_cloud_run_v2_job" "notify_expiring_grants" {
     }
   }
 
+  # O provider google 6.x introduziu `deletion_protection` com default `true`
+  # em Cloud Run v2, e é uma trava DO TERRAFORM (não existe campo equivalente
+  # na API do Cloud Run). Nos Jobs ela só atrapalha: Job não guarda dado algum
+  # e destruir/recriar é gratuito. Pior, ela cria um impasse quando um `create`
+  # falha na espera de prontidão: o recurso fica `tainted`, o apply seguinte
+  # planeja SUBSTITUIR, e o destroy é recusado — `cannot destroy job without
+  # setting deletion_protection=false`. Como o provider lê a flag do STATE, não
+  # da configuração, mudar isto aqui não desfaz um impasse já instalado (aí é
+  # `terraform untaint` ou `state rm`); serve para não haver o próximo.
+  # Deliberadamente NÃO replicado no Cloud Run Service da API (cloud_run.tf),
+  # onde o default `true` é rede de segurança desejável: o serviço é o endpoint
+  # de produção, e destruí-lo é indisponibilidade, não recriação barata.
+  # Change correcoes-herdadas-do-fork; runbook, Armadilha 7.
+  deletion_protection = false
+
   lifecycle {
     ignore_changes = [template[0].template[0].containers[0].image]
   }
@@ -289,6 +336,10 @@ resource "google_cloud_run_v2_job" "notify_expiring_grants" {
   depends_on = [
     google_project_service.required,
     google_secret_manager_secret_version.database_url,
+    # Mesma aresta, mesmo motivo do Job de expurgo acima: sem ela a criação
+    # do Job corre contra a concessão de secretAccessor da sua própria service
+    # account (change correcoes-herdadas-do-fork).
+    google_secret_manager_secret_iam_member.notify_expiring_grants_database_url,
   ]
 }
 
@@ -370,7 +421,11 @@ resource "google_cloud_run_v2_job" "notify_readings" {
       containers {
         image   = var.api_image
         command = ["node"]
-        args    = ["dist/jobs/notify-readings.js"]
+        # Caminho relativo ao WORKDIR `/app` do Dockerfile — mesma forma dos
+        # Jobs de expurgo e de avisos de permissão acima. `dist/jobs/...` não
+        # existe na imagem: o Job falharia com "Cannot find module" toda noite
+        # às 03:45, em silêncio (change correcoes-herdadas-do-fork).
+        args = ["apps/api/dist/jobs/notify-readings.js"]
 
         resources {
           limits = {
@@ -432,6 +487,11 @@ resource "google_cloud_run_v2_job" "notify_readings" {
     }
   }
 
+  # Mesmo racional dos Jobs de expurgo e de avisos de permissão: Job não guarda
+  # dado, e com o default `true` um `create` que falha na espera vira impasse
+  # (runbook, Armadilha 7; change correcoes-herdadas-do-fork).
+  deletion_protection = false
+
   lifecycle {
     ignore_changes = [template[0].template[0].containers[0].image]
   }
@@ -439,6 +499,11 @@ resource "google_cloud_run_v2_job" "notify_readings" {
   depends_on = [
     google_project_service.required,
     google_secret_manager_secret_version.database_url,
+    # Mesma aresta dos outros Jobs agendados: sem ela, o Job é criado em
+    # paralelo com a concessão de secretAccessor da sua própria service account
+    # e a criação falha com `Error code 9 ... Permission denied on secret`
+    # (runbook, Armadilha 6; change correcoes-herdadas-do-fork).
+    google_secret_manager_secret_iam_member.notify_readings_database_url,
   ]
 }
 
