@@ -26,6 +26,12 @@ theme:
     - search.suggest
     - content.action.edit
 
+# Caixas de aviso (`!!! note`, `!!! warning`…): 34 delas em 13 páginas eram
+# renderizadas como texto literal, porque a extensão nunca foi habilitada
+# (change correcoes-herdadas-do-fork).
+markdown_extensions:
+  - admonition
+
 nav:
   - Início: index.md
   - Primeiro acesso: primeiro-acesso.md
