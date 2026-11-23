@@ -9,14 +9,14 @@ on:
     branches: [main]
     types: [completed]
 
-  # Disparo manual (change implantacao-fortesaude). O caminho normal é o
+  # Disparo manual (change correcoes-herdadas-do-fork). O caminho normal é o
   # `workflow_run` acima; este existe porque o evento pode SE PERDER, e aí não
-  # havia nenhuma saída. O caso real: o GitHub desabilita workflows num fork
-  # que já continha arquivos de workflow, então o push na `main` aconteceu com
-  # os três workflows bloqueados — e habilitá-los depois **não** reexecuta o
-  # evento perdido. Sem disparo manual, a implantação ficava presa na imagem
-  # placeholder do Cloud Run, com o Actions silencioso. Também serve para
-  # reimplantar a `main` corrente sem inventar um commit.
+  # haveria saída. Caso típico: o GitHub desabilita os workflows de um fork
+  # recém-criado (implantação por cliente), então o push na `main` acontece com
+  # os workflows bloqueados — e habilitá-los depois **não** reexecuta o evento
+  # perdido; a implantação fica presa na imagem placeholder do Cloud Run, com o
+  # Actions silencioso (runbook, Armadilha 4). Também serve para reimplantar a
+  # `main` corrente sem inventar um commit.
   workflow_dispatch:
 
 concurrency:
@@ -178,9 +178,9 @@ jobs:
       # Alinha à imagem recém-implantada os demais Jobs que reusam a imagem da
       # aplicação — bootstrap e os agendados (change
       # deploy-atualiza-jobs-agendados). Antes, só o de migração avançava, e os
-      # outros ficavam na imagem com que nasceram até um `gcloud` manual: foi o
-      # que quebrou o bootstrap na Fase 4 e deixou o notify-readings no
-      # placeholder em 23/11/2026.
+      # outros ficavam na imagem com que nasceram até um `gcloud` manual — o
+      # que quebra o bootstrap (runbook, Fase 4) e deixa Job novo na imagem
+      # placeholder.
       #
       # DEPOIS do deploy (design.md D3): falha aqui não impede o serviço de
       # receber a correção; deixa o workflow vermelho, nomeando o Job. Só
