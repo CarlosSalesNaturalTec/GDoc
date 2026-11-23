@@ -19,6 +19,13 @@ projeto GCP nem credenciais, onde só `terraform validate`/`fmt` rodavam;
 três ajustes que só a API real revelou). A API ainda sobe com a imagem
 placeholder pública até o CI/CD publicar a imagem real — ver "Uso" abaixo.
 
+**Procedimento passo a passo** — de um projeto vazio até o primeiro login, e
+para atualizar uma implantação no ar — está em
+[`docs/runbook-implantacao.md`](../../docs/runbook-implantacao.md), com as
+armadilhas que falham em silêncio (CORS com duas URLs, ordem do OIDC do
+Pub/Sub, `deletion_protection` dos Jobs, assinatura que expira, checklist de
+Job novo). Este README guarda as **decisões**; o runbook, a **ordem**.
+
 ## Pré-requisitos
 
 - Um projeto GCP existente, com billing habilitado.
@@ -326,17 +333,19 @@ recriadas, mas não remove o que já foi criado antes dela existir.
   em reexecuções. Não é agendado — sempre `gcloud run jobs execute` manual
   (ver seção "Bootstrap do administrador global" acima). Mesmo racional de
   imagem "não avança sozinho" do Job de expurgo, abaixo.
-- **A imagem dos demais Jobs não é redeployada automaticamente pelo CI/CD —
-  só a do Job de migração.** `.github/workflows/deploy.yml` faz
-  `gcloud run deploy` do **serviço** (API) a cada push em `main` e, antes
-  disso, `gcloud run jobs update --image` + `execute --wait` no Job de
-  migração (abaixo). Os demais Jobs (expurgo, bootstrap) só pegam uma imagem
-  nova quando o Terraform for reaplicado (o `lifecycle.ignore_changes` em
-  `containers[0].image` evita que um `apply` de rotina reverta uma imagem já
-  publicada, mas também significa que eles não avançam sozinhos). Mantê-los
-  atualizados hoje exige `terraform apply` manual apontando `var.api_image`
-  para a tag desejada, ou estender o CI/CD para também rodar
-  `gcloud run jobs deploy` neles — fora de escopo desta mudança.
+- **A imagem dos demais Jobs acompanha a do serviço a cada deploy (change
+  `deploy-atualiza-jobs-agendados`).** `.github/workflows/deploy.yml` faz
+  `gcloud run jobs update --image` + `execute --wait` no Job de migração antes
+  do `gcloud run deploy` do serviço e, **depois** dele, só `update --image`
+  (nunca `execute`) em cada Job da lista `GCP_DEPLOY_UPDATED_JOBS` — bootstrap,
+  expurgo e avisos. A lista sai do mapa `deploy_updated_jobs` (`locals.tf`),
+  origem única também das permissões do deployer sobre esses Jobs (`cicd.tf`).
+  `terraform apply` **não** atualiza a imagem: o `lifecycle.ignore_changes` em
+  `containers[0].image` (que impede um `apply` de rotina de reverter a imagem
+  publicada) ignora o atributo nos dois sentidos, então mudar `var.api_image`
+  não produz diff. Fora do deploy, o caminho é `gcloud run jobs update
+--image`. Job novo segue o checklist da Armadilha 10 do runbook (change
+  `correcoes-herdadas-do-fork`).
 - **Job de migração de banco (change `deploy-migrations-e-docs-only`).**
   `${local.name_prefix}-migrate` (`migrate_job.tf`) roda a mesma imagem/SA/
   integração Cloud SQL da API, entrypoint `apps/api/dist/db/migrate.js`
