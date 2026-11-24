@@ -230,6 +230,13 @@ resource "google_cloud_run_v2_service" "api" {
     google_project_service.required,
     google_secret_manager_secret_version.database_url,
     google_secret_manager_secret_version.auth_session_secret,
+    # O Cloud Run valida o acesso da service account aos secrets na criação da
+    # revisão. Estas duas arestas fecham a mesma corrida que derruba os Jobs
+    # agendados num primeiro provisionamento (runbook, Armadilha 6; change
+    # correcoes-herdadas-do-fork): a concessão existe, mas sem dependência
+    # explícita o Terraform pode criar a revisão antes dela.
+    google_secret_manager_secret_iam_member.api_database_url,
+    google_secret_manager_secret_iam_member.api_auth_session_secret,
   ]
 }
 
